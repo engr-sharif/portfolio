@@ -1,0 +1,61 @@
+---
+import Section from './Section.astro';
+import { site } from '../lib/site';
+
+const updated = new Date(site.resumeUpdated).toLocaleDateString('en-US', {
+  month: 'long',
+  year: 'numeric',
+});
+---
+<Section id="about" eyebrow="About">
+  <div class="about">
+    <div class="about__bio" data-reveal>
+      <p class="about__lead">{site.bio}</p>
+      <dl class="about__facts">
+        <div><dt>Role</dt><dd>{site.credential}</dd></div>
+        <div><dt>Based in</dt><dd>{site.location}</dd></div>
+        <div><dt>Email</dt><dd><a href={`mailto:${site.email}`} class="link-underline">{site.email}</a></dd></div>
+      </dl>
+    </div>
+
+    <aside class="about__resume" data-reveal data-reveal-delay="0.1">
+      <h3 style="font-size:var(--text-lg);">Résumé</h3>
+      <p style="color:var(--color-muted);font-size:var(--text-sm);margin:0.5rem 0 1.4rem;">
+        Last updated {updated}.
+      </p>
+      <a href={site.resume} class="btn" download data-magnetic="0.4" data-cursor="hover">
+        Download PDF
+        <span aria-hidden="true">↓</span>
+      </a>
+      <div class="about__links">
+        <a href={site.linkedin} class="link-underline" target="_blank" rel="noopener">LinkedIn ↗</a>
+        <a href={site.github} class="link-underline" target="_blank" rel="noopener">GitHub ↗</a>
+      </div>
+    </aside>
+  </div>
+</Section>
+
+<style>
+  .about { display: grid; gap: clamp(2rem, 5vw, 4rem); }
+  @media (min-width: 860px) {
+    .about { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); align-items: start; }
+  }
+  .about__lead { font-size: var(--text-xl); line-height: 1.5; max-width: 34ch; font-family: var(--font-display); font-weight: 500; }
+  .about__facts {
+    margin-top: 2.4rem;
+    display: grid;
+    gap: 1.2rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-paper) 12%, transparent);
+    padding-top: 1.6rem;
+    max-width: 40rem;
+  }
+  .about__facts dt { color: var(--color-muted); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.12em; }
+  .about__facts dd { margin-top: 0.3rem; }
+  .about__resume {
+    padding: clamp(1.6rem, 3vw, 2.2rem);
+    border-radius: 16px;
+    border: 1px solid color-mix(in srgb, var(--color-paper) 12%, transparent);
+    background: var(--color-ink-soft);
+  }
+  .about__links { display: flex; gap: 1.4rem; margin-top: 1.6rem; font-size: var(--text-sm); }
+</style>
