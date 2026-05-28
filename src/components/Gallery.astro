@@ -1,0 +1,63 @@
+---
+import { Image } from 'astro:assets';
+import Section from './Section.astro';
+import { allGalleryImages, getGalleryImage } from '../lib/images';
+import media from '../content/settings/media.json';
+
+/**
+ * Build-time auto gallery: every image in src/assets/gallery/ becomes an
+ * optimized, lazy-loaded masonry tile. Workflow for Nawaz: drop image → commit
+ * → the Action rebuilds → it appears. No code edits.
+ *
+ * Video: GitHub is a poor video host (100 MB/file hard limit, no CDN). Do NOT
+ * commit large raw video. Videos are external embeds (YouTube/Vimeo) configured
+ * in src/content/settings/media.json (editable via the CMS).
+ */
+const images = allGalleryImages;
+const videos = (media.videos ?? []).filter((v) => v.id || v.url);
+
+function videoHref(v: { provider: string; id: string; url: string }) {
+  if (v.url) return v.url;
+  if (v.provider === 'youtube') return `https://www.youtube.com/watch?v=${v.id}`;
+  if (v.provider === 'vimeo') return `https://vimeo.com/${v.id}`;
+  return '#';
+}
+---
+<Section id="field" eyebrow="From the field" title="Field photography">
+  <p style="color:var(--color-muted);max-width:52ch;margin:-2rem 0 2.5rem;font-size:var(--text-sm);">
+    Sampling, scanning, and monitoring on site. {media.galleryNote}
+  </p>
+
+  {images.length > 0 ? (
+    <div class="gallery">
+      {images.map(({ name, img }) => (
+        <button class="gallery__item" data-lightbox aria-label={`Open field photo ${name}`}>
+          <Image src={img} alt={`Field photo: ${name}`} widths={[300, 600, 900]} sizes="(max-width: 640px) 45vw, 18rem" loading="lazy" />
+        </button>
+      ))}
+    </div>
+  ) : (
+    <p style="color:var(--color-muted);">No field photos yet — drop images into <code>src/assets/gallery/</code>.</p>
+  )}
+
+  {videos.length > 0 && (
+    <div class="gallery-video">
+      {videos.map((v) => {
+        const poster = v.poster ? getGalleryImage(v.poster) : undefined;
+        return (
+          <a class="gallery-video__card" href={videoHref(v)} target="_blank" rel="noopener" aria-label={`Watch: ${v.title}`}>
+            {poster && <Image src={poster} alt={v.title} widths={[400, 800]} sizes="20rem" loading="lazy" />}
+            <span class="gallery-video__play">
+              <span aria-hidden="true">▶</span>
+              {v.title}
+            </span>
+          </a>
+        );
+      })}
+    </div>
+  )}
+</Section>
+
+<script>
+  import '../lib/lightbox';
+</script>

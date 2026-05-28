@@ -349,6 +349,95 @@ a {
 }
 
 /* ==========================================================================
+   GALLERY (masonry via CSS columns) + LIGHTBOX
+   ========================================================================== */
+.gallery {
+  columns: 3 18rem;
+  column-gap: clamp(0.8rem, 2vw, 1.4rem);
+}
+@media (max-width: 640px) { .gallery { columns: 2 9rem; } }
+.gallery__item {
+  display: block;
+  width: 100%;
+  margin: 0 0 clamp(0.8rem, 2vw, 1.4rem);
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--color-ink-soft);
+  break-inside: avoid;
+}
+.gallery__item img {
+  width: 100%;
+  height: auto;
+  display: block;
+  transition: transform 0.6s var(--ease-out-expo), opacity 0.4s;
+}
+.gallery__item:hover img { transform: scale(1.04); }
+
+.gallery-video {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  gap: 1.2rem;
+  margin-top: 2.5rem;
+}
+.gallery-video__card {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border: 1px solid color-mix(in srgb, var(--color-paper) 10%, transparent);
+}
+.gallery-video__card img { width: 100%; height: 100%; object-fit: cover; }
+.gallery-video__play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  background: color-mix(in srgb, var(--color-ink) 40%, transparent);
+  color: var(--color-paper);
+  font-size: var(--text-sm);
+}
+.gallery-video__play span {
+  display: grid;
+  place-content: center;
+  width: 3.4rem;
+  height: 3.4rem;
+  border-radius: 50%;
+  background: var(--color-field);
+  margin: 0 auto 0.6rem;
+}
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: none;
+  place-content: center;
+  padding: clamp(1rem, 5vw, 4rem);
+  --lb-bg: 1;
+  background: color-mix(in srgb, var(--color-ink) calc(var(--lb-bg) * 94%), transparent);
+  backdrop-filter: blur(6px);
+}
+.lightbox.is-open { display: grid; }
+.lightbox__img { max-width: 90vw; max-height: 88vh; border-radius: 10px; object-fit: contain; }
+.lightbox__close {
+  position: absolute;
+  top: 1.2rem;
+  right: 1.4rem;
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--color-paper) 25%, transparent);
+  background: transparent;
+  color: var(--color-paper);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+.lightbox__close:hover { background: var(--color-paper); color: var(--color-ink); }
+
+/* ==========================================================================
    REDUCED MOTION
    Every animation has an instant / simple-fade fallback. Heavy motion that
    ignores this is broken, not impressive.
