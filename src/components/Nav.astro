@@ -1,0 +1,12 @@
+---
+import { nav, site } from '../lib/site';
+import { withBase } from '../lib/path';
+---
+<nav class="site-nav" aria-label="Primary">
+  <a href={withBase()} class="site-nav__brand" data-magnetic="0.25">{site.shortName}</a>
+  <div class="site-nav__links">
+    {nav.map((item) => (
+      <a href={withBase(item.href)} class="link-underline">{item.label}</a>
+    ))}
+  </div>
+</nav>

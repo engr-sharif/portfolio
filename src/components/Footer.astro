@@ -1,0 +1,24 @@
+---
+import { site } from '../lib/site';
+const year = new Date().getFullYear();
+---
+<footer class="site-footer" id="contact">
+  <div class="u-container" style="display:flex;flex-wrap:wrap;gap:2.5rem;justify-content:space-between;align-items:flex-end;">
+    <div style="max-width:32ch;">
+      <p class="section__eyebrow" style="margin-bottom:1rem;">Get in touch</p>
+      <a href={`mailto:${site.email}`} class="link-underline" style="font-family:var(--font-display);font-size:var(--text-xl);">
+        {site.email}
+      </a>
+      <p style="color:var(--color-muted);margin-top:0.75rem;">{site.location}</p>
+    </div>
+    <div style="display:flex;gap:1.5rem;font-size:var(--text-sm);">
+      <a href={site.linkedin} class="link-underline" target="_blank" rel="noopener">LinkedIn</a>
+      <a href={site.github} class="link-underline" target="_blank" rel="noopener">GitHub</a>
+      <a href={`mailto:${site.email}`} class="link-underline">Email</a>
+    </div>
+  </div>
+  <div class="u-container" style="margin-top:3rem;display:flex;justify-content:space-between;color:var(--color-muted);font-size:var(--text-xs);">
+    <span>© {year} {site.shortName}</span>
+    <span>Built with Astro · GSAP · R3F</span>
+  </div>
+</footer>

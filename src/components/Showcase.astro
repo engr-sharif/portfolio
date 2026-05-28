@@ -1,0 +1,46 @@
+---
+import { Image } from 'astro:assets';
+import { getCover } from '../lib/images';
+import { withBase } from '../lib/path';
+import { getFeatured } from '../lib/projects';
+
+const featured = await getFeatured();
+---
+{featured.length > 0 && (
+  <section class="showcase section" data-showcase aria-label="Flagship projects">
+    <div class="u-container" style="margin-bottom:2.5rem;">
+      <p class="section__eyebrow" data-reveal>Flagship work</p>
+      <h2 data-reveal data-reveal-delay="0.05" style="font-size:var(--text-2xl);margin-top:1rem;max-width:20ch;">
+        Scroll through the projects that define the work.
+      </h2>
+    </div>
+
+    <div class="showcase__track">
+      {featured.map((project, i) => {
+        const cover = getCover(project.data.coverImage);
+        return (
+          <a class="showcase__panel" href={withBase(`projects/${project.id}/`)}>
+            {cover && (
+              <Image
+                src={cover}
+                alt={`${project.data.title} — ${project.data.siteType}`}
+                widths={[600, 1000, 1400]}
+                sizes="80vw"
+                loading="lazy"
+              />
+            )}
+            <div class="showcase__overlay">
+              <span class="showcase__index">{String(i + 1).padStart(2, '0')} / {String(featured.length).padStart(2, '0')}</span>
+              <h3 class="showcase__name">{project.data.title}</h3>
+              <p class="showcase__type">{project.data.siteType}</p>
+            </div>
+          </a>
+        );
+      })}
+    </div>
+  </section>
+)}
+
+<script>
+  import '../lib/showcase';
+</script>

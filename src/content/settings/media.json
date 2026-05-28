@@ -1,0 +1,13 @@
+{
+  "galleryNote": "Drop photos into src/assets/gallery/ — they appear automatically on the next build. No code edits needed.",
+  "videos": [
+    {
+      "title": "Field navigation tool — demo",
+      "provider": "youtube",
+      "id": "",
+      "url": "",
+      "poster": "field-01.jpg",
+      "note": "Add a YouTube/Vimeo ID or URL via the CMS. GitHub is a poor video host (100 MB/file limit, no CDN) — never commit large raw video; embed externally."
+    }
+  ]
+}

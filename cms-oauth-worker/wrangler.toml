@@ -1,0 +1,13 @@
+# Cloudflare Worker config for the CMS OAuth proxy.
+# Deploy:  cd cms-oauth-worker && npx wrangler deploy
+#
+# Secrets (NEVER commit these — set them via the CLI):
+#   npx wrangler secret put GITHUB_CLIENT_ID
+#   npx wrangler secret put GITHUB_CLIENT_SECRET
+#
+# (You can instead put a non-secret GITHUB_CLIENT_ID under [vars], but the
+#  CLIENT_SECRET must always be a secret.)
+
+name = "engr-sharif-cms-oauth"
+main = "worker.js"
+compatibility_date = "2024-11-01"

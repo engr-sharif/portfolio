@@ -1,0 +1,515 @@
+@import 'tailwindcss';
+
+/* ==========================================================================
+   DESIGN TOKENS
+   Restrained, professional: near-black / off-white base + ONE field-green
+   accent that quietly nods to environmental work without being literal.
+   ========================================================================== */
+@theme {
+  /* Base palette */
+  --color-ink: #0c0e0d; /* near-black */
+  --color-ink-soft: #161a18;
+  --color-paper: #f4f3ee; /* warm off-white */
+  --color-paper-soft: #e9e7df;
+  --color-muted: #6b716c;
+
+  /* Accent — deep field green */
+  --color-field: #2f6f4e;
+  --color-field-bright: #4ca97b;
+  --color-field-dim: #1d4632;
+
+  /* Type scale (fluid) */
+  --text-xs: clamp(0.72rem, 0.7rem + 0.1vw, 0.78rem);
+  --text-sm: clamp(0.84rem, 0.8rem + 0.2vw, 0.92rem);
+  --text-base: clamp(1rem, 0.96rem + 0.2vw, 1.08rem);
+  --text-lg: clamp(1.2rem, 1.1rem + 0.5vw, 1.4rem);
+  --text-xl: clamp(1.5rem, 1.3rem + 1vw, 2rem);
+  --text-2xl: clamp(2rem, 1.6rem + 2vw, 3rem);
+  --text-3xl: clamp(2.6rem, 1.8rem + 4vw, 4.5rem);
+  --text-hero: clamp(2.8rem, 1.5rem + 7vw, 8rem);
+
+  /* Fonts */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  /* Named easing curves — reuse these everywhere for consistency */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ==========================================================================
+   BASE
+   ========================================================================== */
+:root {
+  color-scheme: dark;
+}
+
+html {
+  /* Lenis drives smooth scroll; keep native off to avoid double-scrolling. */
+  scroll-behavior: auto;
+}
+
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+body {
+  background-color: var(--color-ink);
+  color: var(--color-paper);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: var(--color-field-bright);
+  color: var(--color-ink);
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Visible, accessible focus states for keyboard users. */
+:focus-visible {
+  outline: 2px solid var(--color-field-bright);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ==========================================================================
+   UTILITIES
+   ========================================================================== */
+.sr-skip {
+  position: absolute;
+  left: 1rem;
+  top: -3rem;
+  z-index: 1000;
+  background: var(--color-field);
+  color: var(--color-paper);
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  transition: top 0.2s var(--ease-out-expo);
+}
+.sr-skip:focus { top: 1rem; }
+
+.u-container {
+  width: min(100% - 2.5rem, 80rem);
+  margin-inline: auto;
+}
+
+.u-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* SplitText lines start hidden so there is no flash before JS runs.
+   Reduced-motion users get them revealed immediately (see below). */
+.split-line {
+  overflow: hidden;
+  display: block;
+}
+
+[data-reveal] {
+  will-change: transform, opacity;
+}
+
+/* ==========================================================================
+   CUSTOM CURSOR (pointer devices only; JS never creates it on touch/reduced)
+   ========================================================================== */
+.cursor,
+.cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 9999;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  mix-blend-mode: difference;
+}
+.cursor {
+  width: 6px;
+  height: 6px;
+  background: var(--color-paper);
+}
+.cursor-ring {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--color-paper);
+  transition: width 0.3s var(--ease-out-expo), height 0.3s var(--ease-out-expo),
+    background-color 0.3s var(--ease-out-expo);
+}
+.cursor-ring.is-hover {
+  width: 64px;
+  height: 64px;
+  background: color-mix(in srgb, var(--color-paper) 18%, transparent);
+}
+@media (hover: none), (pointer: coarse) {
+  .cursor,
+  .cursor-ring { display: none !important; }
+}
+
+/* ==========================================================================
+   BUTTONS / LINKS
+   ========================================================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.85em 1.6em;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--text-sm);
+  letter-spacing: 0.01em;
+  background: var(--color-field);
+  color: var(--color-paper);
+  transition: background-color 0.3s var(--ease-out-expo), transform 0.3s var(--ease-out-expo);
+  will-change: transform;
+}
+.btn:hover { background: var(--color-field-bright); color: var(--color-ink); }
+.btn--ghost {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--color-paper) 22%, transparent);
+  color: var(--color-paper);
+}
+.btn--ghost:hover { background: var(--color-paper); color: var(--color-ink); }
+
+.link-underline {
+  position: relative;
+}
+.link-underline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.4s var(--ease-out-expo);
+}
+.link-underline:hover::after { transform: scaleX(1); transform-origin: left; }
+
+/* ==========================================================================
+   NAV / FOOTER
+   ========================================================================== */
+.site-nav {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem clamp(1.25rem, 4vw, 3rem);
+  mix-blend-mode: difference;
+}
+.site-nav__brand { font-family: var(--font-display); font-weight: 600; font-size: var(--text-base); }
+.site-nav__links { display: flex; gap: clamp(0.9rem, 2vw, 2rem); font-size: var(--text-sm); }
+@media (max-width: 640px) {
+  .site-nav__links { gap: 0.9rem; font-size: var(--text-xs); }
+}
+
+.site-footer {
+  border-top: 1px solid color-mix(in srgb, var(--color-paper) 12%, transparent);
+  padding: clamp(3rem, 8vw, 6rem) 0 2.5rem;
+  margin-top: clamp(4rem, 12vw, 10rem);
+}
+
+/* ==========================================================================
+   SECTION primitive
+   ========================================================================== */
+.section { padding-block: clamp(4rem, 12vw, 9rem); position: relative; z-index: 2; }
+.section__eyebrow {
+  color: var(--color-field-bright);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+}
+.section__eyebrow::before {
+  content: '';
+  width: 1.8rem;
+  height: 1px;
+  background: var(--color-field-bright);
+}
+
+/* ==========================================================================
+   PROJECT DASHBOARD
+   ========================================================================== */
+.filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: clamp(1.8rem, 4vw, 3rem);
+}
+.filter__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.55em 1.1em;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-paper) 16%, transparent);
+  background: transparent;
+  color: var(--color-paper-soft);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: background-color 0.3s var(--ease-out-expo), color 0.3s var(--ease-out-expo),
+    border-color 0.3s var(--ease-out-expo);
+}
+.filter__btn:hover { border-color: var(--color-field-bright); }
+.filter__btn.is-active {
+  background: var(--color-field-bright);
+  color: var(--color-ink);
+  border-color: var(--color-field-bright);
+}
+.filter__count {
+  font-size: var(--text-xs);
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  gap: clamp(1.2rem, 2.5vw, 2rem);
+}
+.is-filtered-out { display: none !important; }
+
+/* ==========================================================================
+   PINNED HORIZONTAL SHOWCASE
+   ========================================================================== */
+.showcase { position: relative; }
+.showcase__track {
+  display: flex;
+  gap: clamp(1.5rem, 4vw, 3rem);
+  width: max-content;
+  padding-inline: clamp(1.25rem, 4vw, 3rem);
+  will-change: transform;
+}
+.showcase__panel {
+  position: relative;
+  width: min(80vw, 46rem);
+  height: 70vh;
+  border-radius: 18px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid color-mix(in srgb, var(--color-paper) 10%, transparent);
+}
+.showcase__panel img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.showcase__overlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  background: linear-gradient(transparent, color-mix(in srgb, var(--color-ink) 92%, transparent));
+}
+.showcase__index { color: var(--color-field-bright); font-family: var(--font-display); font-size: var(--text-sm); }
+.showcase__name { font-size: var(--text-xl); margin-top: 0.4rem; }
+.showcase__type { color: var(--color-paper-soft); font-size: var(--text-sm); margin-top: 0.4rem; }
+/* On touch / no-JS the track simply scrolls horizontally — no pin/jank. */
+@media (max-width: 800px) {
+  .showcase__track { overflow-x: auto; scroll-snap-type: x mandatory; }
+  .showcase__panel { scroll-snap-align: center; width: 86vw; height: 58vh; }
+}
+
+/* ==========================================================================
+   GALLERY (masonry via CSS columns) + LIGHTBOX
+   ========================================================================== */
+.gallery {
+  columns: 3 18rem;
+  column-gap: clamp(0.8rem, 2vw, 1.4rem);
+}
+@media (max-width: 640px) { .gallery { columns: 2 9rem; } }
+.gallery__item {
+  display: block;
+  width: 100%;
+  margin: 0 0 clamp(0.8rem, 2vw, 1.4rem);
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--color-ink-soft);
+  break-inside: avoid;
+}
+.gallery__item img {
+  width: 100%;
+  height: auto;
+  display: block;
+  transition: transform 0.6s var(--ease-out-expo), opacity 0.4s;
+}
+.gallery__item:hover img { transform: scale(1.04); }
+
+.gallery-video {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  gap: 1.2rem;
+  margin-top: 2.5rem;
+}
+.gallery-video__card {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border: 1px solid color-mix(in srgb, var(--color-paper) 10%, transparent);
+}
+.gallery-video__card img { width: 100%; height: 100%; object-fit: cover; }
+.gallery-video__play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  background: color-mix(in srgb, var(--color-ink) 40%, transparent);
+  color: var(--color-paper);
+  font-size: var(--text-sm);
+}
+.gallery-video__play span {
+  display: grid;
+  place-content: center;
+  width: 3.4rem;
+  height: 3.4rem;
+  border-radius: 50%;
+  background: var(--color-field);
+  margin: 0 auto 0.6rem;
+}
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: none;
+  place-content: center;
+  padding: clamp(1rem, 5vw, 4rem);
+  --lb-bg: 1;
+  background: color-mix(in srgb, var(--color-ink) calc(var(--lb-bg) * 94%), transparent);
+  backdrop-filter: blur(6px);
+}
+.lightbox.is-open { display: grid; }
+.lightbox__img { max-width: 90vw; max-height: 88vh; border-radius: 10px; object-fit: contain; }
+.lightbox__close {
+  position: absolute;
+  top: 1.2rem;
+  right: 1.4rem;
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--color-paper) 25%, transparent);
+  background: transparent;
+  color: var(--color-paper);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+.lightbox__close:hover { background: var(--color-paper); color: var(--color-ink); }
+
+/* ==========================================================================
+   INTRO LOADER + PAGE WIPE
+   ========================================================================== */
+#intro {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: var(--color-ink);
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+}
+.intro__mask { overflow: hidden; }
+.intro__label {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-3xl);
+  color: var(--color-paper);
+}
+.intro__bar {
+  height: 2px;
+  width: min(40vw, 18rem);
+  margin: 1.5rem auto 0;
+  background: var(--color-field-bright);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+#page-wipe {
+  position: fixed;
+  inset: 0;
+  z-index: 8000;
+  background: var(--color-field-dim);
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Subtle root crossfade for View Transitions (skipped under reduced-motion). */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.35s;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+/* No-JS / reduced-motion: never let the intro trap the page. */
+@media (prefers-reduced-motion: reduce) {
+  #intro { display: none !important; }
+}
+.no-js #intro { display: none !important; }
+
+/* ==========================================================================
+   REDUCED MOTION
+   Every animation has an instant / simple-fade fallback. Heavy motion that
+   ignores this is broken, not impressive.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Make sure JS-hidden content is visible even if scripts are skipped. */
+  [data-reveal],
+  .split-line > * {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

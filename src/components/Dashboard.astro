@@ -1,0 +1,25 @@
+---
+import Section from './Section.astro';
+import ProjectCard from './ProjectCard.astro';
+import ProjectFilter from './ProjectFilter.tsx';
+import { getProjects } from '../lib/projects';
+
+const projects = await getProjects();
+const counts = projects.reduce<Record<string, number>>((acc, p) => {
+  acc[p.data.status] = (acc[p.data.status] ?? 0) + 1;
+  return acc;
+}, {});
+---
+<Section id="work" eyebrow="Project dashboard" title="Selected environmental projects">
+  <p style="color:var(--color-muted);max-width:52ch;margin:-2rem 0 2.5rem;font-size:var(--text-sm);">
+    A live record of characterization, remediation, and quality-assurance work.
+    Status reflects current engagement. All entries use public, high-level
+    descriptions.
+  </p>
+
+  <ProjectFilter counts={counts} client:visible />
+
+  <div class="project-grid" data-reveal-stagger>
+    {projects.map((project) => <ProjectCard project={project} />)}
+  </div>
+</Section>
