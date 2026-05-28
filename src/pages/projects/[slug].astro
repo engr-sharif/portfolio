@@ -1,0 +1,119 @@
+---
+import { render } from 'astro:content';
+import { Image } from 'astro:assets';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCover, getGalleryImage } from '../../lib/images';
+import { getProjects, statusLabel, dateRange } from '../../lib/projects';
+
+export async function getStaticPaths() {
+  const projects = await getProjects();
+  return projects.map((project) => ({
+    params: { slug: project.id },
+    props: { project },
+  }));
+}
+
+const { project } = Astro.props;
+const { data } = project;
+const { Content } = await render(project);
+const cover = getCover(data.coverImage);
+const gallery = data.gallery.map(getGalleryImage).filter(Boolean);
+---
+<BaseLayout title={`${data.title} — ${data.siteType}`} description={data.summary}>
+  <article class="detail">
+    <div class="u-container">
+      <a href="/#work" class="detail__back link-underline">← Back to all projects</a>
+
+      <header class="detail__header" data-reveal>
+        <span class={`card__status card__status--${data.status}`} style="position:static;display:inline-block;">
+          {statusLabel[data.status]}
+        </span>
+        <h1 class="detail__title">{data.title}</h1>
+        <dl class="detail__facts">
+          <div><dt>Client / Site</dt><dd>{data.client}</dd></div>
+          <div><dt>Type</dt><dd>{data.siteType}</dd></div>
+          <div><dt>Role</dt><dd>{data.role}</dd></div>
+          <div><dt>Dates</dt><dd>{dateRange(data.startDate, data.endDate)}</dd></div>
+        </dl>
+        <ul class="card__tags" style="margin-top:1.4rem;">
+          {data.techniques.map((t) => <li>{t}</li>)}
+        </ul>
+      </header>
+    </div>
+
+    {cover && (
+      <div class="u-container">
+        <Image
+          src={cover}
+          alt={`${data.title} — ${data.siteType}`}
+          widths={[600, 1000, 1600, 2000]}
+          sizes="(max-width: 900px) 92vw, 80rem"
+          class="detail__cover"
+          style={`view-transition-name: cover-${project.id}`}
+        />
+      </div>
+    )}
+
+    <div class="u-container detail__bodywrap">
+      <div class="detail__body prose" data-reveal>
+        <Content />
+      </div>
+
+      <aside class="detail__aside" data-reveal>
+        {data.externalLink && (
+          <a href={data.externalLink} class="btn btn--ghost" target="_blank" rel="noopener" data-magnetic="0.3">
+            External reference ↗
+          </a>
+        )}
+        <a href="/#contact" class="btn" data-magnetic="0.3">Discuss this work</a>
+      </aside>
+    </div>
+
+    {gallery.length > 0 && (
+      <div class="u-container">
+        <h2 style="font-size:var(--text-xl);margin:3rem 0 1.5rem;">Field gallery</h2>
+        <div class="project-grid" data-reveal-stagger>
+          {gallery.map((img) => (
+            <Image src={img!} alt={`${data.title} field photo`} widths={[400, 800]} sizes="30vw" loading="lazy" style="border-radius:12px;width:100%;height:auto;" />
+          ))}
+        </div>
+      </div>
+    )}
+  </article>
+</BaseLayout>
+
+<style>
+  .detail { padding-top: 7rem; }
+  .detail__back { display: inline-block; color: var(--color-muted); font-size: var(--text-sm); margin-bottom: 2.5rem; }
+  .detail__title { font-size: var(--text-3xl); margin: 1rem 0 2rem; max-width: 18ch; }
+  .detail__facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    gap: 1.4rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-paper) 12%, transparent);
+    padding-top: 1.6rem;
+    max-width: 56rem;
+  }
+  .detail__facts dt { color: var(--color-muted); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.12em; }
+  .detail__facts dd { margin-top: 0.4rem; font-size: var(--text-base); }
+  .detail__cover { width: 100%; height: auto; border-radius: 18px; margin: clamp(2rem, 6vw, 4rem) 0; aspect-ratio: 16 / 9; object-fit: cover; }
+  .detail__bodywrap { display: grid; grid-template-columns: 1fr; gap: 2.5rem; }
+  @media (min-width: 900px) {
+    .detail__bodywrap { grid-template-columns: minmax(0, 1fr) 18rem; align-items: start; }
+  }
+  .detail__aside { display: flex; flex-direction: column; gap: 0.9rem; position: sticky; top: 6rem; }
+  .prose { max-width: 62ch; line-height: 1.75; color: var(--color-paper-soft); }
+  .prose :global(h2) { font-size: var(--text-xl); margin: 2rem 0 1rem; color: var(--color-paper); }
+  .prose :global(p) { margin-bottom: 1.1rem; }
+  .prose :global(blockquote) {
+    border-left: 2px solid var(--color-field-bright);
+    padding: 0.6rem 1.2rem;
+    margin: 1.5rem 0;
+    color: var(--color-muted);
+    font-size: var(--text-sm);
+    background: color-mix(in srgb, var(--color-field-dim) 30%, transparent);
+    border-radius: 0 8px 8px 0;
+  }
+  .prose :global(strong) { color: var(--color-paper); }
+  .prose :global(a) { color: var(--color-field-bright); text-decoration: underline; }
+</style>
