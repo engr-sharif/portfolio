@@ -23,7 +23,7 @@ media_folder: "src/assets/gallery"
 public_folder: "/src/assets/gallery"
 
 publish_mode: simple
-site_url: https://engr-sharif.github.io
+site_url: https://engr-sharif.github.io/portfolio
 
 collections:
   # ---------------------------------------------------------------- Projects

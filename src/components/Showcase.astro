@@ -1,6 +1,7 @@
 ---
 import { Image } from 'astro:assets';
 import { getCover } from '../lib/images';
+import { withBase } from '../lib/path';
 import { getFeatured } from '../lib/projects';
 
 const featured = await getFeatured();
@@ -18,7 +19,7 @@ const featured = await getFeatured();
       {featured.map((project, i) => {
         const cover = getCover(project.data.coverImage);
         return (
-          <a class="showcase__panel" href={`/projects/${project.id}/`}>
+          <a class="showcase__panel" href={withBase(`projects/${project.id}/`)}>
             {cover && (
               <Image
                 src={cover}

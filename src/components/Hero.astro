@@ -1,5 +1,6 @@
 ---
 import { site } from '../lib/site';
+import { withBase } from '../lib/path';
 import HeroScene from './three/HeroScene.tsx';
 ---
 <section class="hero" aria-label="Introduction">
@@ -14,8 +15,8 @@ import HeroScene from './three/HeroScene.tsx';
     </h1>
     <p class="hero__sub" data-hero-fade>{site.role}</p>
     <div class="hero__cta" data-hero-fade>
-      <a href="/#work" class="btn" data-magnetic="0.4">View the work</a>
-      <a href={site.resume} class="btn btn--ghost" data-magnetic="0.4" download>Download résumé</a>
+      <a href={withBase('#work')} class="btn" data-magnetic="0.4">View the work</a>
+      <a href={withBase(site.resume)} class="btn btn--ghost" data-magnetic="0.4" download>Download résumé</a>
     </div>
   </div>
 

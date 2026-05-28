@@ -1,6 +1,7 @@
 ---
 import { Image } from 'astro:assets';
 import { getCover } from '../lib/images';
+import { withBase } from '../lib/path';
 import { statusLabel, dateRange, type Project } from '../lib/projects';
 
 export interface Props {
@@ -9,7 +10,7 @@ export interface Props {
 const { project } = Astro.props;
 const { data } = project;
 const cover = getCover(data.coverImage);
-const href = `/projects/${project.id}/`;
+const href = withBase(`projects/${project.id}/`);
 ---
 <article
   class="card"

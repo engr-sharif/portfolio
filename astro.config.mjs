@@ -4,18 +4,14 @@ import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 
-// NOTE ON DEPLOY TARGET ----------------------------------------------------
-// This is configured as a GitHub *user site* deploy at the root domain:
-//   site: 'https://engr-sharif.github.io'  +  base: '/'
-//
-// That is correct ONLY if the repo is named exactly `engr-sharif.github.io`.
-// If you deploy from a project repo (e.g. one named `portfolio`), Pages serves
-// the site under a subpath and you MUST change base to '/portfolio/' (or your
-// repo name). Getting base wrong is the #1 cause of broken CSS/asset paths.
+// DEPLOY TARGET: project site at https://engr-sharif.github.io/portfolio/
+// The repo is named `portfolio`, so Pages serves it under the /portfolio/
+// subpath — hence base: '/portfolio/'. All internal links go through the
+// withBase() helper (src/lib/path.ts) so they resolve correctly under the base.
 // --------------------------------------------------------------------------
 export default defineConfig({
   site: 'https://engr-sharif.github.io',
-  base: '/',
+  base: '/portfolio/',
   output: 'static',
   integrations: [react(), sitemap()],
   vite: {

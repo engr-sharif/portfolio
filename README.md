@@ -10,25 +10,22 @@ CMS · TypeScript. Output is 100% static (GitHub Pages — no server runtime).
 
 ---
 
-## ⚠️ Read first: deploy target & `base` path
+## Deploy target & `base` path
 
-This site is configured as a GitHub **user site** at the root domain:
+This site deploys as a GitHub **project site** and is shareable at:
+
+> **https://engr-sharif.github.io/portfolio/**
 
 ```js
 // astro.config.mjs
 site: 'https://engr-sharif.github.io',
-base: '/',
+base: '/portfolio/',   // matches the repo name → served under /portfolio/
 ```
 
-That is correct **only if the repo is named exactly `engr-sharif.github.io`**.
-This repo is currently named `portfolio`, so you must pick one:
-
-| Option | What to do | Result URL |
-| --- | --- | --- |
-| **A (recommended)** | Rename the repo to `engr-sharif.github.io` | `https://engr-sharif.github.io/` |
-| **B** | Set `base: '/portfolio/'` in `astro.config.mjs` | `https://engr-sharif.github.io/portfolio/` |
-
-Getting `base` wrong is the #1 cause of broken CSS/asset paths on Pages.
+All internal links/assets go through `withBase()` (`src/lib/path.ts`) so they
+resolve correctly under the subpath. If you ever rename the repo to
+`engr-sharif.github.io` (a user site at the root domain), just change `base`
+back to `'/'` — everything else keeps working.
 
 ---
 
@@ -151,8 +148,9 @@ astro.config.mjs
 
 These need your own credentials/judgment — they are **not** done in this repo:
 
-1. **Repo name / base path** — rename to `engr-sharif.github.io` *or* set
-   `base: '/portfolio/'` (see the table up top).
+1. **Base path** — already set to `/portfolio/` so the site is shared at
+   `https://engr-sharif.github.io/portfolio/`. (Only change this if you rename
+   the repo to `engr-sharif.github.io`.)
 2. **GitHub → Settings → Pages → Source = "GitHub Actions".** (The workflow in
    `.github/workflows/deploy.yml` deploys on every push to `main`.)
 3. **CMS auth** — create a GitHub OAuth App and deploy the Cloudflare Worker,

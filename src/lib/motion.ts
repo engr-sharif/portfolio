@@ -46,16 +46,20 @@ function initLenis() {
   gsap.ticker.add((time) => lenis.raf(time * 1000));
   gsap.ticker.lagSmoothing(0);
 
-  // Anchor links route through Lenis for smooth in-page jumps.
+  // Same-page hash links route through Lenis for smooth in-page jumps. Works
+  // whether the href is "#work" or a base-prefixed "/portfolio/#work", as long
+  // as it points at the current page.
   document.addEventListener('click', (e) => {
-    const a = (e.target as HTMLElement)?.closest('a[href^="#"]');
+    const a = (e.target as HTMLElement)?.closest('a[href]') as HTMLAnchorElement | null;
     if (!a) return;
-    const id = a.getAttribute('href');
-    if (!id || id === '#') return;
-    const target = document.querySelector(id);
+    const url = new URL(a.href, location.href);
+    if (url.origin !== location.origin || url.pathname !== location.pathname) return;
+    if (!url.hash || url.hash === '#') return;
+    const target = document.querySelector(url.hash);
     if (target) {
       e.preventDefault();
       lenis.scrollTo(target as HTMLElement, { offset: -80 });
+      history.pushState(null, '', url.hash);
     }
   });
 }
