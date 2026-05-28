@@ -1,0 +1,24 @@
+---
+export interface Props {
+  id?: string;
+  eyebrow?: string;
+  title?: string;
+  class?: string;
+}
+const { id, eyebrow, title, class: className = '' } = Astro.props;
+---
+<section id={id} class={`section ${className}`}>
+  <div class="u-container">
+    {(eyebrow || title) && (
+      <header style="margin-bottom:clamp(2rem,5vw,4rem);max-width:48ch;">
+        {eyebrow && <p class="section__eyebrow" data-reveal>{eyebrow}</p>}
+        {title && (
+          <h2 data-reveal data-reveal-delay="0.05" style="font-size:var(--text-2xl);margin-top:1rem;">
+            {title}
+          </h2>
+        )}
+      </header>
+    )}
+    <slot />
+  </div>
+</section>

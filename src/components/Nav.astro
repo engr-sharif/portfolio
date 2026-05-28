@@ -1,0 +1,11 @@
+---
+import { nav, site } from '../lib/site';
+---
+<nav class="site-nav" aria-label="Primary">
+  <a href="/" class="site-nav__brand" data-magnetic="0.25">{site.shortName}</a>
+  <div class="site-nav__links">
+    {nav.map((item) => (
+      <a href={item.href} class="link-underline">{item.label}</a>
+    ))}
+  </div>
+</nav>
