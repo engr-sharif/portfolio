@@ -438,6 +438,60 @@ a {
 .lightbox__close:hover { background: var(--color-paper); color: var(--color-ink); }
 
 /* ==========================================================================
+   INTRO LOADER + PAGE WIPE
+   ========================================================================== */
+#intro {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: var(--color-ink);
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+}
+.intro__mask { overflow: hidden; }
+.intro__label {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-3xl);
+  color: var(--color-paper);
+}
+.intro__bar {
+  height: 2px;
+  width: min(40vw, 18rem);
+  margin: 1.5rem auto 0;
+  background: var(--color-field-bright);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+#page-wipe {
+  position: fixed;
+  inset: 0;
+  z-index: 8000;
+  background: var(--color-field-dim);
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Subtle root crossfade for View Transitions (skipped under reduced-motion). */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.35s;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+/* No-JS / reduced-motion: never let the intro trap the page. */
+@media (prefers-reduced-motion: reduce) {
+  #intro { display: none !important; }
+}
+.no-js #intro { display: none !important; }
+
+/* ==========================================================================
    REDUCED MOTION
    Every animation has an instant / simple-fade fallback. Heavy motion that
    ignores this is broken, not impressive.

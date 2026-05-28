@@ -51,8 +51,15 @@ const ogImage = new URL(image, Astro.site).href;
     />
 
     <ClientRouter />
+    <noscript><style>#intro { display: none !important; }</style></noscript>
   </head>
   <body>
+    {showChrome && (
+      <div id="intro" aria-hidden="true">
+        <div class="intro__mask"><span class="intro__label">Nawaz Sharif</span></div>
+        <div class="intro__bar"></div>
+      </div>
+    )}
     <a href="#main" class="sr-skip">Skip to content</a>
     <div class="u-grain" aria-hidden="true"></div>
     {showChrome && <Nav />}
@@ -66,6 +73,7 @@ const ogImage = new URL(image, Astro.site).href;
       // self-registers astro:page-load, but we also call it once for the
       // very first load in case the event already fired.
       import { bootMotion } from '../lib/motion';
+      import '../lib/intro';
       bootMotion();
     </script>
   </body>
