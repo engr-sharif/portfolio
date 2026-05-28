@@ -45,7 +45,6 @@ function open(trigger: HTMLElement) {
   ov.classList.add('is-open');
   document.documentElement.style.overflow = 'hidden';
   // pause Lenis if present
-  // @ts-expect-error optional global
   window.__lenis?.stop?.();
 
   if (!reduced) {
@@ -64,7 +63,6 @@ function close() {
   if (!overlay) return;
   overlay.classList.remove('is-open');
   document.documentElement.style.overflow = '';
-  // @ts-expect-error optional global
   window.__lenis?.start?.();
   document.removeEventListener('keydown', onKey);
   lastTrigger?.focus();
