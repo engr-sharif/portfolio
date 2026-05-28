@@ -1,0 +1,100 @@
+# ==========================================================================
+# CMS configuration (Sveltia / Decap compatible).
+#
+# AUTH: the GitHub backend needs an OAuth handshake a static host can't do
+# alone. `base_url` must point at the Cloudflare Worker OAuth proxy documented
+# in the README (§ Manual steps). NO client secret lives here or anywhere in
+# the repo — it stays in the Worker's environment variables.
+#
+# LOCAL EDITING: `local_backend: true` lets Nawaz edit on his machine without
+# OAuth — run `npx @sveltia/cms-server` (or `npx decap-server`) + `npm run dev`,
+# then open http://localhost:4321/admin/.
+# ==========================================================================
+backend:
+  name: github
+  repo: engr-sharif/portfolio   # if the repo is renamed to engr-sharif.github.io, update this
+  branch: main
+  base_url: https://REPLACE-WITH-YOUR-WORKER.workers.dev  # Cloudflare Worker OAuth proxy
+
+local_backend: true
+
+# Uploaded media land here. Cover/gallery fields below override per-collection.
+media_folder: "src/assets/gallery"
+public_folder: "/src/assets/gallery"
+
+publish_mode: simple
+site_url: https://engr-sharif.github.io
+
+collections:
+  # ---------------------------------------------------------------- Projects
+  - name: projects
+    label: Projects
+    label_singular: Project
+    folder: "src/content/projects"
+    create: true
+    slug: "{{slug}}"
+    format: frontmatter
+    media_folder: "/src/assets/covers"
+    public_folder: "/src/assets/covers"
+    summary: "{{title}} — {{status}}"
+    fields:
+      - { name: title, label: Title, widget: string }
+      - { name: client, label: "Client / Site", widget: string, hint: "Confirm this is cleared for public sharing." }
+      - { name: siteType, label: "Site type", widget: string }
+      - name: status
+        label: Status
+        widget: select
+        options: [active, complete, proposed]
+        default: active
+      - { name: role, label: "Your role", widget: string }
+      - { name: startDate, label: "Start (YYYY-MM)", widget: string, pattern: ['^\d{4}-\d{2}$', "Use YYYY-MM"] }
+      - { name: endDate, label: "End (YYYY-MM)", widget: string, required: false, pattern: ['^\d{4}-\d{2}$', "Use YYYY-MM"] }
+      - { name: summary, label: "Short summary", widget: text }
+      - { name: techniques, label: Techniques, widget: list, default: [] }
+      - { name: coverImage, label: "Cover image", widget: image, required: false, hint: "Stored as a filename; resolved from src/assets/covers." }
+      - { name: gallery, label: "Project gallery", widget: list, required: false, field: { name: image, label: Image, widget: image } }
+      - { name: externalLink, label: "External link", widget: string, required: false }
+      - { name: featured, label: "Featured (showcase)", widget: boolean, default: false }
+      - { name: order, label: "Sort order", widget: number, default: 0, value_type: int }
+      - name: published
+        label: "Published (cleared for public sharing)"
+        widget: boolean
+        default: false
+        hint: "Leave OFF until every site/client detail is confirmed public."
+      - { name: body, label: "Write-up", widget: markdown }
+
+  # -------------------------------------------------------- Site settings
+  - name: settings
+    label: Site Settings
+    files:
+      - name: site
+        label: "About / Contact"
+        file: "src/content/settings/site.json"
+        fields:
+          - { name: name, label: "Full name", widget: string }
+          - { name: shortName, label: "Short name", widget: string }
+          - { name: credential, label: "Credential line", widget: string }
+          - { name: role, label: "Role / subhead", widget: string }
+          - { name: bio, label: Bio, widget: text }
+          - { name: location, label: Location, widget: string }
+          - { name: email, label: Email, widget: string }
+          - { name: linkedin, label: "LinkedIn URL", widget: string }
+          - { name: github, label: "GitHub URL", widget: string }
+          - { name: resume, label: "Résumé path", widget: string, default: "/resume/Sharif_Resume.pdf" }
+          - { name: resumeUpdated, label: "Résumé updated (YYYY-MM-DD)", widget: string }
+      - name: media
+        label: "Gallery & Video"
+        file: "src/content/settings/media.json"
+        fields:
+          - { name: galleryNote, label: "Gallery note", widget: text }
+          - name: videos
+            label: "External videos"
+            widget: list
+            required: false
+            fields:
+              - { name: title, label: Title, widget: string }
+              - { name: provider, label: Provider, widget: select, options: [youtube, vimeo], default: youtube }
+              - { name: id, label: "Video ID", widget: string, required: false }
+              - { name: url, label: "Full URL", widget: string, required: false }
+              - { name: poster, label: "Poster (gallery filename)", widget: string, required: false }
+              - { name: note, label: Note, widget: text, required: false }

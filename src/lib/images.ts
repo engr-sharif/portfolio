@@ -26,10 +26,15 @@ function toMap(modules: Record<string, { default: ImageMetadata }>) {
 export const covers = toMap(coverModules);
 export const galleryImages = toMap(galleryModules);
 
-export const getCover = (name?: string) =>
-  name ? covers.get(name) : undefined;
+// Normalize to a bare filename so we match regardless of how the CMS stores the
+// value (e.g. "sbmm.jpg", "/covers/sbmm.jpg", "src/assets/covers/sbmm.jpg").
+const basename = (s: string) => s.split(/[\\/]/).pop() ?? s;
 
-export const getGalleryImage = (name: string) => galleryImages.get(name);
+export const getCover = (name?: string) =>
+  name ? covers.get(basename(name)) : undefined;
+
+export const getGalleryImage = (name: string) =>
+  galleryImages.get(basename(name));
 
 /** All gallery images sorted by filename — used by the auto gallery. */
 export const allGalleryImages = [...galleryImages.entries()]
