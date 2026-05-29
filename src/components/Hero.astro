@@ -4,11 +4,10 @@ import { withBase } from '../lib/path';
 import HeroScene from './three/HeroScene.tsx';
 ---
 <section class="hero" aria-label="Introduction">
-  <!-- WebGL backdrop (the signature animation). Loads on any device that
-       allows motion; the scene scales its detail down on small screens (see
-       HeroScene) to stay smooth. Reduced-motion users get the CSS gradient
-       fallback below and never load the 3D bundle. -->
-  <HeroScene client:media="(prefers-reduced-motion: no-preference)" />
+  <!-- WebGL backdrop (the signature animation). Loaded on every device so the
+       hero is never a black panel; the scene scales density down on phones and
+       freezes to a still pattern (no animation) under reduced-motion. -->
+  <HeroScene client:visible />
 
   <div class="hero__inner u-container">
     <p class="hero__eyebrow" data-hero-fade>{site.credential} · {site.location.split(',')[0]}</p>
@@ -31,11 +30,11 @@ import HeroScene from './three/HeroScene.tsx';
     position: relative;
     min-height: 100svh;
     overflow: hidden;
-    /* Fallback backdrop shown when the WebGL canvas isn't loaded (mobile /
-       low-power / reduced-motion). Tasteful topographic-ish radial wash. */
+    /* Backdrop behind the particle canvas (and the visible field between
+       points): a dark-green wash, not pure black. */
     background:
-      radial-gradient(120% 80% at 80% -10%, color-mix(in srgb, var(--color-field-dim) 55%, transparent), transparent 60%),
-      radial-gradient(90% 70% at 10% 110%, color-mix(in srgb, var(--color-field) 22%, transparent), transparent 55%),
+      radial-gradient(130% 90% at 78% -10%, color-mix(in srgb, var(--color-field-dim) 80%, transparent), transparent 62%),
+      radial-gradient(100% 80% at 12% 112%, color-mix(in srgb, var(--color-field) 38%, transparent), transparent 58%),
       var(--color-ink);
   }
   .hero-canvas {
