@@ -71,6 +71,34 @@ Markdown write-up here (public, high-level only).
 > **Confidentiality:** a project only appears on the site when `published: true`.
 > Leave it `false` until every site/client detail is cleared for public sharing.
 
+## How to add a blog post
+
+Write from the CMS (`/admin` → **Blog** → New Post) or add a file directly at
+`src/content/blog/<slug>.md`:
+
+```md
+---
+title: "My Post"
+description: "One-line summary (used for the card + SEO, < 200 chars)."
+pubDate: 2026-05-29
+coverImage: "my-cover.jpg"   # filename in src/assets/blog/ (optional)
+coverAlt: "Describe the image"
+tags: ["XRF", "Field methods"]
+category: "technical"        # field-notes | technical | professional
+relatedProject: "sulphur-bank-mercury-mine"   # optional, links to a project
+draft: true                  # ← stays hidden on the live site until false
+---
+
+## A heading
+Markdown body. `##`/`###` headings auto-build the table of contents. Code
+blocks get syntax highlighting + a copy button automatically.
+```
+
+> **Heads up:** the CMS has no separate review step — **Save = publish**. The
+> `draft` flag is the gate: leave it `true` until the post is ready, then flip
+> it to `false`. Reading time is computed automatically; the post appears on
+> `/blog/`, its tag pages, the RSS feed (`/rss.xml`), and the sitemap.
+
 ## How to add gallery media
 
 Drop image files into **`src/assets/gallery/`**, commit, and push. The build

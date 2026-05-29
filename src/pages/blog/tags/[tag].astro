@@ -1,0 +1,34 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import BlogCard from '../../../components/BlogCard.astro';
+import { withBase } from '../../../lib/path';
+import { getPosts, getTags, tagSlug } from '../../../lib/blog';
+
+export async function getStaticPaths() {
+  const tags = await getTags();
+  const posts = await getPosts();
+  return tags.map(({ tag }) => ({
+    params: { tag: tagSlug(tag) },
+    props: {
+      tag,
+      posts: posts.filter((p) => p.data.tags.some((t) => tagSlug(t) === tagSlug(tag))),
+    },
+  }));
+}
+
+const { tag, posts } = Astro.props;
+---
+<BaseLayout title={`#${tag} — Writing`} description={`Posts tagged ${tag}.`}>
+  <section class="blog-hero u-container">
+    <a href={withBase('blog/')} class="link-underline" style="color:var(--color-muted);font-size:var(--text-sm);">← All writing</a>
+    <h1 style="font-size:var(--text-3xl);margin:1.2rem 0 0;">
+      <span style="color:var(--color-field-bright);">#</span>{tag}
+    </h1>
+    <p style="color:var(--color-muted);margin-top:0.5rem;">{posts.length} post{posts.length === 1 ? '' : 's'}</p>
+  </section>
+  <section class="section u-container" style="padding-top:2rem;">
+    <div class="blog-grid" data-reveal-stagger>
+      {posts.map((post) => <BlogCard post={post} />)}
+    </div>
+  </section>
+</BaseLayout>

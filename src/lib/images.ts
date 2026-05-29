@@ -13,6 +13,10 @@ const galleryModules = import.meta.glob<{ default: ImageMetadata }>(
   '../assets/gallery/*.{jpg,jpeg,png,webp,avif}',
   { eager: true },
 );
+const blogModules = import.meta.glob<{ default: ImageMetadata }>(
+  '../assets/blog/*.{jpg,jpeg,png,webp,avif}',
+  { eager: true },
+);
 
 function toMap(modules: Record<string, { default: ImageMetadata }>) {
   const map = new Map<string, ImageMetadata>();
@@ -25,6 +29,7 @@ function toMap(modules: Record<string, { default: ImageMetadata }>) {
 
 export const covers = toMap(coverModules);
 export const galleryImages = toMap(galleryModules);
+export const blogImages = toMap(blogModules);
 
 // Normalize to a bare filename so we match regardless of how the CMS stores the
 // value (e.g. "sbmm.jpg", "/covers/sbmm.jpg", "src/assets/covers/sbmm.jpg").
@@ -35,6 +40,9 @@ export const getCover = (name?: string) =>
 
 export const getGalleryImage = (name: string) =>
   galleryImages.get(basename(name));
+
+export const getBlogImage = (name?: string) =>
+  name ? blogImages.get(basename(name)) : undefined;
 
 /** All gallery images sorted by filename — used by the auto gallery. */
 export const allGalleryImages = [...galleryImages.entries()]

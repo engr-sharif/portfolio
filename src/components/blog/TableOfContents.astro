@@ -1,0 +1,19 @@
+---
+import type { MarkdownHeading } from 'astro';
+interface Props {
+  headings: MarkdownHeading[];
+}
+const { headings } = Astro.props;
+// Only h2/h3 make a useful TOC.
+const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
+---
+{toc.length > 1 && (
+  <div class="post__toc" data-reveal>
+    <p class="section__eyebrow" style="margin-bottom:1rem;">On this page</p>
+    <nav aria-label="Table of contents">
+      {toc.map((h) => (
+        <a href={`#${h.slug}`} data-depth={h.depth} data-toc-link={h.slug}>{h.text}</a>
+      ))}
+    </nav>
+  </div>
+)}
