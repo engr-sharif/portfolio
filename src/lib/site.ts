@@ -18,6 +18,8 @@ export interface SiteSettings {
   github: string;
   resume: string;
   resumeUpdated: string;
+  /** GoatCounter subdomain for privacy-friendly analytics ("" = disabled). */
+  analytics?: string;
 }
 
 export const site = siteJson as SiteSettings;

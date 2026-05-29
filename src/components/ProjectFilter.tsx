@@ -30,6 +30,9 @@ const ProjectFilter: FC<Props> = ({ counts }) => {
   // Only show filters that actually have entries (plus "all").
   const available = ORDER.filter((s) => s === 'all' || (counts[s] ?? 0) > 0);
 
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const shown = active === 'all' ? total : counts[active] ?? 0;
+
   const apply = (status: Status) => {
     setActive(status);
     const cards = gsap.utils.toArray<HTMLElement>('[data-card]');
@@ -77,9 +80,12 @@ const ProjectFilter: FC<Props> = ({ counts }) => {
           onClick={() => apply(s)}
         >
           {LABELS[s]}
-          <span className="filter__count">{s === 'all' ? Object.values(counts).reduce((a, b) => a + b, 0) : counts[s] ?? 0}</span>
+          <span className="filter__count">{s === 'all' ? total : counts[s] ?? 0}</span>
         </button>
       ))}
+      <span aria-live="polite" className="sr-only">
+        Showing {shown} {active === 'all' ? 'projects' : `${LABELS[active].toLowerCase()} projects`}.
+      </span>
     </div>
   );
 };

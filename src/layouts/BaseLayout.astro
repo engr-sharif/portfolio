@@ -1,9 +1,13 @@
 ---
 import '../styles/global.css';
+// Self-hosted variable fonts (no render-blocking Google CDN, no GDPR concern).
+import '@fontsource-variable/inter';
+import '@fontsource-variable/space-grotesk';
 import { ClientRouter } from 'astro:transitions';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
 import { withBase } from '../lib/path';
+import { site } from '../lib/site';
 
 export interface Props {
   title?: string;
@@ -23,6 +27,31 @@ const {
 
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 const ogImage = new URL(withBase(image), Astro.site).href;
+
+// Site-wide Person structured data (EEAT / rich-result signal). Built once on
+// the homepage-level layout; absolute URLs so it's valid under /portfolio/.
+const personLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: site.name,
+  jobTitle: 'Environmental Engineer, EIT',
+  worksFor: { '@type': 'Organization', name: 'Jacobs' },
+  address: { '@type': 'PostalAddress', addressLocality: site.location },
+  url: Astro.site?.href,
+  email: `mailto:${site.email}`,
+  sameAs: [site.linkedin, site.github].filter(Boolean),
+  knowsAbout: [
+    'Environmental characterization',
+    'Site remediation',
+    'PFAS',
+    'Landfill CQA',
+    'Groundwater sampling',
+  ],
+};
+
+// Optional privacy-friendly analytics: set site.analytics to your GoatCounter
+// subdomain (e.g. "engr-sharif") to enable. Empty → no script, no tracking.
+const goatcounter = (site as { analytics?: string }).analytics?.trim();
 ---
 
 <!doctype html>
@@ -35,6 +64,8 @@ const ogImage = new URL(withBase(image), Astro.site).href;
     <script is:inline>document.documentElement.classList.add('js');</script>
     <link rel="icon" href={withBase('favicon.svg')} type="image/svg+xml" />
     <meta name="generator" content={Astro.generator} />
+    <meta name="author" content={site.name} />
+    <meta name="theme-color" content="#0c0e0d" />
 
     <title>{title}</title>
     <meta name="description" content={description} />
@@ -48,16 +79,17 @@ const ogImage = new URL(withBase(image), Astro.site).href;
     <meta property="og:image" content={ogImage} />
     <meta name="twitter:card" content="summary_large_image" />
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <script type="application/ld+json" set:html={JSON.stringify(personLd)} is:inline />
 
     <ClientRouter />
     <noscript><style>#intro { display: none !important; }</style></noscript>
+    {goatcounter && (
+      <script
+        is:inline
+        data-goatcounter={`https://${goatcounter}.goatcounter.com/count`}
+        async
+        src="//gc.zgo.at/count.js"></script>
+    )}
   </head>
   <body>
     {showChrome && (
@@ -82,5 +114,14 @@ const ogImage = new URL(withBase(image), Astro.site).href;
       import '../lib/intro';
       bootMotion();
     </script>
+    {goatcounter && (
+      <script is:inline>
+        // Count client-side (View Transition) navigations too.
+        document.addEventListener('astro:after-swap', () => {
+          // @ts-ignore
+          window.goatcounter?.count?.({ path: location.pathname });
+        });
+      </script>
+    )}
   </body>
 </html>
