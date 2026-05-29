@@ -1,0 +1,62 @@
+---
+import { getProjects } from '../lib/projects';
+
+const projects = await getProjects();
+const techniques = new Set<string>();
+const siteTypes = new Set<string>();
+let earliest = new Date().getFullYear();
+for (const p of projects) {
+  p.data.techniques.forEach((t) => techniques.add(t));
+  siteTypes.add(p.data.siteType);
+  const y = Number(p.data.startDate.split('-')[0]);
+  if (y && y < earliest) earliest = y;
+}
+const years = Math.max(1, new Date().getFullYear() - earliest);
+
+const stats = [
+  { value: projects.length, suffix: '', label: 'Projects documented' },
+  { value: techniques.size, suffix: '', label: 'Field techniques' },
+  { value: siteTypes.size, suffix: '', label: 'Site types' },
+  { value: years, suffix: '+', label: 'Years in the field' },
+];
+---
+<section class="section" aria-label="By the numbers">
+  <div class="u-container">
+    <ul class="stats" data-reveal-stagger>
+      {stats.map((s) => (
+        <li class="stat">
+          <span class="stat__value" data-count={s.value} data-suffix={s.suffix}>0{s.suffix}</span>
+          <span class="stat__label">{s.label}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+
+<style>
+  .stats {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: clamp(1.5rem, 4vw, 3rem);
+    border-block: 1px solid color-mix(in srgb, var(--color-paper) 12%, transparent);
+    padding-block: clamp(2rem, 5vw, 3.5rem);
+  }
+  @media (min-width: 720px) { .stats { grid-template-columns: repeat(4, 1fr); } }
+  .stat { display: flex; flex-direction: column; gap: 0.4rem; }
+  .stat__value {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(2.4rem, 1.6rem + 3vw, 4rem);
+    line-height: 1;
+    color: var(--color-field-bright);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat__label { color: var(--color-muted); font-size: var(--text-sm); }
+</style>
+
+<script>
+  import '../lib/counters';
+</script>
