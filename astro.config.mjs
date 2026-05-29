@@ -4,6 +4,8 @@ import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 
+import cloudflare from '@astrojs/cloudflare';
+
 // DEPLOY TARGET: project site at https://engr-sharif.github.io/portfolio/
 // The repo is named `portfolio`, so Pages serves it under the /portfolio/
 // subpath — hence base: '/portfolio/'. All internal links go through the
@@ -14,11 +16,15 @@ export default defineConfig({
   base: '/portfolio/',
   output: 'static',
   integrations: [react(), sitemap()],
+
   vite: {
     plugins: [tailwindcss()],
   },
+
   image: {
     // Allow Astro's built-in sharp optimization at build time.
     responsiveStyles: true,
   },
+
+  adapter: cloudflare(),
 });
