@@ -95,8 +95,10 @@ function initAnchorScroll() {
       if (!url.hash || url.hash === '#') return;
       if (url.pathname !== location.pathname) return; // different page → let the router navigate
       if (scrollToHash(url.hash)) {
+        // preventDefault is enough for Astro's router to skip a same-page hash
+        // link (it checks defaultPrevented); we deliberately DON'T stop
+        // propagation so other listeners (e.g. mobile-menu close) still fire.
         e.preventDefault();
-        e.stopImmediatePropagation();
         history.pushState(null, '', url.hash);
       }
     },

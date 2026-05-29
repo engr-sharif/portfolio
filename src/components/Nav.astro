@@ -2,11 +2,28 @@
 import { nav, site } from '../lib/site';
 import { withBase } from '../lib/path';
 ---
-<nav class="site-nav" aria-label="Primary">
+<nav class="site-nav" aria-label="Primary" data-nav>
   <a href={withBase()} class="site-nav__brand" data-magnetic="0.25">{site.shortName}</a>
-  <div class="site-nav__links">
+
+  <button
+    type="button"
+    class="nav-toggle"
+    aria-expanded="false"
+    aria-controls="nav-menu"
+    aria-label="Open menu"
+    data-nav-toggle
+  >
+    <span class="nav-toggle__bar"></span>
+    <span class="nav-toggle__bar"></span>
+  </button>
+
+  <div class="site-nav__links" id="nav-menu" data-nav-menu>
     {nav.map((item) => (
-      <a href={withBase(item.href)} class="link-underline">{item.label}</a>
+      <a href={withBase(item.href)} class="link-underline" data-nav-link>{item.label}</a>
     ))}
   </div>
 </nav>
+
+<script>
+  import '../lib/nav';
+</script>
