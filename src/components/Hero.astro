@@ -4,14 +4,14 @@ import { withBase } from '../lib/path';
 import HeroScene from './three/HeroScene.tsx';
 ---
 <section class="hero" aria-label="Introduction">
-  <!-- WebGL backdrop (the one splurge). client:media only hydrates (and only
-       then downloads the ~230KB Three.js chunk) on larger screens with motion
-       allowed — phones, low-power, and reduced-motion users get the CSS
-       gradient fallback below and never pay for the bundle. -->
-  <HeroScene client:media="(min-width: 1024px) and (prefers-reduced-motion: no-preference)" />
+  <!-- WebGL backdrop (the signature animation). Loads on any device that
+       allows motion; the scene itself scales its detail down on small screens
+       (see HeroScene) to stay smooth. Reduced-motion users get the CSS
+       gradient fallback below and never load the 3D bundle. -->
+  <HeroScene client:media="(prefers-reduced-motion: no-preference)" />
 
   <div class="hero__inner u-container">
-    <p class="hero__eyebrow" data-hero-fade>{site.credential}</p>
+    <p class="hero__eyebrow" data-hero-fade>{site.credential} · {site.location.split(',')[0]}</p>
     <h1 class="hero__title" data-hero-title>{site.heroTitle}</h1>
     <p class="hero__sub" data-hero-fade>{site.role}</p>
     <div class="hero__cta" data-hero-fade>

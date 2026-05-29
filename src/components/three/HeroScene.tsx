@@ -10,8 +10,8 @@ import { useRef, useMemo, useState, useEffect, type FC } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
-const COLS = 80;
-const ROWS = 48;
+// Grid density — reduced on small screens so phones stay smooth.
+const DENSITY = { desktop: { cols: 80, rows: 48 }, mobile: { cols: 48, rows: 30 } };
 
 const vertexShader = /* glsl */ `
   uniform float uTime;
@@ -54,15 +54,14 @@ const fragmentShader = /* glsl */ `
   }
 `;
 
-const Terrain: FC<{ reduced: boolean }> = ({ reduced }) => {
+const Terrain: FC<{ reduced: boolean; cols: number; rows: number }> = ({ reduced, cols, rows }) => {
   const matRef = useRef<THREE.ShaderMaterial>(null);
   const pointer = useRef({ x: 0, y: 0 });
   const { viewport } = useThree();
 
   const geometry = useMemo(() => {
-    const g = new THREE.PlaneGeometry(20, 13, COLS, ROWS);
-    return g;
-  }, []);
+    return new THREE.PlaneGeometry(20, 13, cols, rows);
+  }, [cols, rows]);
 
   const uniforms = useMemo(
     () => ({
@@ -110,7 +109,18 @@ const Terrain: FC<{ reduced: boolean }> = ({ reduced }) => {
 const HeroScene: FC = () => {
   const [reduced, setReduced] = useState(false);
   const [visible, setVisible] = useState(true);
+  const [small, setSmall] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+
+  // Track small screens to scale grid density + DPR down (smooth on phones).
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const apply = () => setSmall(mq.matches);
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
+  const density = small ? DENSITY.mobile : DENSITY.desktop;
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -139,10 +149,10 @@ const HeroScene: FC = () => {
       <Canvas
         frameloop={frameloop}
         camera={{ position: [0, 0, 9], fov: 45 }}
-        dpr={[1, 1.5]}
+        dpr={small ? [1, 1.25] : [1, 1.5]}
         gl={{ antialias: false, alpha: true, powerPreference: 'high-performance' }}
       >
-        <Terrain reduced={reduced} />
+        <Terrain reduced={reduced} cols={density.cols} rows={density.rows} />
       </Canvas>
     </div>
   );
