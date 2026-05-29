@@ -2,7 +2,9 @@
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
+import expressiveCode from 'astro-expressive-code';
 import tailwindcss from '@tailwindcss/vite';
+import { remarkReadingTime } from './src/lib/remark-reading-time.mjs';
 
 // DEPLOY TARGET: project site at https://engr-sharif.github.io/portfolio/
 // The repo is named `portfolio`, so Pages serves it under the /portfolio/
@@ -16,7 +18,21 @@ export default defineConfig({
   // Match GitHub Pages directory serving + our withBase('/x/') links, and keep
   // canonical/sitemap URLs consistent (avoids duplicate-URL SEO signals).
   trailingSlash: 'always',
-  integrations: [react(), sitemap()],
+  // Expressive Code must be registered before React/MDX.
+  integrations: [
+    expressiveCode({
+      themes: ['github-dark'],
+      styleOverrides: {
+        borderRadius: '0.6rem',
+        codeFontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+      },
+    }),
+    react(),
+    sitemap(),
+  ],
+  markdown: {
+    remarkPlugins: [remarkReadingTime],
+  },
   vite: {
     plugins: [tailwindcss()],
   },

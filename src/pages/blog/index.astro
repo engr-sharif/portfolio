@@ -1,0 +1,47 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import BlogCard from '../../components/BlogCard.astro';
+import { withBase } from '../../lib/path';
+import { getPosts, getTags, tagSlug } from '../../lib/blog';
+
+const posts = await getPosts();
+const tags = await getTags();
+---
+<BaseLayout
+  title="Field Notes & Writing — Nawaz Sharif"
+  description="Technical field notes and writing on environmental characterization, remediation, PFAS, landfill CQA, and the tools behind the work."
+>
+  <section class="blog-hero u-container">
+    <p class="section__eyebrow" data-reveal>Writing</p>
+    <h1 data-reveal data-reveal-delay="0.05" style="font-size:var(--text-3xl);margin:1rem 0;max-width:18ch;">
+      Field notes &amp; technical writing.
+    </h1>
+    <p data-reveal data-reveal-delay="0.1" style="color:var(--color-muted);max-width:52ch;">
+      Public-level notes from the field, explainers on environmental methods, and the occasional tool I've built.
+    </p>
+
+    {tags.length > 0 && (
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:2rem;" data-reveal data-reveal-delay="0.15">
+        {tags.map(({ tag, count }) => (
+          <a class="tag-chip" href={withBase(`blog/tags/${tagSlug(tag)}/`)}>{tag} · {count}</a>
+        ))}
+      </div>
+    )}
+  </section>
+
+  <section class="section u-container" style="padding-top:clamp(2rem,5vw,3rem);">
+    {posts.length === 0 ? (
+      <p style="color:var(--color-muted);">No posts yet — check back soon.</p>
+    ) : (
+      <div class="blog-grid" data-reveal-stagger>
+        {posts.map((post) => <BlogCard post={post} />)}
+      </div>
+    )}
+
+    <p style="margin-top:3rem;">
+      <a href={withBase('rss.xml')} class="link-underline" style="color:var(--color-muted);font-size:var(--text-sm);">
+        RSS feed →
+      </a>
+    </p>
+  </section>
+</BaseLayout>

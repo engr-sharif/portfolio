@@ -1,0 +1,35 @@
+---
+import { Image } from 'astro:assets';
+import { getBlogImage } from '../lib/images';
+import { withBase } from '../lib/path';
+import { CATEGORY_LABEL, formatDate, type Post } from '../lib/blog';
+
+interface Props {
+  post: Post;
+}
+const { post } = Astro.props;
+const { data } = post;
+const cover = getBlogImage(data.coverImage);
+const href = withBase(`blog/${post.id}/`);
+---
+<article class="post-card">
+  <a href={href} aria-label={`Read: ${data.title}`}>
+    <div class={`post-card__media${cover ? '' : ' post-card__media--empty'}`}>
+      {cover && (
+        <Image
+          src={cover}
+          alt={data.coverAlt || data.title}
+          widths={[400, 800]}
+          sizes="(max-width: 640px) 90vw, 24rem"
+          loading="lazy"
+        />
+      )}
+    </div>
+    <div class="post-card__meta">
+      {data.category && <span class="post-card__cat">{CATEGORY_LABEL[data.category]}</span>}
+      <time datetime={data.pubDate.toISOString()}>{formatDate(data.pubDate)}</time>
+    </div>
+    <h3 class="post-card__title">{data.title}</h3>
+    <p class="post-card__excerpt">{data.description}</p>
+  </a>
+</article>

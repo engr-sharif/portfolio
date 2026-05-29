@@ -63,6 +63,47 @@ collections:
         hint: "Leave OFF until every site/client detail is confirmed public."
       - { name: body, label: "Write-up", widget: markdown }
 
+  # ------------------------------------------------------------------ Blog
+  - name: blog
+    label: Blog
+    label_singular: Post
+    folder: "src/content/blog"
+    create: true
+    slug: "{{slug}}"
+    format: frontmatter
+    media_folder: "/src/assets/blog"
+    public_folder: "/src/assets/blog"
+    sortable_fields: [pubDate, title]
+    view_filters:
+      - { label: "Drafts", field: draft, pattern: true }
+      - { label: "Published", field: draft, pattern: false }
+    summary: "{{title}}"
+    fields:
+      - { name: title, label: Title, widget: string }
+      - { name: description, label: "Excerpt / SEO description", widget: text, pattern: ['^.{0,200}$', "Keep under 200 characters"] }
+      - { name: pubDate, label: "Published date", widget: datetime, date_format: "YYYY-MM-DD", time_format: false, picker_utc: true }
+      - { name: updatedDate, label: "Updated date", widget: datetime, date_format: "YYYY-MM-DD", time_format: false, required: false, picker_utc: true }
+      - { name: coverImage, label: "Cover image", widget: image, required: false, hint: "Stored as a filename; resolved from src/assets/blog." }
+      - { name: coverAlt, label: "Cover alt text (accessibility)", widget: string, required: false }
+      - { name: tags, label: Tags, widget: list, required: false }
+      - { name: category, label: Category, widget: select, options: [field-notes, technical, professional], required: false }
+      - name: relatedProject
+        label: "Related project (optional)"
+        widget: relation
+        required: false
+        collection: projects
+        search_fields: [title]
+        value_field: "{{slug}}"
+        display_fields: [title]
+      - { name: featured, label: "Featured", widget: boolean, default: false }
+      - { name: canonicalURL, label: "Canonical URL (if cross-posted)", widget: string, required: false }
+      - name: draft
+        label: "Draft (hide from the live site)"
+        widget: boolean
+        default: true
+        hint: "Save = publish on this site. Leave this ON until the post is ready."
+      - { name: body, label: Post, widget: markdown }
+
   # -------------------------------------------------------- Site settings
   - name: settings
     label: Site Settings

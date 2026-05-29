@@ -7,6 +7,30 @@ import { glob } from 'astro/loaders';
  * src/assets/covers or src/assets/gallery; components resolve them through an
  * import.meta.glob map so they go through Astro's <Image> optimizer.
  */
+/**
+ * Blog collection — one markdown file per post in src/content/blog/, managed
+ * via the CMS at /admin. Mirrors the projects pattern: image fields hold a
+ * filename resolved from src/assets/blog through Astro's <Image> optimizer; a
+ * `draft` boolean is the build-time publish gate (drafts hidden in production).
+ */
+const blog = defineCollection({
+  loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/blog' }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string().max(200),
+    pubDate: z.coerce.date(),
+    updatedDate: z.coerce.date().optional(),
+    coverImage: z.string().optional(),
+    coverAlt: z.string().optional(),
+    tags: z.array(z.string()).default([]),
+    category: z.enum(['field-notes', 'technical', 'professional']).optional(),
+    relatedProject: z.string().optional(),
+    featured: z.boolean().default(false),
+    canonicalURL: z.string().url().optional(),
+    draft: z.boolean().default(true),
+  }),
+});
+
 const projects = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/content/projects' }),
   schema: z.object({
@@ -30,4 +54,4 @@ const projects = defineCollection({
   }),
 });
 
-export const collections = { projects };
+export const collections = { projects, blog };
