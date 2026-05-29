@@ -1,0 +1,72 @@
+{
+  "credentials": [
+    {
+      "label": "Engineer-in-Training (EIT)",
+      "issuer": "California",
+      "status": "Active",
+      "date": "2023"
+    },
+    {
+      "label": "Professional Engineer (PE)",
+      "issuer": "California — Civil / Environmental",
+      "status": "In progress",
+      "date": "Anticipated 2027"
+    }
+  ],
+  "certifications": [
+    {
+      "label": "OSHA HAZWOPER 40-Hour",
+      "issuer": "29 CFR 1910.120",
+      "date": "2022",
+      "expires": ""
+    },
+    {
+      "label": "HAZWOPER 8-Hour Refresher",
+      "issuer": "Annual",
+      "date": "2026",
+      "expires": "2027"
+    }
+  ],
+  "tools": [
+    {
+      "name": "Field-Navigation Tool",
+      "problem": "Locating predetermined sampling-grid nodes in the field was slow and inconsistent.",
+      "description": "A lightweight, offline-friendly tool that guides the team directly to each grid node and confirms position before logging a reading — cutting orientation time and improving sampling consistency.",
+      "tech": ["JavaScript", "Geolocation", "Grid math"],
+      "link": ""
+    },
+    {
+      "name": "This portfolio",
+      "problem": "Wanted a fast, self-managed site to present project work and writing.",
+      "description": "Designed and built this site end-to-end — a static, animated portfolio with a browser-based CMS, so content stays current without a developer.",
+      "tech": ["Astro", "TypeScript", "GSAP", "Three.js"],
+      "link": "https://github.com/engr-sharif/portfolio"
+    }
+  ],
+  "timeline": [
+    {
+      "date": "2021",
+      "title": "B.S., Environmental Engineering",
+      "org": "University",
+      "detail": "Foundations in water resources, remediation, and environmental chemistry."
+    },
+    {
+      "date": "2023",
+      "title": "Passed FE · Earned EIT",
+      "org": "California",
+      "detail": "Engineer-in-Training designation; began the path toward PE licensure."
+    },
+    {
+      "date": "2023 — Present",
+      "title": "Environmental Engineer (EIT)",
+      "org": "Jacobs · Sacramento",
+      "detail": "Site characterization, remediation, and construction quality assurance across California."
+    },
+    {
+      "date": "Anticipated 2027",
+      "title": "Professional Engineer (PE)",
+      "org": "California",
+      "detail": "On track for licensure after the required experience."
+    }
+  ]
+}

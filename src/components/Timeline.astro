@@ -1,0 +1,29 @@
+---
+import Section from './Section.astro';
+import { profile } from '../lib/profile';
+const { timeline } = profile;
+---
+{timeline.length > 0 && (
+  <Section id="path" eyebrow="Career path" title="Education to PE">
+    <div class="timeline" data-timeline>
+      <div class="timeline__track" aria-hidden="true">
+        <div class="timeline__progress" data-timeline-progress></div>
+      </div>
+      <ol style="list-style:none;padding:0;margin:0;">
+        {timeline.map((t) => (
+          <li class="timeline__item" data-reveal>
+            <span class="timeline__dot" aria-hidden="true"></span>
+            <p class="timeline__date">{t.date}</p>
+            <h3 class="timeline__title">{t.title}</h3>
+            <p class="timeline__org">{t.org}</p>
+            {t.detail && <p class="timeline__detail">{t.detail}</p>}
+          </li>
+        ))}
+      </ol>
+    </div>
+  </Section>
+)}
+
+<script>
+  import '../lib/timeline';
+</script>
