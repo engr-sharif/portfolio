@@ -14,10 +14,6 @@ externalLink: "https://www.epa.gov/superfund"
 published: true
 ---
 
-> **Confidentiality note (remove before publishing):** Nawaz — confirm every
-> detail below is cleared for public sharing. Use public, high-level
-> descriptions only; no internal data, results, or controlled site specifics.
-
 Site characterization support at a former mercury-mining operation now managed
 as a federal Superfund site. Work centered on **systematic grid sampling** and
 **handheld XRF scanning** to map surface concentrations across the study area.

@@ -20,7 +20,7 @@ const { Content } = await render(project);
 const cover = getCover(data.coverImage);
 const gallery = data.gallery.map(getGalleryImage).filter(Boolean);
 ---
-<BaseLayout title={`${data.title} — ${data.siteType}`} description={data.summary}>
+<BaseLayout title={`${data.title} — ${data.siteType}`} description={data.summary} ogType="article">
   <article class="detail">
     <div class="u-container">
       <a href={withBase('#work')} class="detail__back link-underline">← Back to all projects</a>

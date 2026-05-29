@@ -15,14 +15,10 @@ externalLink: "https://serdp-estcp.mil/"
 published: true
 ---
 
-> **Confidentiality note (remove before publishing):** Confirm public clearance;
-> keep to high-level, publicly available descriptions only.
-
 Field support for a **SERDP-funded research study** investigating **PFAS**
 (per- and polyfluoroalkyl substances). Activities included **groundwater
 sampling** in support of subsurface investigation of PFAS occurrence and
 behavior.
 
 SERDP is the U.S. Department of Defense's environmental science and technology
-research program; this remains a high-level placeholder pending your public
-write-up.
+research program.

@@ -273,6 +273,9 @@ html.js [data-reveal-stagger] > * {
    SECTION primitive
    ========================================================================== */
 .section { padding-block: clamp(4rem, 12vw, 9rem); position: relative; z-index: 2; }
+/* Keep in-page anchor targets clear of the fixed nav (and as a fallback if JS
+   smooth-scroll is unavailable). */
+:where(section, footer)[id] { scroll-margin-top: 5.5rem; }
 .section__eyebrow {
   color: var(--color-field-bright);
   letter-spacing: 0.22em;
