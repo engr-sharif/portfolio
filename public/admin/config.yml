@@ -139,3 +139,45 @@ collections:
               - { name: url, label: "Full URL", widget: string, required: false }
               - { name: poster, label: "Poster (gallery filename)", widget: string, required: false }
               - { name: note, label: Note, widget: text, required: false }
+      - name: profile
+        label: "Credentials & Career"
+        file: "src/content/settings/profile.json"
+        fields:
+          - name: credentials
+            label: "Licensure"
+            widget: list
+            hint: "Keep honest — never misstate licensure status."
+            fields:
+              - { name: label, label: Credential, widget: string }
+              - { name: issuer, label: "Issuer / jurisdiction", widget: string }
+              - { name: status, label: Status, widget: string, hint: "e.g. Active, In progress, Anticipated 2027" }
+              - { name: date, label: Date, widget: string }
+          - name: certifications
+            label: "Field certifications"
+            widget: list
+            required: false
+            hint: "Only list certifications you actually hold and can verify."
+            fields:
+              - { name: label, label: Certification, widget: string }
+              - { name: issuer, label: "Issuer / standard", widget: string, required: false }
+              - { name: date, label: "Date earned", widget: string }
+              - { name: expires, label: "Expires (if applicable)", widget: string, required: false }
+          - name: tools
+            label: "Tools I've built"
+            widget: list
+            required: false
+            fields:
+              - { name: name, label: Name, widget: string }
+              - { name: problem, label: "Problem it solves", widget: text }
+              - { name: description, label: Description, widget: text }
+              - { name: tech, label: "Tech used", widget: list, required: false }
+              - { name: link, label: "Link (optional)", widget: string, required: false }
+          - name: timeline
+            label: "Career timeline"
+            widget: list
+            required: false
+            fields:
+              - { name: date, label: Date, widget: string }
+              - { name: title, label: Title, widget: string }
+              - { name: org, label: "Organization", widget: string }
+              - { name: detail, label: Detail, widget: text, required: false }

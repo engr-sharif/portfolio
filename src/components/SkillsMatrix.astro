@@ -1,0 +1,27 @@
+---
+import Section from './Section.astro';
+import { getProjects } from '../lib/projects';
+import { buildSkillMatrix } from '../lib/profile';
+
+const projects = await getProjects();
+const matrix = buildSkillMatrix(projects);
+---
+{matrix.length > 0 && (
+  <Section id="skills" eyebrow="Capabilities" title="Skills & techniques">
+    <p style="color:var(--color-muted);max-width:52ch;margin:-2rem 0 2.5rem;font-size:var(--text-sm);">
+      Drawn from the methods used across the projects above — grouped by domain.
+    </p>
+    <div class="skill-matrix" data-reveal-stagger>
+      {matrix.map((g) => (
+        <div class="skill-group">
+          <p class="skill-group__name">{g.group}</p>
+          <div class="skill-tags">
+            {g.skills.map((s) => (
+              <span class="skill-tag">{s.name}{s.count > 1 && <b>{s.count}</b>}</span>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  </Section>
+)}

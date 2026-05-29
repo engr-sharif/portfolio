@@ -553,6 +553,63 @@ html.js [data-reveal-stagger] > * {
 }
 
 /* ==========================================================================
+   CREDENTIALS / SKILLS / TOOLS / TIMELINE
+   ========================================================================== */
+.cred-grid { display: grid; gap: clamp(2rem, 5vw, 4rem); }
+@media (min-width: 820px) { .cred-grid { grid-template-columns: 1fr 1fr; } }
+.cred-list { display: grid; gap: 0.9rem; }
+.cred-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 1rem 1.2rem;
+  border-radius: 12px;
+  background: var(--color-ink-soft);
+  border: 1px solid color-mix(in srgb, var(--color-paper) 8%, transparent);
+}
+.cred-item__label { font-family: var(--font-display); font-weight: 500; }
+.cred-item__sub { color: var(--color-muted); font-size: var(--text-sm); }
+.cred-item__status { font-size: var(--text-xs); white-space: nowrap; color: var(--color-field-bright); text-align: right; }
+.cred-item__status--progress { color: #d7c47a; }
+
+.skill-matrix { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: clamp(1.2rem, 3vw, 2rem); }
+.skill-group__name { font-size: var(--text-sm); color: var(--color-field-bright); text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 1rem; }
+.skill-tags { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.skill-tag {
+  display: inline-flex; align-items: center; gap: 0.45em;
+  font-size: var(--text-sm);
+  padding: 0.4em 0.85em;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-paper) 14%, transparent);
+}
+.skill-tag b { color: var(--color-field-bright); font-variant-numeric: tabular-nums; font-weight: 600; }
+
+.tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: clamp(1.2rem, 3vw, 2rem); }
+.tool-card {
+  padding: 1.6rem;
+  border-radius: 16px;
+  background: var(--color-ink-soft);
+  border: 1px solid color-mix(in srgb, var(--color-paper) 10%, transparent);
+  display: flex; flex-direction: column; gap: 0.8rem;
+}
+.tool-card__name { font-size: var(--text-lg); }
+.tool-card__problem { color: var(--color-muted); font-size: var(--text-sm); }
+.tool-card__tech { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: auto; padding-top: 0.6rem; }
+.tool-card__tech span { font-size: var(--text-xs); padding: 0.25em 0.6em; border-radius: 6px; background: color-mix(in srgb, var(--color-field-dim) 40%, transparent); color: var(--color-paper-soft); }
+
+.timeline { position: relative; max-width: 46rem; }
+.timeline__track { position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: color-mix(in srgb, var(--color-paper) 12%, transparent); }
+.timeline__progress { position: absolute; left: 0; top: 0; width: 2px; background: var(--color-field-bright); transform-origin: top; transform: scaleY(0); height: 100%; }
+.timeline__item { position: relative; padding: 0 0 2.5rem 2.2rem; }
+.timeline__item:last-child { padding-bottom: 0; }
+.timeline__dot { position: absolute; left: -5px; top: 0.35rem; width: 12px; height: 12px; border-radius: 50%; background: var(--color-ink); border: 2px solid var(--color-field-bright); }
+.timeline__date { color: var(--color-field-bright); font-size: var(--text-sm); font-family: var(--font-display); }
+.timeline__title { font-size: var(--text-lg); margin-top: 0.2rem; }
+.timeline__org { color: var(--color-paper-soft); font-size: var(--text-sm); }
+.timeline__detail { color: var(--color-muted); font-size: var(--text-sm); margin-top: 0.4rem; max-width: 52ch; }
+
+/* ==========================================================================
    INTRO LOADER + PAGE WIPE
    ========================================================================== */
 #intro {
