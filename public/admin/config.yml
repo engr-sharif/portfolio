@@ -116,7 +116,7 @@ collections:
           - { name: name, label: "Full name", widget: string }
           - { name: shortName, label: "Short name", widget: string }
           - { name: credential, label: "Credential line (hero eyebrow)", widget: string }
-          - { name: heroTitle, label: "Hero headline", widget: string, hint: "The big headline on the landing page." }
+          - { name: heroTitle, label: "Hero headline", widget: string, required: false, hint: "Big landing-page headline. Leave blank to show your name." }
           - { name: role, label: "Role / subhead", widget: string }
           - { name: bio, label: Bio, widget: text }
           - { name: location, label: Location, widget: string }

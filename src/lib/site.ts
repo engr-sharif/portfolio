@@ -11,7 +11,7 @@ export interface SiteSettings {
   shortName: string;
   credential: string;
   role: string;
-  heroTitle: string;
+  heroTitle?: string;
   bio: string;
   location: string;
   email: string;
