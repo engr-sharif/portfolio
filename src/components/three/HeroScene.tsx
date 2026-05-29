@@ -11,7 +11,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
 // Grid density — reduced on small screens so phones stay smooth.
-const DENSITY = { desktop: { cols: 80, rows: 48 }, mobile: { cols: 48, rows: 30 } };
+const DENSITY = { desktop: { cols: 104, rows: 66 }, mobile: { cols: 60, rows: 40 } };
 
 const vertexShader = /* glsl */ `
   uniform float uTime;
@@ -61,7 +61,7 @@ const Terrain: FC<{ reduced: boolean; cols: number; rows: number }> = ({ reduced
   const { viewport } = useThree();
 
   const geometry = useMemo(() => {
-    return new THREE.PlaneGeometry(20, 13, cols, rows);
+    return new THREE.PlaneGeometry(26, 18, cols, rows);
   }, [cols, rows]);
 
   const uniforms = useMemo(
@@ -86,15 +86,16 @@ const Terrain: FC<{ reduced: boolean; cols: number; rows: number }> = ({ reduced
   useFrame((state, delta) => {
     if (matRef.current) matRef.current.uniforms.uTime.value += delta * 0.75;
     if (reduced) return;
-    // gentle pointer parallax
+    // gentle pointer parallax (small offset only — the tilt lives on the points)
     const g = state.scene;
-    g.rotation.x = THREE.MathUtils.lerp(g.rotation.x, -1.0 + pointer.current.y * 0.08, 0.04);
+    g.rotation.x = THREE.MathUtils.lerp(g.rotation.x, pointer.current.y * 0.1, 0.04);
     g.rotation.z = THREE.MathUtils.lerp(g.rotation.z, pointer.current.x * 0.06, 0.04);
   });
 
-  // initial tilt so the grid reads as terrain receding into distance
+  // Gentle tilt — enough for depth, but the field fills the frame behind the
+  // text rather than receding to a thin horizon band at the top.
   return (
-    <points geometry={geometry} rotation={[-1.0, 0, 0]} scale={Math.max(1, viewport.width / 14)}>
+    <points geometry={geometry} rotation={[-0.5, 0, 0]} scale={Math.max(1.1, viewport.width / 12)}>
       <shaderMaterial
         ref={matRef}
         vertexShader={vertexShader}
