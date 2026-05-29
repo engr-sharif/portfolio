@@ -68,6 +68,8 @@ import HeroScene from './three/HeroScene.tsx';
     font-size: var(--text-hero);
     opacity: 0; /* revealed by SplitText (or instantly under reduced-motion) */
     max-width: 16ch;
+    overflow-wrap: break-word;
+    hyphens: auto;
   }
   .hero__sub {
     margin-top: 1.8rem;
