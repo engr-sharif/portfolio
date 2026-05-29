@@ -44,6 +44,7 @@ const projects = defineCollection({
     summary: z.string(),
     techniques: z.array(z.string()).default([]),
     coverImage: z.string().optional(),
+    coverAlt: z.string().optional(),
     gallery: z.array(z.string()).default([]),
     externalLink: z.string().url().optional(),
     featured: z.boolean().default(false),

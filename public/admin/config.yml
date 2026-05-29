@@ -51,7 +51,8 @@ collections:
       - { name: endDate, label: "End (YYYY-MM)", widget: string, required: false, pattern: ['^\d{4}-\d{2}$', "Use YYYY-MM"] }
       - { name: summary, label: "Short summary", widget: text }
       - { name: techniques, label: Techniques, widget: list, default: [] }
-      - { name: coverImage, label: "Cover image", widget: image, required: false, hint: "Stored as a filename; resolved from src/assets/covers." }
+      - { name: coverImage, label: "Cover image", widget: image, required: false, hint: "Upload or pick an image; resolved from src/assets/covers." }
+      - { name: coverAlt, label: "Cover alt text", widget: string, required: false, hint: "Describe the cover image for accessibility." }
       - { name: gallery, label: "Project gallery", widget: list, required: false, field: { name: image, label: Image, widget: image } }
       - { name: externalLink, label: "External link", widget: string, required: false }
       - { name: featured, label: "Featured (showcase)", widget: boolean, default: false }
@@ -114,7 +115,8 @@ collections:
         fields:
           - { name: name, label: "Full name", widget: string }
           - { name: shortName, label: "Short name", widget: string }
-          - { name: credential, label: "Credential line", widget: string }
+          - { name: credential, label: "Credential line (hero eyebrow)", widget: string }
+          - { name: heroTitle, label: "Hero headline", widget: string, hint: "The big headline on the landing page." }
           - { name: role, label: "Role / subhead", widget: string }
           - { name: bio, label: Bio, widget: text }
           - { name: location, label: Location, widget: string }
@@ -124,8 +126,27 @@ collections:
           - { name: resume, label: "Résumé path", widget: string, default: "/resume/Sharif_Resume.pdf" }
           - { name: resumeUpdated, label: "Résumé updated (YYYY-MM-DD)", widget: string }
           - { name: analytics, label: "GoatCounter code (analytics)", widget: string, required: false, hint: "Your GoatCounter subdomain, e.g. 'engr-sharif'. Leave blank to disable analytics." }
+      - name: gallery
+        label: "Field Gallery (photos)"
+        file: "src/content/settings/gallery.json"
+        media_folder: "/src/assets/gallery"
+        public_folder: "/src/assets/gallery"
+        fields:
+          - { name: note, label: "Internal note", widget: text, required: false }
+          - name: photos
+            label: "Photos"
+            label_singular: "Photo"
+            widget: list
+            required: false
+            summary: "{{fields.alt}}"
+            collapsed: true
+            hint: "Click 'Add Photo', then upload an image and write a short alt-text description. Drag to reorder."
+            fields:
+              - { name: image, label: Image, widget: image, hint: "Upload a field photo (keep under ~5MB; no raw video)." }
+              - { name: alt, label: "Alt text (describe the photo)", widget: string }
+              - { name: caption, label: "Caption (optional)", widget: string, required: false }
       - name: media
-        label: "Gallery & Video"
+        label: "Video embeds"
         file: "src/content/settings/media.json"
         fields:
           - { name: galleryNote, label: "Gallery note", widget: text }

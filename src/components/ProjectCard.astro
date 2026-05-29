@@ -23,7 +23,7 @@ const href = withBase(`projects/${project.id}/`);
       {cover ? (
         <Image
           src={cover}
-          alt={`${data.title} — ${data.siteType}`}
+          alt={data.coverAlt || `${data.title} — ${data.siteType}`}
           widths={[400, 800, 1200]}
           sizes="(max-width: 640px) 90vw, 30vw"
           loading="lazy"

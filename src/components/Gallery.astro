@@ -3,17 +3,27 @@ import { Image } from 'astro:assets';
 import Section from './Section.astro';
 import { allGalleryImages, getGalleryImage } from '../lib/images';
 import media from '../content/settings/media.json';
+import galleryData from '../content/settings/gallery.json';
 
 /**
- * Build-time auto gallery: every image in src/assets/gallery/ becomes an
- * optimized, lazy-loaded masonry tile. Workflow for Nawaz: drop image → commit
- * → the Action rebuilds → it appears. No code edits.
+ * Field gallery. Primary source is the CMS-managed list (src/content/settings/
+ * gallery.json → editable at /admin → Field Gallery), which carries alt text
+ * for accessibility. If that list is empty we fall back to auto-globbing every
+ * image in src/assets/gallery/ (the "drop a file in the folder" workflow still
+ * works). Either way images go through Astro's <Image> optimizer.
  *
- * Video: GitHub is a poor video host (100 MB/file hard limit, no CDN). Do NOT
- * commit large raw video. Videos are external embeds (YouTube/Vimeo) configured
- * in src/content/settings/media.json (editable via the CMS).
+ * Video: GitHub is a poor video host (100 MB/file limit, no CDN). Videos are
+ * external embeds (YouTube/Vimeo) configured in media.json.
  */
-const images = allGalleryImages;
+const curated = (galleryData.photos ?? [])
+  .map((p) => ({ img: getGalleryImage(p.image), alt: p.alt || 'Field photo', caption: p.caption }))
+  .filter((p) => p.img);
+
+const images =
+  curated.length > 0
+    ? curated
+    : allGalleryImages.map(({ name, img }) => ({ img, alt: `Field photo: ${name}`, caption: '' }));
+
 const videos = (media.videos ?? []).filter((v) => v.id || v.url);
 
 function videoHref(v: { provider: string; id: string; url: string }) {
@@ -30,14 +40,14 @@ function videoHref(v: { provider: string; id: string; url: string }) {
 
   {images.length > 0 ? (
     <div class="gallery">
-      {images.map(({ name, img }) => (
-        <button class="gallery__item" data-lightbox aria-label={`Open field photo ${name}`}>
-          <Image src={img} alt={`Field photo: ${name}`} widths={[300, 600, 900]} sizes="(max-width: 640px) 45vw, 18rem" loading="lazy" />
+      {images.map(({ img, alt }) => (
+        <button class="gallery__item" data-lightbox aria-label={`Open photo: ${alt}`}>
+          <Image src={img!} alt={alt} widths={[300, 600, 900]} sizes="(max-width: 640px) 45vw, 18rem" loading="lazy" />
         </button>
       ))}
     </div>
   ) : (
-    <p style="color:var(--color-muted);">No field photos yet — drop images into <code>src/assets/gallery/</code>.</p>
+    <p style="color:var(--color-muted);">No field photos yet — add them in <code>/admin → Field Gallery</code>.</p>
   )}
 
   {videos.length > 0 && (

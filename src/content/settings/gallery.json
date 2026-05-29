@@ -1,0 +1,11 @@
+{
+  "note": "Drop photos here from /admin → Field Gallery → Upload, or add files to src/assets/gallery/.",
+  "photos": [
+    { "image": "field-01.jpg", "alt": "Field sampling work on site", "caption": "" },
+    { "image": "field-02.jpg", "alt": "Environmental monitoring in the field", "caption": "" },
+    { "image": "field-03.jpg", "alt": "Site characterization fieldwork", "caption": "" },
+    { "image": "field-04.jpg", "alt": "Sampling grid layout on site", "caption": "" },
+    { "image": "field-05.jpg", "alt": "Field instrumentation and monitoring", "caption": "" },
+    { "image": "field-06.jpg", "alt": "Environmental field operations", "caption": "" }
+  ]
+}

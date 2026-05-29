@@ -101,13 +101,20 @@ blocks get syntax highlighting + a copy button automatically.
 
 ## How to add gallery media
 
-Drop image files into **`src/assets/gallery/`**, commit, and push. The build
-auto-generates an optimized, lazy-loaded masonry gallery — no code edits. Cover
-images go in **`src/assets/covers/`** and are referenced by filename.
+**From the browser (recommended):** go to **`/admin` → Field Gallery → Photos →
+Add Photo**, upload an image, and write a short alt-text description. Drag to
+reorder. Saving commits the photo to `src/assets/gallery/` and the optimized,
+lazy-loaded masonry gallery rebuilds automatically.
+
+**Or by hand:** drop image files into **`src/assets/gallery/`** and push — if the
+CMS photo list is empty, the gallery auto-globs that folder as a fallback. Cover
+images live in `src/assets/covers/` and blog images in `src/assets/blog/`.
+
+Keep uploads reasonably small (phone photos are fine; avoid 10MB+ originals).
 
 **Video:** GitHub is a poor video host (100 MB/file limit, no CDN). Do **not**
 commit large raw video. Add external embeds (YouTube/Vimeo) under *Site Settings
-→ Gallery & Video* in the CMS (`src/content/settings/media.json`).
+→ Video embeds* in the CMS.
 
 ## How to swap the résumé
 
