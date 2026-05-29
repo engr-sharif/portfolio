@@ -12,9 +12,7 @@ import HeroScene from './three/HeroScene.tsx';
 
   <div class="hero__inner u-container">
     <p class="hero__eyebrow" data-hero-fade>{site.credential}</p>
-    <h1 class="hero__title" data-hero-title>
-      Environmental<br />characterization<br />&amp; remediation.
-    </h1>
+    <h1 class="hero__title" data-hero-title>Environmental characterization &amp; remediation.</h1>
     <p class="hero__sub" data-hero-fade>{site.role}</p>
     <div class="hero__cta" data-hero-fade>
       <a href={withBase('#work')} class="btn" data-magnetic="0.4">View the work</a>
@@ -32,8 +30,6 @@ import HeroScene from './three/HeroScene.tsx';
   .hero {
     position: relative;
     min-height: 100svh;
-    display: flex;
-    align-items: center;
     overflow: hidden;
     /* Fallback backdrop shown when the WebGL canvas isn't loaded (mobile /
        low-power / reduced-motion). Tasteful topographic-ish radial wash. */
@@ -51,10 +47,18 @@ import HeroScene from './three/HeroScene.tsx';
     width: 100% !important;
     height: 100% !important;
   }
+  /* The content column owns the vertical centering and full width — no flex on
+     .hero (which let the title shrink into a narrow column on mobile). */
   .hero__inner {
     position: relative;
     z-index: 2;
+    width: min(100% - 2.5rem, 80rem);
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     padding-top: 6rem;
+    padding-bottom: 5rem;
   }
   .hero__eyebrow {
     color: var(--color-field-bright);
@@ -67,9 +71,14 @@ import HeroScene from './three/HeroScene.tsx';
   .hero__title {
     font-size: var(--text-hero);
     opacity: 0; /* revealed by SplitText (or instantly under reduced-motion) */
-    max-width: 16ch;
+    max-width: 15ch;
+    /* Last-resort break only (no hyphens) so a long word never overflows on
+       very narrow phones — it wraps cleanly instead. */
     overflow-wrap: break-word;
-    hyphens: auto;
+    text-wrap: balance;
+  }
+  @media (max-width: 520px) {
+    .hero__title { max-width: 100%; }
   }
   .hero__sub {
     margin-top: 1.8rem;
