@@ -34,11 +34,13 @@ declare global {
 function initLenis() {
   if (window.__lenis || prefersReduced()) return; // reduced-motion: native scroll
 
+  // lerp (frame-rate-independent smoothing) feels snappier and more 1:1 than a
+  // long duration ease — closer to the tight momentum on Apple/Stripe sites.
   const lenis = new Lenis({
-    duration: 1.1,
-    easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    lerp: 0.11,
+    wheelMultiplier: 1,
     smoothWheel: true,
-    touchMultiplier: 1.6,
+    touchMultiplier: 1.5,
   });
   window.__lenis = lenis;
 
@@ -134,7 +136,7 @@ function initMagnetic() {
 function initReveals() {
   // Reduced motion: ensure everything is simply visible.
   if (prefersReduced()) {
-    gsap.set('[data-reveal]', { clearProps: 'all', opacity: 1, y: 0 });
+    gsap.set('[data-reveal], [data-reveal-stagger] > *', { clearProps: 'all', opacity: 1, y: 0 });
     return;
   }
 
@@ -142,14 +144,16 @@ function initReveals() {
     const delay = Number(el.dataset.revealDelay) || 0;
     gsap.fromTo(
       el,
-      { y: 38, opacity: 0 },
+      { y: 34, opacity: 0, willChange: 'transform, opacity' },
       {
         y: 0,
         opacity: 1,
-        duration: 0.9,
+        duration: 0.85,
         delay,
         ease: 'expo.out',
-        scrollTrigger: { trigger: el, start: 'top 88%', once: true },
+        // willChange only while animating, then cleared — never a permanent layer
+        clearProps: 'willChange',
+        scrollTrigger: { trigger: el, start: 'top 90%', once: true },
       },
     );
   });
@@ -159,14 +163,15 @@ function initReveals() {
     const items = group.querySelectorAll(':scope > *');
     gsap.fromTo(
       items,
-      { y: 40, opacity: 0 },
+      { y: 36, opacity: 0, willChange: 'transform, opacity' },
       {
         y: 0,
         opacity: 1,
-        duration: 0.8,
+        duration: 0.75,
         ease: 'expo.out',
-        stagger: 0.08,
-        scrollTrigger: { trigger: group, start: 'top 85%', once: true },
+        stagger: 0.07,
+        clearProps: 'willChange',
+        scrollTrigger: { trigger: group, start: 'top 88%', once: true },
       },
     );
   });

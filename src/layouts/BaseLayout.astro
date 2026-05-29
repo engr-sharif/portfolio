@@ -28,6 +28,9 @@ const ogImage = new URL(withBase(image), Astro.site).href;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Mark JS as available before first paint so reveal elements can start
+         hidden without a flash (html.js gate in global.css). -->
+    <script is:inline>document.documentElement.classList.add('js');</script>
     <link rel="icon" href={withBase('favicon.svg')} type="image/svg+xml" />
     <meta name="generator" content={Astro.generator} />
 
