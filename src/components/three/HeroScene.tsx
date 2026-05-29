@@ -10,8 +10,8 @@ import { useRef, useMemo, useState, useEffect, type FC } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
-const COLS = 110;
-const ROWS = 70;
+const COLS = 80;
+const ROWS = 48;
 
 const vertexShader = /* glsl */ `
   uniform float uTime;
@@ -139,8 +139,8 @@ const HeroScene: FC = () => {
       <Canvas
         frameloop={frameloop}
         camera={{ position: [0, 0, 9], fov: 45 }}
-        dpr={[1, 1.6]}
-        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+        dpr={[1, 1.5]}
+        gl={{ antialias: false, alpha: true, powerPreference: 'high-performance' }}
       >
         <Terrain reduced={reduced} />
       </Canvas>
