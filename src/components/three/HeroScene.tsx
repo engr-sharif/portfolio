@@ -29,12 +29,13 @@ const vertexShader = /* glsl */ `
     vec3 pos = position;
     float t = uTime * (1.0 - uReduced); // freeze when reduced
     float e = wave(pos.xy, t);
-    pos.z += e * 0.9;
+    pos.z += e * 1.15;
     vElevation = e;
 
     vec4 mv = modelViewMatrix * vec4(pos, 1.0);
     gl_Position = projectionMatrix * mv;
-    gl_PointSize = (2.2 + (e + 1.0) * 1.6) * (300.0 / -mv.z);
+    // Bigger points so the field reads clearly (esp. on small/high-DPI screens).
+    gl_PointSize = (3.4 + (e + 1.0) * 2.4) * (320.0 / -mv.z);
   }
 `;
 
@@ -48,9 +49,9 @@ const fragmentShader = /* glsl */ `
     // round, soft points
     float d = distance(gl_PointCoord, vec2(0.5));
     if (d > 0.5) discard;
-    float a = smoothstep(0.5, 0.1, d);
-    vec3 c = mix(uColorLow, uColorHigh, smoothstep(-1.0, 1.2, vElevation));
-    gl_FragColor = vec4(c, a * 0.9);
+    float a = smoothstep(0.5, 0.08, d);
+    vec3 c = mix(uColorLow, uColorHigh, smoothstep(-1.2, 1.3, vElevation));
+    gl_FragColor = vec4(c, a);
   }
 `;
 
@@ -67,8 +68,8 @@ const Terrain: FC<{ reduced: boolean; cols: number; rows: number }> = ({ reduced
     () => ({
       uTime: { value: 0 },
       uReduced: { value: reduced ? 1 : 0 },
-      uColorLow: { value: new THREE.Color('#1d4632') },
-      uColorHigh: { value: new THREE.Color('#4ca97b') },
+      uColorLow: { value: new THREE.Color('#2f6f4e') },
+      uColorHigh: { value: new THREE.Color('#7fe3ad') },
     }),
     [reduced],
   );
@@ -83,7 +84,7 @@ const Terrain: FC<{ reduced: boolean; cols: number; rows: number }> = ({ reduced
   }, []);
 
   useFrame((state, delta) => {
-    if (matRef.current) matRef.current.uniforms.uTime.value += delta * 0.6;
+    if (matRef.current) matRef.current.uniforms.uTime.value += delta * 0.75;
     if (reduced) return;
     // gentle pointer parallax
     const g = state.scene;
