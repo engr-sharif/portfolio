@@ -247,3 +247,14 @@ document.addEventListener('astro:page-load', bootMotion);
 document.addEventListener('astro:before-swap', () => {
   ScrollTrigger.getAll().forEach((t) => t.kill());
 });
+
+// A11y: after a View Transition, move focus to <main> so keyboard/screen-reader
+// users aren't stranded on the old document position. preventScroll so it
+// doesn't fight Lenis or the hash-scroll handler.
+document.addEventListener('astro:after-swap', () => {
+  const main = document.getElementById('main');
+  if (main && !location.hash) {
+    main.setAttribute('tabindex', '-1');
+    main.focus({ preventScroll: true });
+  }
+});

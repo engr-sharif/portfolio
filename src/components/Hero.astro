@@ -4,9 +4,11 @@ import { withBase } from '../lib/path';
 import HeroScene from './three/HeroScene.tsx';
 ---
 <section class="hero" aria-label="Introduction">
-  <!-- WebGL backdrop (the one splurge). client:visible keeps JS off the
-       critical path; the scene self-pauses under reduced-motion / offscreen. -->
-  <HeroScene client:visible />
+  <!-- WebGL backdrop (the one splurge). client:media only hydrates (and only
+       then downloads the ~230KB Three.js chunk) on larger screens with motion
+       allowed — phones, low-power, and reduced-motion users get the CSS
+       gradient fallback below and never pay for the bundle. -->
+  <HeroScene client:media="(min-width: 1024px) and (prefers-reduced-motion: no-preference)" />
 
   <div class="hero__inner u-container">
     <p class="hero__eyebrow" data-hero-fade>{site.credential}</p>
@@ -33,6 +35,12 @@ import HeroScene from './three/HeroScene.tsx';
     display: flex;
     align-items: center;
     overflow: hidden;
+    /* Fallback backdrop shown when the WebGL canvas isn't loaded (mobile /
+       low-power / reduced-motion). Tasteful topographic-ish radial wash. */
+    background:
+      radial-gradient(120% 80% at 80% -10%, color-mix(in srgb, var(--color-field-dim) 55%, transparent), transparent 60%),
+      radial-gradient(90% 70% at 10% 110%, color-mix(in srgb, var(--color-field) 22%, transparent), transparent 55%),
+      var(--color-ink);
   }
   .hero-canvas {
     position: absolute;

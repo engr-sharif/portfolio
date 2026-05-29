@@ -123,6 +123,7 @@ collections:
           - { name: github, label: "GitHub URL", widget: string }
           - { name: resume, label: "Résumé path", widget: string, default: "/resume/Sharif_Resume.pdf" }
           - { name: resumeUpdated, label: "Résumé updated (YYYY-MM-DD)", widget: string }
+          - { name: analytics, label: "GoatCounter code (analytics)", widget: string, required: false, hint: "Your GoatCounter subdomain, e.g. 'engr-sharif'. Leave blank to disable analytics." }
       - name: media
         label: "Gallery & Video"
         file: "src/content/settings/media.json"

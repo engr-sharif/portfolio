@@ -46,6 +46,10 @@ function open(trigger: HTMLElement) {
   document.documentElement.style.overflow = 'hidden';
   // pause Lenis if present
   window.__lenis?.stop?.();
+  // a11y: take the rest of the page out of the AT tree + tab order while open
+  document.getElementById('main')?.setAttribute('inert', '');
+  document.querySelector('.site-nav')?.setAttribute('inert', '');
+  document.querySelector('.site-footer')?.setAttribute('inert', '');
 
   if (!reduced) {
     const state = Flip.getState(img);
@@ -64,13 +68,27 @@ function close() {
   overlay.classList.remove('is-open');
   document.documentElement.style.overflow = '';
   window.__lenis?.start?.();
+  document.getElementById('main')?.removeAttribute('inert');
+  document.querySelector('.site-nav')?.removeAttribute('inert');
+  document.querySelector('.site-footer')?.removeAttribute('inert');
   document.removeEventListener('keydown', onKey);
   lastTrigger?.focus();
   lastTrigger = null;
 }
 
 function onKey(e: KeyboardEvent) {
-  if (e.key === 'Escape') close();
+  if (e.key === 'Escape') {
+    close();
+    return;
+  }
+  // Focus trap: the only focusable control is the close button, so keep Tab on it.
+  if (e.key === 'Tab' && overlay) {
+    const closeBtn = overlay.querySelector<HTMLElement>('.lightbox__close');
+    if (closeBtn) {
+      e.preventDefault();
+      closeBtn.focus();
+    }
+  }
 }
 
 function bind() {
