@@ -14,7 +14,7 @@ backend:
   name: github
   repo: engr-sharif/portfolio   # if the repo is renamed to engr-sharif.github.io, update this
   branch: main
-  base_url: https://REPLACE-WITH-YOUR-WORKER.workers.dev  # Cloudflare Worker OAuth proxy
+  base_url: https://engr-sharif-cms-oauth.engr-sharif209.workers.dev  # Cloudflare Worker OAuth proxy
 
 local_backend: true
 
