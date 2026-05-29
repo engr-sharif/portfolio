@@ -1,16 +1,26 @@
 ---
-title: "Sulphur Bank Mercury Mine"
-client: "Federal Superfund Program"
-siteType: "Superfund site characterization"
-status: "active"
-role: "Field & sampling support"
-startDate: "2024-03"
-summary: "Characterization support at a legacy mercury-mine Superfund site, including grid-based sampling and handheld XRF scanning. Built a field-navigation tool to speed up locating sample points on site."
-techniques: ["Mercury", "XRF scanning", "Grid sampling", "Field navigation tool"]
-coverImage: "sbmm.jpg"
+title: Sulphur Bank Mercury Mine
+client: Federal Superfund Program
+siteType: Superfund site characterization
+status: active
+role: Field & sampling support
+startDate: 2025-05
+endDate: 2030-12
+summary: Characterization support at a legacy mercury-mine Superfund site, including grid-based sampling and handheld XRF scanning. Built a field-navigation tool to speed up locating sample points on site.
+techniques:
+  - Mercury
+  - XRF scanning
+  - Grid sampling
+  - Field navigation tool
+coverImage: sbmm.jpg
+coverAlt: ''
+gallery:
+  - /src/assets/gallery/IMG_2950.jpeg
+  - /src/assets/gallery/IMG_3196.jpeg
+  - /src/assets/gallery/IMG_2955.jpeg
+externalLink: https://www.epa.gov/superfund
 featured: true
 order: 1
-externalLink: "https://www.epa.gov/superfund"
 published: true
 ---
 
