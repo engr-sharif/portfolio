@@ -10,6 +10,7 @@ export interface Props {
   description?: string;
   image?: string;
   showChrome?: boolean;
+  ogType?: string;
 }
 
 const {
@@ -17,6 +18,7 @@ const {
   description = 'Environmental Engineer (EIT) at Jacobs — environmental characterization & remediation. Project dashboard, field work, and resume.',
   image = '/og-image.png',
   showChrome = true,
+  ogType = 'website',
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
@@ -39,7 +41,7 @@ const ogImage = new URL(withBase(image), Astro.site).href;
     <link rel="canonical" href={canonical} />
 
     <!-- Open Graph -->
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />

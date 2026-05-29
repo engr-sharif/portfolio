@@ -27,6 +27,7 @@ declare global {
   interface Window {
     __lenis?: Lenis;
     __motionInit?: boolean;
+    __anchorInit?: boolean;
   }
 }
 
@@ -47,21 +48,67 @@ function initLenis() {
   lenis.on('scroll', ScrollTrigger.update);
   gsap.ticker.add((time) => lenis.raf(time * 1000));
   gsap.ticker.lagSmoothing(0);
+}
 
-  // Same-page hash links route through Lenis for smooth in-page jumps. Works
-  // whether the href is "#work" or a base-prefixed "/portfolio/#work", as long
-  // as it points at the current page.
-  document.addEventListener('click', (e) => {
-    const a = (e.target as HTMLElement)?.closest('a[href]') as HTMLAnchorElement | null;
-    if (!a) return;
-    const url = new URL(a.href, location.href);
-    if (url.origin !== location.origin || url.pathname !== location.pathname) return;
-    if (!url.hash || url.hash === '#') return;
-    const target = document.querySelector(url.hash);
-    if (target) {
-      e.preventDefault();
-      lenis.scrollTo(target as HTMLElement, { offset: -80 });
-      history.pushState(null, '', url.hash);
+/* ------------------------------------------------------------ Anchor scroll */
+const NAV_OFFSET = 84; // keep targets clear of the fixed nav
+
+/** Smoothly scroll to an in-page #target, via Lenis when available. */
+function scrollToHash(hash: string, smooth = true): boolean {
+  let target: Element | null = null;
+  try {
+    target = document.querySelector(hash);
+  } catch {
+    return false; // invalid selector
+  }
+  if (!target) return false;
+
+  const lenis = window.__lenis;
+  if (lenis && smooth) {
+    lenis.scrollTo(target as HTMLElement, { offset: -NAV_OFFSET, duration: 1.1 });
+  } else {
+    // reduced-motion / no Lenis: native jump (scroll-margin-top handles offset)
+    (target as HTMLElement).scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
+  }
+  return true;
+}
+
+/**
+ * Intercept same-page hash links in the CAPTURE phase and handle the scroll
+ * ourselves with Lenis — and stopImmediatePropagation so Astro's ClientRouter
+ * never also tries to navigate (that double-handling was the "stutter"). Links
+ * to a different page keep their default behaviour; the hash is honoured on the
+ * next astro:page-load.
+ */
+function initAnchorScroll() {
+  if (window.__anchorInit) return;
+  window.__anchorInit = true;
+
+  document.addEventListener(
+    'click',
+    (e) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+      const a = (e.target as HTMLElement)?.closest?.('a[href]') as HTMLAnchorElement | null;
+      if (!a || a.target === '_blank') return;
+      const url = new URL(a.href, location.href);
+      if (url.origin !== location.origin) return;
+      if (!url.hash || url.hash === '#') return;
+      if (url.pathname !== location.pathname) return; // different page → let the router navigate
+      if (scrollToHash(url.hash)) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        history.pushState(null, '', url.hash);
+      }
+    },
+    true, // capture: run before ClientRouter's listener
+  );
+
+  // Honour a hash on (first or post-navigation) load — covers cross-page anchors
+  // like a project page → "/#contact". Wait a frame so layout/ScrollTrigger settle.
+  document.addEventListener('astro:page-load', () => {
+    const hash = location.hash;
+    if (hash && hash.length > 1) {
+      requestAnimationFrame(() => setTimeout(() => scrollToHash(hash), 120));
     }
   });
 }
@@ -189,6 +236,7 @@ export function bootMotion() {
     window.__motionInit = true;
     initLenis();
     initCursor();
+    initAnchorScroll();
   }
   setupPage();
 }

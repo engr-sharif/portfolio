@@ -14,14 +14,10 @@ order: 4
 published: true
 ---
 
-> **Confidentiality note (remove before publishing):** Confirm each named site
-> is cleared for public listing; keep to high-level descriptions.
-
 **Construction Quality Assurance (CQA)** across several California landfill
 projects — including **Yolo County Central Landfill**, **Colton**, and
 **Woodville**. CQA work ensures that landfill liner and cover systems are
 constructed in accordance with design and regulatory requirements.
 
 Scope spanned field QA during construction and **landfill gas (LFG)
-monitoring**. This is a high-level placeholder; confirm public clearance for
-each named site before publishing.
+monitoring**.

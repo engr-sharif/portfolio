@@ -13,6 +13,9 @@ export default defineConfig({
   site: 'https://engr-sharif.github.io',
   base: '/portfolio/',
   output: 'static',
+  // Match GitHub Pages directory serving + our withBase('/x/') links, and keep
+  // canonical/sitemap URLs consistent (avoids duplicate-URL SEO signals).
+  trailingSlash: 'always',
   integrations: [react(), sitemap()],
   vite: {
     plugins: [tailwindcss()],

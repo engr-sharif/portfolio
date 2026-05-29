@@ -13,13 +13,7 @@ order: 2
 published: true
 ---
 
-> **Confidentiality note (remove before publishing):** Confirm all details are
-> cleared for public sharing — public, high-level descriptions only.
-
 Support on characterization and remediation activities at a former
 **manufactured gas plant (MGP)** site. Former MGPs are a well-documented class
 of legacy industrial sites that typically require investigation and cleanup of
 impacted soil and groundwater.
-
-This entry is a high-level placeholder; replace the body with a public-level
-write-up of your specific role and scope once cleared.
