@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://unpkg.com/@sveltia/cms/schema/sveltia-cms.json
 # ==========================================================================
 # CMS configuration (Sveltia / Decap compatible).
 #
@@ -24,19 +25,62 @@ public_folder: "/src/assets/gallery"
 
 publish_mode: simple
 site_url: https://engr-sharif.github.io/portfolio
+display_url: https://engr-sharif.github.io/portfolio
+logo_url: https://engr-sharif.github.io/portfolio/favicon.svg
+
+# Clean, URL-safe filenames + slugs (no spaces/accents/uppercase surprises).
+slug:
+  encoding: ascii
+  clean_accents: true
+
+# Browser-side media optimization: every uploaded photo is downscaled and
+# converted to WebP *before* it's committed — so big phone originals (3-6 MB)
+# become small, and filenames are slugified. Astro still generates responsive
+# sizes at build; this just tames the source.
+media_libraries:
+  all:
+    slugify_filename: true
+    max_file_size: 10485760   # 10 MB hard cap on the original
+    transformations:
+      raster_image:
+        format: webp
+        quality: 82
+        width: 2400
+        height: 2400
+      svg:
+        optimize: true
+
+# Friendlier rich-text editor defaults (WYSIWYG with a raw-markdown escape hatch).
+field_defaults:
+  richtext:
+    modes: [rich_text, raw]
+    buttons: [bold, italic, link, heading-two, heading-three, bulleted-list, numbered-list, quote, code]
 
 collections:
   # ---------------------------------------------------------------- Projects
   - name: projects
     label: Projects
     label_singular: Project
+    icon: work
+    description: "Your environmental projects. Toggle **Published** on once a project is cleared for public sharing."
     folder: "src/content/projects"
     create: true
     slug: "{{slug}}"
     format: frontmatter
     media_folder: "/src/assets/covers"
     public_folder: "/src/assets/covers"
-    summary: "{{title}} — {{status}}"
+    preview_path: "projects/{{slug}}"
+    summary: "{{title}} — {{status}} · {{published | ternary('● live', '○ draft')}}"
+    sortable_fields:
+      fields: [order, title, startDate]
+      default: { field: order, direction: ascending }
+    view_filters:
+      - { label: "Live (public)", field: published, pattern: 'true' }
+      - { label: "Draft (hidden)", field: published, pattern: 'false' }
+      - { label: "Featured", field: featured, pattern: 'true' }
+    view_groups:
+      - { label: "Status", field: status }
+      - { label: "Live vs draft", field: published }
     fields:
       - { name: title, label: Title, widget: string }
       - { name: client, label: "Client / Site", widget: string, hint: "Confirm this is cleared for public sharing." }
@@ -62,27 +106,35 @@ collections:
         widget: boolean
         default: false
         hint: "Leave OFF until every site/client detail is confirmed public."
-      - { name: body, label: "Write-up", widget: markdown }
+      - { name: body, label: "Write-up", widget: richtext }
 
   # ------------------------------------------------------------------ Blog
   - name: blog
     label: Blog
     label_singular: Post
+    icon: article
+    description: "Field notes & writing. New posts start as a **draft** — turn the Draft toggle OFF to publish."
     folder: "src/content/blog"
     create: true
     slug: "{{slug}}"
     format: frontmatter
     media_folder: "/src/assets/blog"
     public_folder: "/src/assets/blog"
-    sortable_fields: [pubDate, title]
+    preview_path: "blog/{{slug}}"
+    sortable_fields:
+      fields: [pubDate, title]
+      default: { field: pubDate, direction: descending }
     view_filters:
       - { label: "Drafts", field: draft, pattern: true }
       - { label: "Published", field: draft, pattern: false }
-    summary: "{{title}}"
+    view_groups:
+      - { label: "Draft status", field: draft }
+      - { label: "Category", field: category }
+    summary: "{{title}} · {{draft | ternary('○ draft', '● live')}}"
     fields:
       - { name: title, label: Title, widget: string }
       - { name: description, label: "Excerpt / SEO description", widget: text, pattern: ['^.{0,200}$', "Keep under 200 characters"] }
-      - { name: pubDate, label: "Published date", widget: datetime, date_format: "YYYY-MM-DD", time_format: false, picker_utc: true }
+      - { name: pubDate, label: "Published date", widget: datetime, date_format: "YYYY-MM-DD", time_format: false, picker_utc: true, default: "{{now}}" }
       - { name: updatedDate, label: "Updated date", widget: datetime, date_format: "YYYY-MM-DD", time_format: false, required: false, picker_utc: true }
       - { name: coverImage, label: "Cover image", widget: image, required: false, hint: "Stored as a filename; resolved from src/assets/blog." }
       - { name: coverAlt, label: "Cover alt text (accessibility)", widget: string, required: false }
@@ -103,11 +155,15 @@ collections:
         widget: boolean
         default: true
         hint: "Save = publish on this site. Leave this ON until the post is ready."
-      - { name: body, label: Post, widget: markdown }
+      - { name: body, label: Post, widget: richtext }
+
+  - divider: true
 
   # -------------------------------------------------------- Site settings
   - name: settings
     label: Site Settings
+    icon: settings
+    description: "Everything else: your name & bio, contact links, the field gallery, video embeds, and credentials."
     files:
       - name: site
         label: "About / Contact"
@@ -120,9 +176,9 @@ collections:
           - { name: role, label: "Role / subhead", widget: string }
           - { name: bio, label: Bio, widget: text }
           - { name: location, label: Location, widget: string }
-          - { name: email, label: Email, widget: string }
-          - { name: linkedin, label: "LinkedIn URL", widget: string }
-          - { name: github, label: "GitHub URL", widget: string }
+          - { name: email, label: Email, widget: string, type: email }
+          - { name: linkedin, label: "LinkedIn URL", widget: string, type: url }
+          - { name: github, label: "GitHub URL", widget: string, type: url }
           - { name: resume, label: "Résumé path", widget: string, default: "/resume/Sharif_Resume.pdf" }
           - { name: resumeUpdated, label: "Résumé updated (YYYY-MM-DD)", widget: string }
           - { name: analytics, label: "GoatCounter code (analytics)", widget: string, required: false, hint: "Your GoatCounter subdomain, e.g. 'engr-sharif'. Leave blank to disable analytics." }
@@ -139,10 +195,11 @@ collections:
             widget: list
             required: false
             summary: "{{fields.alt}}"
-            collapsed: true
-            hint: "Click 'Add Photo', then upload an image and write a short alt-text description. Drag to reorder."
+            thumbnail: image
+            collapsed: auto
+            hint: "Click 'Add Photo', upload an image (it's auto-shrunk for you) and write a short description. Drag to reorder."
             fields:
-              - { name: image, label: Image, widget: image, hint: "Upload a field photo (keep under ~5MB; no raw video)." }
+              - { name: image, label: Image, widget: image, hint: "Upload a field photo straight from your phone — it's optimized automatically." }
               - { name: alt, label: "Alt text (describe the photo)", widget: string }
               - { name: caption, label: "Caption (optional)", widget: string, required: false }
       - name: media

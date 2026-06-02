@@ -4,15 +4,48 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
-    <title>Content Manager — engr-sharif</title>
+    <title>Content Manager — Nawaz Sharif</title>
+    <link rel="icon" href="/portfolio/favicon.svg" type="image/svg+xml" />
+    <style>
+      :root { color-scheme: dark; }
+      body { margin: 0; background: #0c0e0d; color: #f4f3ee; font-family: system-ui, sans-serif; }
+      /* Simple branded splash shown until the CMS mounts. */
+      #cms-loading {
+        position: fixed; inset: 0; display: grid; place-content: center; gap: 1rem;
+        text-align: center; z-index: 1;
+      }
+      #cms-loading p { color: #6b716c; font-size: 0.9rem; letter-spacing: 0.08em; text-transform: uppercase; }
+      #cms-loading strong { font-size: 1.3rem; font-weight: 600; }
+      .spin { width: 28px; height: 28px; margin: 0 auto; border: 2px solid #2f6f4e; border-top-color: #7fe3ad; border-radius: 50%; animation: s 0.8s linear infinite; }
+      @keyframes s { to { transform: rotate(360deg); } }
+    </style>
   </head>
   <body>
+    <div id="cms-loading">
+      <div class="spin"></div>
+      <strong>Content Manager</strong>
+      <p>Loading your site editor…</p>
+    </div>
     <!--
-      Sveltia CMS — a drop-in, config-compatible replacement for Decap CMS with
-      much better media handling (chosen per the build spec's fallback). It reads
-      ./config.yml. To switch back to Decap, replace the script below with:
-      <script src="https://unpkg.com/decap-cms@^3/dist/decap-cms.js"></script>
+      Sveltia CMS — drop-in, Decap-config-compatible, with browser-side image
+      optimization + a WYSIWYG editor. Pinned for stability; bump the version
+      deliberately. It reads ./config.yml.
     -->
-    <script src="https://unpkg.com/@sveltia/cms/dist/sveltia-cms.js" type="module"></script>
+    <script src="https://unpkg.com/@sveltia/cms@0.165.1/dist/sveltia-cms.js" type="module"></script>
+    <script type="module">
+      // Remove the splash once the CMS UI has mounted.
+      window.addEventListener('load', () => {
+        const splash = document.getElementById('cms-loading');
+        const obs = new MutationObserver(() => {
+          if (document.querySelector('#nc-root, .sveltia-cms, [class*="cms"]')) {
+            splash?.remove();
+            obs.disconnect();
+          }
+        });
+        obs.observe(document.body, { childList: true, subtree: true });
+        // Safety: never let the splash linger.
+        setTimeout(() => splash?.remove(), 6000);
+      });
+    </script>
   </body>
 </html>
