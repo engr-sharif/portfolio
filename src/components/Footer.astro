@@ -2,10 +2,10 @@
 import { site } from '../lib/site';
 const year = new Date().getFullYear();
 ---
-<footer class="site-footer" id="contact">
+<footer class="site-footer">
   <div class="u-container" style="display:flex;flex-wrap:wrap;gap:2.5rem;justify-content:space-between;align-items:flex-end;">
     <div style="max-width:32ch;">
-      <p class="section__eyebrow" style="margin-bottom:1rem;">Get in touch</p>
+      <p class="section__eyebrow" style="margin-bottom:1rem;">{site.shortName}</p>
       <a href={`mailto:${site.email}`} class="link-underline" style="font-family:var(--font-display);font-size:var(--text-xl);">
         {site.email}
       </a>

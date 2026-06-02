@@ -226,6 +226,7 @@ collections:
           - { name: resume, label: "Résumé path", widget: string, default: "/resume/Sharif_Resume.pdf" }
           - { name: resumeUpdated, label: "Résumé updated (YYYY-MM-DD)", widget: string }
           - { name: analytics, label: "GoatCounter code (analytics)", widget: string, required: false, hint: "Your GoatCounter subdomain, e.g. 'engr-sharif'. Leave blank to disable analytics." }
+          - { name: contactFormKey, label: "Contact form key (Web3Forms)", widget: string, required: false, hint: "Free access key from web3forms.com tied to your email. Leave blank to use a mailto fallback." }
       - name: gallery
         label: "Field Gallery (photos)"
         file: "src/content/settings/gallery.json"
