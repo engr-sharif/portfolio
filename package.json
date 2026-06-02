@@ -8,7 +8,9 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "fetch:repos": "node scripts/fetch-github-repos.mjs",
+    "prebuild": "node scripts/fetch-github-repos.mjs"
   },
   "dependencies": {
     "@astrojs/react": "^5.0.6",
