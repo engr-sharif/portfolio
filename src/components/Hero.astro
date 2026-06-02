@@ -3,13 +3,15 @@ import { site } from '../lib/site';
 import { withBase } from '../lib/path';
 import HeroScene from './three/HeroScene.tsx';
 ---
-<section class="hero" aria-label="Introduction">
+<section class="hero" aria-label="Introduction" data-hero>
   <!-- WebGL particle field — the full hero backdrop. Drifts on every device
        (density scales down on phones), freezes to a still pattern under
        reduced motion. -->
-  <HeroScene client:visible />
+  <div class="hero__canvas-wrap" data-hero-parallax="bg">
+    <HeroScene client:visible />
+  </div>
 
-  <div class="hero__inner u-container">
+  <div class="hero__inner u-container" data-hero-parallax="content">
     <p class="hero__eyebrow" data-hero-fade>{site.credential} · {site.location.split(',')[0]}</p>
     <h1 class="hero__title" data-hero-title>{site.heroTitle || site.name}</h1>
     <p class="hero__sub" data-hero-fade>{site.role}</p>
@@ -36,6 +38,12 @@ import HeroScene from './three/HeroScene.tsx';
       radial-gradient(130% 90% at 78% -10%, color-mix(in srgb, var(--color-field-dim) 80%, transparent), transparent 62%),
       radial-gradient(100% 80% at 12% 112%, color-mix(in srgb, var(--color-field) 38%, transparent), transparent 58%),
       var(--color-ink);
+  }
+  .hero__canvas-wrap {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    will-change: transform;
   }
   .hero-canvas {
     position: absolute;
@@ -125,4 +133,5 @@ import HeroScene from './three/HeroScene.tsx';
 
 <script>
   import '../lib/hero';
+  import '../lib/hero-parallax';
 </script>
