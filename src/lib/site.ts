@@ -12,6 +12,8 @@ export interface SiteSettings {
   credential: string;
   role: string;
   heroTitle?: string;
+  /** Filename of the hero background image in src/assets/hero (""=auto). */
+  heroBackground?: string;
   bio: string;
   location: string;
   email: string;
