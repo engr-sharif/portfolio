@@ -1,0 +1,119 @@
+---
+import Section from './Section.astro';
+import { site } from '../lib/site';
+
+// Web3Forms access key (set in /admin → Site Settings). When empty, the form
+// degrades to a plain mailto: so the page is never broken.
+const formKey = (site.contactFormKey ?? '').trim();
+const hasForm = formKey.length > 0;
+---
+<Section id="contact" eyebrow="Get in touch" title="Let's talk">
+  <div class="contact">
+    <div class="contact__intro" data-reveal>
+      <p style="color:var(--color-paper-soft);font-size:var(--text-lg);max-width:36ch;">
+        Open to environmental engineering roles and field/consulting work. Send a note and I'll get back to you.
+      </p>
+      <dl class="contact__facts">
+        <div><dt>Email</dt><dd><a href={`mailto:${site.email}`} class="link-underline">{site.email}</a></dd></div>
+        <div><dt>Based in</dt><dd>{site.location}</dd></div>
+      </dl>
+      <div class="contact__links">
+        <a href={site.linkedin} class="link-underline" target="_blank" rel="noopener">LinkedIn ↗</a>
+        <a href={site.github} class="link-underline" target="_blank" rel="noopener">GitHub ↗</a>
+      </div>
+    </div>
+
+    <form
+      class="contact__form"
+      data-reveal
+      data-reveal-delay="0.1"
+      data-contact-form
+      method="POST"
+      action="https://api.web3forms.com/submit"
+    >
+      <input type="hidden" name="access_key" value={formKey} />
+      <input type="hidden" name="subject" value="New message from your portfolio" />
+      <input type="hidden" name="from_name" value="Portfolio contact form" />
+      <!-- honeypot: bots fill this; humans don't see it -->
+      <input type="checkbox" name="botcheck" class="contact__honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
+
+      <div class="contact__row">
+        <label class="contact__field">
+          <span>Name</span>
+          <input type="text" name="name" required autocomplete="name" placeholder="Your name" />
+        </label>
+        <label class="contact__field">
+          <span>Email</span>
+          <input type="email" name="email" required autocomplete="email" placeholder="you@example.com" />
+        </label>
+      </div>
+      <label class="contact__field">
+        <span>Message</span>
+        <textarea name="message" rows="5" required placeholder="How can I help?"></textarea>
+      </label>
+
+      <div class="contact__actions">
+        <button type="submit" class="btn" data-magnetic="0.3" data-contact-submit>Send message</button>
+        <a href={`mailto:${site.email}`} class="contact__or link-underline">or email me directly</a>
+      </div>
+
+      <p class="contact__status" data-contact-status role="status" aria-live="polite"></p>
+    </form>
+  </div>
+</Section>
+
+<script is:inline define:vars={{ hasForm, email: site.email }}>
+  // Progressive enhancement: AJAX submit to Web3Forms with inline status.
+  // If no access key is configured, redirect to a prefilled mailto instead.
+  document.addEventListener('astro:page-load', () => {
+    const form = document.querySelector('[data-contact-form]');
+    if (!form || form.dataset.bound) return;
+    form.dataset.bound = '1';
+    const statusEl = form.querySelector('[data-contact-status]');
+    const btn = form.querySelector('[data-contact-submit]');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = new FormData(form);
+
+      // No backend key → fall back to mailto with the message prefilled.
+      if (!hasForm) {
+        const subj = encodeURIComponent(`Portfolio inquiry from ${data.get('name') || ''}`);
+        const body = encodeURIComponent(`${data.get('message') || ''}\n\n— ${data.get('name') || ''} (${data.get('email') || ''})`);
+        window.location.href = `mailto:${email}?subject=${subj}&body=${body}`;
+        return;
+      }
+
+      const setStatus = (msg, ok) => {
+        statusEl.textContent = msg;
+        statusEl.classList.toggle('is-ok', !!ok);
+        statusEl.classList.toggle('is-err', ok === false);
+      };
+
+      btn.disabled = true;
+      const original = btn.textContent;
+      btn.textContent = 'Sending…';
+      setStatus('', null);
+
+      try {
+        const res = await fetch('https://api.web3forms.com/submit', {
+          method: 'POST',
+          headers: { Accept: 'application/json' },
+          body: data,
+        });
+        const json = await res.json();
+        if (res.ok && json.success) {
+          form.reset();
+          setStatus("Thanks — your message is on its way. I'll be in touch soon.", true);
+        } else {
+          setStatus(json.message || 'Something went wrong. Please email me directly.', false);
+        }
+      } catch {
+        setStatus('Network error. Please email me directly.', false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = original;
+      }
+    });
+  });
+</script>

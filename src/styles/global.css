@@ -722,6 +722,50 @@ html.js [data-reveal-stagger] > * {
 .tool-card--link:hover { border-color: color-mix(in srgb, var(--color-field-bright) 55%, transparent); transform: translateY(-3px); }
 .tool-card__more { color: var(--color-field-bright); font-size: var(--text-sm); margin-top: 0.4rem; }
 
+/* ==========================================================================
+   CONTACT FORM
+   ========================================================================== */
+.contact { display: grid; gap: clamp(2rem, 5vw, 4rem); }
+@media (min-width: 860px) { .contact { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); } }
+.contact__facts { margin-top: 2rem; display: grid; gap: 1.1rem; }
+.contact__facts dt { color: var(--color-muted); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.12em; }
+.contact__facts dd { margin-top: 0.25rem; }
+.contact__links { display: flex; gap: 1.4rem; margin-top: 1.8rem; font-size: var(--text-sm); }
+
+.contact__form { display: flex; flex-direction: column; gap: 1.1rem; }
+.contact__row { display: grid; gap: 1.1rem; }
+@media (min-width: 560px) { .contact__row { grid-template-columns: 1fr 1fr; } }
+.contact__field { display: flex; flex-direction: column; gap: 0.45rem; }
+.contact__field span { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.12em; color: var(--color-muted); }
+.contact__field input,
+.contact__field textarea {
+  width: 100%;
+  padding: 0.85em 1em;
+  border-radius: 10px;
+  background: var(--color-ink-soft);
+  border: 1px solid color-mix(in srgb, var(--color-paper) 14%, transparent);
+  color: var(--color-paper);
+  font: inherit;
+  font-size: var(--text-base);
+  transition: border-color 0.25s var(--ease-out-expo), background-color 0.25s var(--ease-out-expo);
+}
+.contact__field textarea { resize: vertical; min-height: 7rem; }
+.contact__field input::placeholder,
+.contact__field textarea::placeholder { color: color-mix(in srgb, var(--color-muted) 80%, transparent); }
+.contact__field input:focus,
+.contact__field textarea:focus {
+  outline: none;
+  border-color: var(--color-field-bright);
+  background: color-mix(in srgb, var(--color-field-dim) 18%, var(--color-ink-soft));
+}
+/* honeypot — visually hidden but present for bots */
+.contact__honeypot { position: absolute; left: -9999px; opacity: 0; height: 0; width: 0; }
+.contact__actions { display: flex; align-items: center; gap: 1.2rem; flex-wrap: wrap; margin-top: 0.4rem; }
+.contact__or { color: var(--color-muted); font-size: var(--text-sm); }
+.contact__status { font-size: var(--text-sm); min-height: 1.2em; margin: 0; }
+.contact__status.is-ok { color: var(--color-field-bright); }
+.contact__status.is-err { color: #e2895f; }
+
 .timeline { position: relative; max-width: 46rem; }
 .timeline__track { position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: color-mix(in srgb, var(--color-paper) 12%, transparent); }
 .timeline__progress { position: absolute; left: 0; top: 0; width: 2px; background: var(--color-field-bright); transform-origin: top; transform: scaleY(0); height: 100%; }

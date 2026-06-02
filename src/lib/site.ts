@@ -21,6 +21,8 @@ export interface SiteSettings {
   resumeUpdated: string;
   /** GoatCounter subdomain for privacy-friendly analytics ("" = disabled). */
   analytics?: string;
+  /** Web3Forms access key for the contact form ("" = mailto fallback). */
+  contactFormKey?: string;
 }
 
 export const site = siteJson as SiteSettings;
