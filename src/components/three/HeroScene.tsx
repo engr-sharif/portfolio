@@ -95,7 +95,7 @@ const Terrain: FC<{ reduced: boolean; cols: number; rows: number }> = ({ reduced
   // Gentle tilt — enough for depth, but the field fills the frame behind the
   // text rather than receding to a thin horizon band at the top.
   return (
-    <points geometry={geometry} rotation={[-0.5, 0, 0]} scale={Math.max(1.1, viewport.width / 12)}>
+    <points geometry={geometry} rotation={[0, 0, 0]} scale={Math.max(1.4, viewport.width / 9)}>
       <shaderMaterial
         ref={matRef}
         vertexShader={vertexShader}
@@ -150,7 +150,7 @@ const HeroScene: FC = () => {
     <div ref={wrapRef} className="hero-canvas" aria-hidden="true">
       <Canvas
         frameloop={frameloop}
-        camera={{ position: [0, 0, 9], fov: 45 }}
+        camera={{ position: [0, 0, 8], fov: 50 }}
         dpr={small ? [1, 1.25] : [1, 1.5]}
         gl={{ antialias: false, alpha: true, powerPreference: 'high-performance' }}
       >
