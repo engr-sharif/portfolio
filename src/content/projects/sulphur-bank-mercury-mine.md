@@ -12,12 +12,14 @@ techniques:
   - XRF scanning
   - Grid sampling
   - Field navigation tool
-coverImage: sbmm.jpg
+coverImage: /src/assets/covers/IMG_9852.jpeg
 coverAlt: ''
 gallery:
   - /src/assets/gallery/IMG_2950.jpeg
   - /src/assets/gallery/IMG_3196.jpeg
   - /src/assets/gallery/IMG_2955.jpeg
+  - /src/assets/covers/IMG_0030.JPG
+  - /src/assets/covers/IMG_0032.JPG
 externalLink: https://www.epa.gov/superfund
 featured: true
 order: 1
