@@ -23,6 +23,8 @@ export interface SiteSettings {
   analytics?: string;
   /** Web3Forms access key for the contact form ("" = mailto fallback). */
   contactFormKey?: string;
+  /** Cloudflare Turnstile site key for contact-form spam protection (""=off). */
+  turnstileSiteKey?: string;
 }
 
 export const site = siteJson as SiteSettings;
