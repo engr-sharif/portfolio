@@ -1,7 +1,8 @@
 ---
-import { Image } from 'astro:assets';
+import { Image, getImage } from 'astro:assets';
 import Section from './Section.astro';
 import { allGalleryImages, getGalleryImage } from '../lib/images';
+import { getCaption } from '../lib/captions';
 import media from '../content/settings/media.json';
 import galleryData from '../content/settings/gallery.json';
 
@@ -16,13 +17,21 @@ import galleryData from '../content/settings/gallery.json';
  * external embeds (YouTube/Vimeo) configured in media.json.
  */
 const curated = (galleryData.photos ?? [])
-  .map((p) => ({ img: getGalleryImage(p.image), alt: p.alt || 'Field photo', caption: p.caption }))
+  .map((p) => ({ img: getGalleryImage(p.image), alt: p.alt || 'Field photo', caption: p.caption || getCaption(p.image) }))
   .filter((p) => p.img);
 
-const images =
+const base =
   curated.length > 0
     ? curated
-    : allGalleryImages.map(({ name, img }) => ({ img, alt: `Field photo: ${name}`, caption: '' }));
+    : allGalleryImages.map(({ name, img }) => ({ img, alt: `Field photo: ${name}`, caption: getCaption(name) }));
+
+// Precompute a high-res source for crisp zoom in the viewer.
+const images = await Promise.all(
+  base.map(async (p) => ({
+    ...p,
+    full: (await getImage({ src: p.img!, width: 2000, format: 'webp' })).src,
+  })),
+);
 
 const videos = (media.videos ?? []).filter((v) => v.id || v.url);
 
@@ -40,8 +49,15 @@ function videoHref(v: { provider: string; id: string; url: string }) {
 
   {images.length > 0 ? (
     <div class="gallery">
-      {images.map(({ img, alt }) => (
-        <button class="gallery__item" data-lightbox aria-label={`Open photo: ${alt}`}>
+      {images.map(({ img, alt, caption, full }) => (
+        <button
+          class="gallery__item"
+          data-lightbox
+          data-gallery="field"
+          data-full={full}
+          data-caption={caption}
+          aria-label={`Open photo: ${alt}`}
+        >
           <Image src={img!} alt={alt} widths={[300, 600, 900]} sizes="(max-width: 640px) 45vw, 18rem" loading="lazy" />
         </button>
       ))}
