@@ -40,17 +40,31 @@ function revealHero() {
       yPercent: 115,
       duration: 1.1,
       stagger: 0.12,
-    }).from(
+    }).fromTo(
       fadeIns,
-      { opacity: 0, y: 24, duration: 0.9, stagger: 0.1 },
+      { opacity: 0, y: 24 },
+      { opacity: 1, y: 0, duration: 0.9, stagger: 0.1 },
       '-=0.7',
     );
   };
 
+  // Safety net: if anything throws or fonts never resolve, ensure the
+  // eyebrow / subhead / buttons are visible rather than stuck at opacity 0.
+  const failsafe = setTimeout(() => gsap.set(fadeIns, { opacity: 1, y: 0 }), 2500);
+  const guardedRun = () => {
+    try {
+      run();
+    } catch {
+      gsap.set([title, ...fadeIns], { opacity: 1, y: 0 });
+    } finally {
+      clearTimeout(failsafe);
+    }
+  };
+
   if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(run);
+    document.fonts.ready.then(guardedRun);
   } else {
-    run();
+    guardedRun();
   }
 }
 

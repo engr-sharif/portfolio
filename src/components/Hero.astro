@@ -68,12 +68,22 @@ import HeroScene from './three/HeroScene.tsx';
     padding-bottom: 5rem;
   }
   .hero__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8em;
     color: var(--color-field-bright);
     letter-spacing: 0.24em;
     text-transform: uppercase;
     font-size: var(--text-sm);
     margin-bottom: 1.4rem;
     opacity: 0;
+  }
+  .hero__eyebrow::before {
+    content: '';
+    width: 2.2rem;
+    height: 1px;
+    background: var(--color-field-bright);
+    opacity: 0.7;
   }
   .hero__title {
     font-size: var(--text-hero);
