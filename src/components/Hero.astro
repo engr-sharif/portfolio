@@ -1,12 +1,48 @@
 ---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
 import { site } from '../lib/site';
 import { withBase } from '../lib/path';
 import HeroScene from './three/HeroScene.tsx';
+
+// Optional hero background image. Resolution order:
+//  1. site.heroBackground (a filename set in /admin → Site Settings), matched
+//     case-insensitively by basename;
+//  2. otherwise the first non-placeholder image in src/assets/hero/;
+//  3. otherwise the first image found (placeholder).
+// Drop an image into src/assets/hero/ (via /admin or directly) → it's the
+// backdrop. The WebGL particles drift on top for motion.
+const heroModules = import.meta.glob<{ default: ImageMetadata }>(
+  '../assets/hero/*.{jpg,jpeg,png,webp,avif,JPG,JPEG,PNG,WEBP,AVIF}',
+  { eager: true },
+);
+const heroEntries = Object.entries(heroModules);
+const base = (p: string) => (p.split(/[\\/]/).pop() ?? '').toLowerCase();
+const wanted = (site.heroBackground ?? '').trim();
+const picked =
+  (wanted && heroEntries.find(([p]) => base(p) === base(wanted))) ||
+  heroEntries.find(([p]) => !base(p).includes('placeholder')) ||
+  heroEntries[0];
+const heroBg = picked?.[1].default;
 ---
-<section class="hero" aria-label="Introduction">
-  <!-- WebGL backdrop (the signature animation). Loaded on every device so the
-       hero is never a black panel; the scene scales density down on phones and
-       freezes to a still pattern (no animation) under reduced-motion. -->
+<section class:list={['hero', { 'hero--has-bg': heroBg }]} aria-label="Introduction">
+  {heroBg && (
+    <Image
+      src={heroBg}
+      alt=""
+      aria-hidden="true"
+      class="hero__bg"
+      widths={[768, 1280, 1920, 2560]}
+      sizes="100vw"
+      loading="eager"
+      fetchpriority="high"
+    />
+  )}
+  <div class="hero__scrim" aria-hidden="true"></div>
+
+  <!-- WebGL particle field — drifts on top of the background image (or stands
+       alone if there's no image). Freezes to a still pattern under reduced
+       motion; never just a black panel. -->
   <HeroScene client:visible />
 
   <div class="hero__inner u-container">
@@ -42,6 +78,30 @@ import HeroScene from './three/HeroScene.tsx';
     inset: 0;
     z-index: 0;
   }
+  /* Background image (when present) sits beneath everything. */
+  .hero__bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    z-index: 0;
+  }
+  /* Legibility scrim — darkens the center/bottom so the name always reads,
+     and blends the image into the dark page below. */
+  .hero__scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+      radial-gradient(80% 60% at 50% 58%, color-mix(in srgb, var(--color-ink) 55%, transparent), transparent 70%),
+      linear-gradient(to bottom, transparent 40%, color-mix(in srgb, var(--color-ink) 85%, transparent) 100%);
+  }
+  /* When an image is present, the canvas blends as a subtle moving accent
+     rather than the main event. */
+  .hero--has-bg .hero-canvas { z-index: 1; opacity: 0.55; mix-blend-mode: screen; }
   .hero-canvas :global(canvas) {
     width: 100% !important;
     height: 100% !important;
