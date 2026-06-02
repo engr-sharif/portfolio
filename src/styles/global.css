@@ -718,6 +718,9 @@ html.js [data-reveal-stagger] > * {
 .tool-card__problem { color: var(--color-muted); font-size: var(--text-sm); }
 .tool-card__tech { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: auto; padding-top: 0.6rem; }
 .tool-card__tech span { font-size: var(--text-xs); padding: 0.25em 0.6em; border-radius: 6px; background: color-mix(in srgb, var(--color-field-dim) 40%, transparent); color: var(--color-paper-soft); }
+.tool-card--link { transition: border-color 0.3s var(--ease-out-expo), transform 0.3s var(--ease-out-expo); }
+.tool-card--link:hover { border-color: color-mix(in srgb, var(--color-field-bright) 55%, transparent); transform: translateY(-3px); }
+.tool-card__more { color: var(--color-field-bright); font-size: var(--text-sm); margin-top: 0.4rem; }
 
 .timeline { position: relative; max-width: 46rem; }
 .timeline__track { position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: color-mix(in srgb, var(--color-paper) 12%, transparent); }

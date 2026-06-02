@@ -27,29 +27,6 @@
       "expires": "2027"
     }
   ],
-  "tools": [
-    {
-      "name": "Cyclic Report QC Tool",
-      "problem": "Recurring regulatory reports often carry stale, copy-pasted values from the prior cycle — a silent quality risk.",
-      "description": "A Python utility that diffs a new report against the previous cyclic template paragraph-by-paragraph and color-codes added / updated / unreviewed text, so every value gets checked against its source before submittal.",
-      "tech": ["Python", "Document diffing", "QA/QC"],
-      "link": ""
-    },
-    {
-      "name": "Field-Navigation Tool",
-      "problem": "Locating predetermined sampling-grid nodes in the field was slow and inconsistent.",
-      "description": "A lightweight, offline-friendly tool that guides the team directly to each grid node and confirms position before logging a reading — cutting orientation time and improving sampling consistency.",
-      "tech": ["JavaScript", "Geolocation", "Grid math"],
-      "link": ""
-    },
-    {
-      "name": "This portfolio",
-      "problem": "Wanted a fast, self-managed site to present project work and writing.",
-      "description": "Designed and built this site end-to-end — a static, animated portfolio with a browser-based CMS, so content stays current without a developer.",
-      "tech": ["Astro", "TypeScript", "GSAP", "Three.js"],
-      "link": "https://github.com/engr-sharif/portfolio"
-    }
-  ],
   "timeline": [
     {
       "date": "2021",

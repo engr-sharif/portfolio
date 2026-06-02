@@ -55,4 +55,27 @@ const projects = defineCollection({
   }),
 });
 
-export const collections = { projects, blog };
+/**
+ * Tools collection — the "engineer who codes" projects. One markdown file per
+ * tool, each with its own detail page (problem, approach, screenshots, a code
+ * snippet, tech, links). CMS-managed at /admin → Tools.
+ */
+const tools = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/tools' }),
+  schema: z.object({
+    name: z.string(),
+    summary: z.string(),
+    problem: z.string().optional(),
+    tech: z.array(z.string()).default([]),
+    repoUrl: z.string().url().optional(),
+    liveUrl: z.string().url().optional(),
+    screenshots: z.array(z.string()).default([]),
+    codeSnippet: z.string().optional(),
+    codeLang: z.string().default('javascript'),
+    featured: z.boolean().default(false),
+    order: z.number().default(0),
+    published: z.boolean().default(false),
+  }),
+});
+
+export const collections = { projects, blog, tools };
