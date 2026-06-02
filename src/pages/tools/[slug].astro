@@ -1,0 +1,124 @@
+---
+import { render } from 'astro:content';
+import { Image, getImage } from 'astro:assets';
+import { Code } from 'astro-expressive-code/components';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getImage as resolveImage } from '../../lib/images';
+import { withBase } from '../../lib/path';
+import { getTools } from '../../lib/tools';
+
+export async function getStaticPaths() {
+  const tools = await getTools();
+  return tools.map((tool) => ({ params: { slug: tool.id }, props: { tool } }));
+}
+
+const { tool } = Astro.props;
+const { data } = tool;
+const { Content } = await render(tool);
+const groupId = `tool-${tool.id}`;
+
+// Resolve screenshots (filenames in src/assets/**) → thumb + high-res for viewer.
+const shots = await Promise.all(
+  data.screenshots
+    .map((name) => ({ name, img: resolveImage(name) }))
+    .filter((s) => s.img)
+    .map(async (s) => ({
+      img: s.img!,
+      full: (await getImage({ src: s.img!, width: 2400, format: 'webp' })).src,
+      alt: `${data.name} — screenshot`,
+    })),
+);
+---
+<BaseLayout title={`${data.name} — Tool`} description={data.summary} ogType="article">
+  <article class="detail">
+    <div class="u-container">
+      <a href={withBase('#tools')} class="detail__back link-underline" style="color:var(--color-muted);font-size:var(--text-sm);">← All tools</a>
+
+      <header class="detail__header" data-reveal>
+        <p class="section__eyebrow">Tool</p>
+        <h1 class="detail__title" style="margin:1rem 0 1.2rem;">{data.name}</h1>
+        <p style="color:var(--color-paper-soft);font-size:var(--text-lg);max-width:60ch;">{data.summary}</p>
+
+        <ul class="card__tags" style="margin-top:1.4rem;">
+          {data.tech.map((t) => <li>{t}</li>)}
+        </ul>
+
+        <div style="display:flex;gap:0.8rem;flex-wrap:wrap;margin-top:1.6rem;">
+          {data.repoUrl && (
+            <a href={data.repoUrl} class="btn btn--ghost" target="_blank" rel="noopener" data-magnetic="0.3">View code ↗</a>
+          )}
+          {data.liveUrl && (
+            <a href={data.liveUrl} class="btn" target="_blank" rel="noopener" data-magnetic="0.3">Live demo ↗</a>
+          )}
+        </div>
+      </header>
+    </div>
+
+    {data.problem && (
+      <div class="u-container">
+        <aside class="tool-problem" data-reveal>
+          <span class="tool-problem__label">The problem</span>
+          <p>{data.problem}</p>
+        </aside>
+      </div>
+    )}
+
+    {shots.length > 0 && (
+      <div class="u-container">
+        <h2 style="font-size:var(--text-xl);margin:2.5rem 0 1.5rem;">Screenshots</h2>
+        <div class="gallery" data-reveal-stagger>
+          {shots.map((s) => (
+            <button class="gallery__item" data-lightbox data-gallery={groupId} data-full={s.full} aria-label="Open screenshot">
+              <Image src={s.img} alt={s.alt} widths={[400, 800, 1200]} sizes="(max-width: 640px) 90vw, 22rem" loading="lazy" />
+            </button>
+          ))}
+        </div>
+      </div>
+    )}
+
+    <div class="u-container detail__bodywrap">
+      <div class="detail__body prose" data-reveal>
+        <Content />
+      </div>
+      <aside class="detail__aside" data-reveal>
+        {data.repoUrl && (
+          <a href={data.repoUrl} class="btn btn--ghost" target="_blank" rel="noopener" data-magnetic="0.3">View code ↗</a>
+        )}
+        <a href={withBase('#contact')} class="btn" data-magnetic="0.3">Get in touch</a>
+      </aside>
+    </div>
+
+    {data.codeSnippet && (
+      <div class="u-container" style="margin-top:1rem;">
+        <h2 style="font-size:var(--text-xl);margin:2rem 0 1.2rem;">A snippet</h2>
+        <div data-reveal>
+          <Code code={data.codeSnippet} lang={data.codeLang} />
+        </div>
+      </div>
+    )}
+  </article>
+</BaseLayout>
+
+<script>
+  import '../../lib/lightbox';
+</script>
+
+<style>
+  .detail { padding-top: 7rem; }
+  .detail__title { font-size: var(--text-3xl); max-width: 20ch; }
+  .detail__bodywrap { display: grid; gap: 2.5rem; margin-top: 2.5rem; }
+  @media (min-width: 900px) {
+    .detail__bodywrap { grid-template-columns: minmax(0, 1fr) 16rem; align-items: start; }
+  }
+  .detail__aside { display: flex; flex-direction: column; gap: 0.8rem; position: sticky; top: 6rem; }
+  .tool-problem {
+    margin-top: 2rem;
+    border-left: 2px solid var(--color-field-bright);
+    background: color-mix(in srgb, var(--color-field-dim) 28%, transparent);
+    padding: 1.2rem 1.4rem;
+    border-radius: 0 12px 12px 0;
+    max-width: 60ch;
+  }
+  .tool-problem__label { color: var(--color-field-bright); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.14em; display: block; margin-bottom: 0.5rem; }
+  .tool-problem p { margin: 0; color: var(--color-paper-soft); }
+</style>

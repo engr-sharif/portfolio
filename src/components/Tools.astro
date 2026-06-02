@@ -1,28 +1,25 @@
 ---
 import Section from './Section.astro';
-import { profile } from '../lib/profile';
-const { tools } = profile;
+import { withBase } from '../lib/path';
+import { getTools } from '../lib/tools';
+const tools = await getTools();
 ---
 {tools.length > 0 && (
   <Section id="tools" eyebrow="Engineer who builds" title="Tools I've built">
-    <p style="color:var(--color-muted);max-width:52ch;margin:-2rem 0 2.5rem;font-size:var(--text-sm);">
-      Small, targeted software that removes real friction from environmental fieldwork.
+    <p style="color:var(--color-muted);max-width:54ch;margin:-2rem 0 2.5rem;font-size:var(--text-sm);">
+      Software I've built to remove real friction from environmental fieldwork —
+      mapping, data, and QC tools. Open any one for the full story.
     </p>
     <div class="tools-grid" data-reveal-stagger>
       {tools.map((t) => (
-        <article class="tool-card">
-          <h3 class="tool-card__name">{t.name}</h3>
-          <p class="tool-card__problem">{t.problem}</p>
-          <p style="font-size:var(--text-sm);color:var(--color-paper-soft);">{t.description}</p>
+        <a class="tool-card tool-card--link" href={withBase(`tools/${t.id}/`)} aria-label={`Open ${t.data.name}`}>
+          <h3 class="tool-card__name">{t.data.name}</h3>
+          <p class="tool-card__problem">{t.data.summary}</p>
           <div class="tool-card__tech">
-            {t.tech.map((x) => <span>{x}</span>)}
+            {t.data.tech.slice(0, 4).map((x) => <span>{x}</span>)}
           </div>
-          {t.link && (
-            <a href={t.link} class="link-underline" target="_blank" rel="noopener" style="font-size:var(--text-sm);color:var(--color-field-bright);">
-              View ↗
-            </a>
-          )}
-        </article>
+          <span class="tool-card__more">Read more →</span>
+        </a>
       ))}
     </div>
   </Section>

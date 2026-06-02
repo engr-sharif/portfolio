@@ -17,13 +17,6 @@ export interface Certification {
   date: string;
   expires?: string;
 }
-export interface Tool {
-  name: string;
-  problem: string;
-  description: string;
-  tech: string[];
-  link?: string;
-}
 export interface TimelineEntry {
   date: string;
   title: string;
@@ -33,8 +26,9 @@ export interface TimelineEntry {
 export interface Profile {
   credentials: Credential[];
   certifications: Certification[];
-  tools: Tool[];
   timeline: TimelineEntry[];
+  /** Legacy — tools moved to their own content collection (src/content/tools). */
+  tools?: unknown[];
 }
 
 export const profile = profileJson as Profile;

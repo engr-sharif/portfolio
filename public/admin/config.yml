@@ -157,6 +157,50 @@ collections:
         hint: "Save = publish on this site. Leave this ON until the post is ready."
       - { name: body, label: Post, widget: richtext }
 
+  # ----------------------------------------------------------------- Tools
+  - name: tools
+    label: "Tools I've Built"
+    label_singular: Tool
+    icon: terminal
+    description: "Your coding projects — each gets its own page (problem, screenshots, a code snippet, the write-up)."
+    folder: "src/content/tools"
+    create: true
+    slug: "{{slug}}"
+    format: frontmatter
+    media_folder: "/src/assets/tools"
+    public_folder: "/src/assets/tools"
+    preview_path: "tools/{{slug}}"
+    summary: "{{name}} · {{published | ternary('● live', '○ draft')}}"
+    sortable_fields:
+      fields: [order, name]
+      default: { field: order, direction: ascending }
+    view_filters:
+      - { label: "Live", field: published, pattern: 'true' }
+      - { label: "Draft", field: published, pattern: 'false' }
+    fields:
+      - { name: name, label: Name, widget: string }
+      - { name: summary, label: "One-line summary", widget: text }
+      - { name: problem, label: "The problem it solves", widget: text, required: false }
+      - { name: tech, label: "Tech used", widget: list, default: [] }
+      - { name: repoUrl, label: "Code / repo URL", widget: string, required: false, type: url }
+      - { name: liveUrl, label: "Live demo URL", widget: string, required: false, type: url }
+      - name: screenshots
+        label: "Screenshots"
+        widget: list
+        required: false
+        field: { name: image, label: Image, widget: image }
+        hint: "Upload screenshots of the tool — they appear in a zoomable gallery."
+      - { name: codeSnippet, label: "Code snippet", widget: code, required: false, output_code_only: true, hint: "A short, representative snippet that shows how you solved a key problem." }
+      - { name: codeLang, label: "Snippet language", widget: string, default: "javascript", required: false }
+      - { name: featured, label: Featured, widget: boolean, default: false }
+      - { name: order, label: "Sort order", widget: number, default: 0, value_type: int }
+      - name: published
+        label: "Published"
+        widget: boolean
+        default: false
+        hint: "Turn ON to show this tool on the site."
+      - { name: body, label: "Write-up (problem → approach → outcome)", widget: richtext }
+
   - divider: true
 
   # -------------------------------------------------------- Site settings
@@ -241,16 +285,6 @@ collections:
               - { name: issuer, label: "Issuer / standard", widget: string, required: false }
               - { name: date, label: "Date earned", widget: string }
               - { name: expires, label: "Expires (if applicable)", widget: string, required: false }
-          - name: tools
-            label: "Tools I've built"
-            widget: list
-            required: false
-            fields:
-              - { name: name, label: Name, widget: string }
-              - { name: problem, label: "Problem it solves", widget: text }
-              - { name: description, label: Description, widget: text }
-              - { name: tech, label: "Tech used", widget: list, required: false }
-              - { name: link, label: "Link (optional)", widget: string, required: false }
           - name: timeline
             label: "Career timeline"
             widget: list
