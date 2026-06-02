@@ -29,6 +29,13 @@
   ],
   "tools": [
     {
+      "name": "Cyclic Report QC Tool",
+      "problem": "Recurring regulatory reports often carry stale, copy-pasted values from the prior cycle — a silent quality risk.",
+      "description": "A Python utility that diffs a new report against the previous cyclic template paragraph-by-paragraph and color-codes added / updated / unreviewed text, so every value gets checked against its source before submittal.",
+      "tech": ["Python", "Document diffing", "QA/QC"],
+      "link": ""
+    },
+    {
       "name": "Field-Navigation Tool",
       "problem": "Locating predetermined sampling-grid nodes in the field was slow and inconsistent.",
       "description": "A lightweight, offline-friendly tool that guides the team directly to each grid node and confirms position before logging a reading — cutting orientation time and improving sampling consistency.",
