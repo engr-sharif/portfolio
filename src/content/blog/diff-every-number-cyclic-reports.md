@@ -6,7 +6,7 @@ tags: ["Data QA", "Compliance reporting", "Automation"]
 category: "technical"
 relatedProject: "roseville-landfill-monitoring"
 featured: true
-draft: true
+draft: false
 ---
 
 A lot of environmental work runs on **cyclic reports** — the same compliance
