@@ -4,11 +4,30 @@
  */
 import { login as apiLogin, clearToken, isLoggedIn as apiIsLoggedIn, listDir, readFile } from './api';
 import { parse } from './frontmatter';
-import type { Collection } from './schema';
+import { collections, type Collection } from './schema';
 
 export const login = apiLogin;
 export const isLoggedIn = apiIsLoggedIn;
 export const logout = () => clearToken();
+
+export interface CollStat { id: string; label: string; total: number; live: number; draft: number }
+
+/** Per-collection counts for the dashboard (folder collections only). */
+export async function getStats(): Promise<CollStat[]> {
+  const folders = collections.filter((c) => c.kind === 'folder');
+  return Promise.all(
+    folders.map(async (c) => {
+      try {
+        const rows = await listEntries(c);
+        const live = rows.filter((r) => r.status === 'live').length;
+        const draft = rows.filter((r) => r.status === 'draft').length;
+        return { id: c.id, label: c.label, total: rows.length, live, draft };
+      } catch {
+        return { id: c.id, label: c.label, total: 0, live: 0, draft: 0 };
+      }
+    }),
+  );
+}
 
 export interface EntryRow { path: string; label: string; status?: string }
 

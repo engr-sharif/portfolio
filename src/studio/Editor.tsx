@@ -8,11 +8,12 @@ interface Props {
   collection: Collection;
   path: string | null;       // existing entry path, or null for "new"
   onDone: () => void;        // back to list
+  onPublished?: () => void;  // fired after a successful save (for the toast)
 }
 
 const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
-export const Editor: FC<Props> = ({ collection, path, onDone }) => {
+export const Editor: FC<Props> = ({ collection, path, onDone, onPublished }) => {
   const [data, setData] = useState<Record<string, any>>({});
   const [body, setBody] = useState('');
   const [sha, setSha] = useState<string | null>(null);
@@ -64,6 +65,7 @@ export const Editor: FC<Props> = ({ collection, path, onDone }) => {
         const res = await writeFile(p, content, `studio: ${path ? 'update' : 'create'} ${data[collection.labelField] || ''}`, sha);
         setSha(res.sha ?? null);
       }
+      onPublished?.();
       onDone();
     } catch (e: any) { setError(e.message); }
     finally { setSaving(false); }

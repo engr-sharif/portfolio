@@ -1,7 +1,8 @@
 import { useEffect, useState, type FC } from 'react';
 import { collections, getCollection, type Collection } from './schema';
-import { isLoggedIn, login, logout, listEntries } from './studio-lib';
+import { isLoggedIn, login, logout, listEntries, getStats, type CollStat } from './studio-lib';
 import { Editor } from './Editor';
+import { PublishToast } from './PublishToast';
 
 type View =
   | { name: 'dashboard' }
@@ -11,17 +12,19 @@ type View =
 const Studio: FC = () => {
   const [authed, setAuthed] = useState(isLoggedIn());
   const [view, setView] = useState<View>({ name: 'dashboard' });
+  const [publishedAt, setPublishedAt] = useState(0); // bump to trigger the toast
 
   if (!authed) return <Login onAuthed={() => setAuthed(true)} />;
 
   const go = (v: View) => setView(v);
+  const onPublished = () => setPublishedAt(Date.now());
 
   return (
     <div className="st">
       <Sidebar
         active={view.name === 'list' || view.name === 'edit' ? (view as any).collectionId : ''}
         onNav={(id) => go(id ? { name: 'list', collectionId: id } : { name: 'dashboard' })}
-        onLogout={() => { logout(); setAuthed(false); }}
+        onLogout={() => { if (confirm('Sign out of the Studio?')) { logout(); setAuthed(false); } }}
       />
       <main className="st-main">
         {view.name === 'dashboard' && <Dashboard onOpen={(id) => go({ name: 'list', collectionId: id })} onNew={(id) => go({ name: 'edit', collectionId: id, path: null })} />}
@@ -36,10 +39,12 @@ const Studio: FC = () => {
           <Editor
             collection={getCollection(view.collectionId)!}
             path={view.path}
+            onPublished={onPublished}
             onDone={() => go(getCollection(view.collectionId)!.kind === 'file' ? { name: 'dashboard' } : { name: 'list', collectionId: view.collectionId })}
           />
         )}
       </main>
+      <PublishToast trigger={publishedAt} />
     </div>
   );
 };
@@ -98,24 +103,41 @@ const Sidebar: FC<{ active: string; onNav: (id: string) => void; onLogout: () =>
 /* --------------------------------------------------------------- Dashboard */
 const Dashboard: FC<{ onOpen: (id: string) => void; onNew: (id: string) => void }> = ({ onOpen, onNew }) => {
   const folders = collections.filter((c) => c.kind === 'folder');
+  const [stats, setStats] = useState<CollStat[]>([]);
+  const statOf = (id: string) => stats.find((s) => s.id === id);
+
+  useEffect(() => { getStats().then(setStats).catch(() => {}); }, []);
+
   return (
     <div className="st-dash">
       <header className="st-dash__head">
         <h1>Welcome back</h1>
         <p>Edit anything on your site. Saves commit to GitHub and rebuild automatically.</p>
       </header>
+
       <div className="st-dash__quick">
         {folders.map((c) => (
           <button key={c.id} className="st-dash__new" onClick={() => onNew(c.id)}>+ New {c.label.replace(/s$/, '')}</button>
         ))}
       </div>
+
       <div className="st-dash__grid">
-        {collections.map((c) => (
-          <button key={c.id} className="st-card" onClick={() => onOpen(c.id)}>
-            <span className="st-card__title">{c.label}</span>
-            <span className="st-card__go">Manage →</span>
-          </button>
-        ))}
+        {collections.map((c) => {
+          const s = statOf(c.id);
+          return (
+            <button key={c.id} className="st-card" onClick={() => onOpen(c.id)}>
+              <span className="st-card__title">{c.label}</span>
+              {s ? (
+                <span className="st-card__stat u-mono">
+                  {s.total} total
+                  {s.draft > 0 && <span className="st-card__draft"> · {s.draft} draft</span>}
+                </span>
+              ) : (
+                <span className="st-card__go">Manage →</span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
