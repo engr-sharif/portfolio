@@ -10,6 +10,9 @@ techniques: ["Characterization", "Remediation", "Soil & groundwater"]
 coverImage: "mgp.jpg"
 featured: true
 order: 2
+location: "Bakersfield, CA"
+lat: 35.37
+lng: -119.02
 published: true
 ---
 

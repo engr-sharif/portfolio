@@ -1,0 +1,109 @@
+---
+import { getCollection } from 'astro:content';
+import Section from './Section.astro';
+import WorkMapIsland from './WorkMapIsland.tsx';
+import galleryData from '../content/settings/gallery.json';
+
+/**
+ * "Where I've worked" — a California map plotting two layers:
+ *   • Project sites (published projects that carry approximate coordinates)
+ *   • Field-photo points (gallery photos geotagged from their EXIF on upload)
+ * Coordinates are snapped to ~1 km so public pins land in the right area, not
+ * on an exact (potentially sensitive) client site.
+ */
+const snap = (n: number) => Math.round(n * 100) / 100;
+const num = (v: unknown): number | null => {
+  const n = typeof v === 'number' ? v : parseFloat(String(v));
+  return Number.isFinite(n) && n !== 0 ? n : null;
+};
+
+const projectPoints = (await getCollection('projects'))
+  .filter((p) => p.data.published)
+  .map((p) => ({ p, lat: num(p.data.lat), lng: num(p.data.lng) }))
+  .filter((x): x is { p: typeof x.p; lat: number; lng: number } => x.lat != null && x.lng != null)
+  .map(({ p, lat, lng }) => ({
+    title: p.data.title,
+    slug: p.id,
+    location: p.data.location ?? '',
+    siteType: p.data.siteType ?? '',
+    status: p.data.status ?? '',
+    lat: snap(lat),
+    lng: snap(lng),
+  }));
+
+const photoPoints = (galleryData.photos ?? [])
+  .map((p: any) => ({ p, lat: num(p.lat), lng: num(p.lng) }))
+  .filter((x: any) => x.lat != null && x.lng != null)
+  .map(({ p, lat, lng }: any) => ({
+    caption: p.caption || p.alt || '',
+    takenAt: p.takenAt || '',
+    lat: snap(lat),
+    lng: snap(lng),
+  }));
+
+const hasPoints = projectPoints.length > 0 || photoPoints.length > 0;
+const base = import.meta.env.BASE_URL;
+---
+{hasPoints && (
+  <Section id="map" eyebrow="Geographic reach" title="Where I've worked">
+    <p class="wm__intro">
+      Environmental work across California — site characterization, remediation, and
+      compliance monitoring. Pins are approximate; toggle the layers below.
+    </p>
+    <WorkMapIsland client:visible projects={projectPoints} photos={photoPoints} base={base} />
+  </Section>
+)}
+
+<style is:global>
+  .wm { margin-top: 1.5rem; }
+  .wm__intro { color: var(--color-muted); max-width: 52ch; margin: 0 0 1.4rem; }
+  .wm__legend { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; margin-bottom: 0.9rem; }
+  .wm__toggle {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.4rem 0.9rem; border-radius: 999px; font-size: var(--text-sm);
+    border: 1px solid var(--color-line); background: var(--color-ink-1); color: var(--color-muted);
+    transition: color .2s, border-color .2s, opacity .2s;
+  }
+  .wm__toggle.is-on { color: var(--color-paper); border-color: color-mix(in srgb, var(--color-field-bright) 50%, transparent); }
+  .wm__toggle:not(.is-on) { opacity: 0.55; }
+  .wm__swatch { width: 12px; height: 12px; border-radius: 50%; }
+  .wm__swatch--project { background: var(--color-field-bright); }
+  .wm__swatch--photo { background: var(--color-paper-soft); width: 8px; height: 8px; }
+  .wm__note { color: var(--color-muted); font-size: var(--text-xs); font-family: var(--font-mono); margin-left: auto; }
+
+  .wm__canvas {
+    height: clamp(360px, 56vw, 560px); width: 100%;
+    border-radius: 14px; overflow: hidden;
+    border: 1px solid var(--color-line); background: var(--color-ink-1);
+  }
+
+  /* markers */
+  .wm-pin { cursor: pointer; }
+  .wm-pin--project {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--pin, #57c08a); border: 2px solid var(--color-ink-0);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--pin, #57c08a) 45%, transparent), 0 2px 6px rgba(0,0,0,.5);
+  }
+  .wm-pin--photo {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--color-paper-soft); border: 1.5px solid var(--color-ink-0);
+    box-shadow: 0 1px 4px rgba(0,0,0,.5);
+  }
+
+  /* popups — dark theme override */
+  .wm-popup .maplibregl-popup-content {
+    background: var(--color-ink-2); color: var(--color-paper);
+    border: 1px solid var(--color-line); border-radius: 10px;
+    padding: 0.8rem 0.9rem; font-family: var(--font-sans); box-shadow: 0 16px 40px rgba(0,0,0,.5);
+  }
+  .wm-popup .maplibregl-popup-tip { border-top-color: var(--color-ink-2); border-bottom-color: var(--color-ink-2); }
+  .wm-popup strong { display: block; font-family: var(--font-display); font-size: var(--text-sm); margin-bottom: 0.2rem; }
+  .wm-pop__loc { display: block; color: var(--color-paper-soft); font-size: var(--text-xs); }
+  .wm-pop__type { display: block; color: var(--color-muted); font-size: var(--text-xs); margin-top: 0.15rem; }
+  .wm-pop__link { display: inline-block; margin-top: 0.5rem; color: var(--color-field-bright); font-size: var(--text-xs); text-decoration: none; }
+  .wm-pop__link:hover { text-decoration: underline; }
+
+  /* keep MapLibre controls subtle on the dark canvas */
+  .wm .maplibregl-ctrl-group { background: var(--color-ink-2); border: 1px solid var(--color-line); }
+  .wm .maplibregl-ctrl-group button + button { border-top: 1px solid var(--color-line); }
+</style>
