@@ -2,6 +2,7 @@ import { useEffect, useState, type FC } from 'react';
 import type { Collection } from './schema';
 import { Field } from './Field';
 import { MarkdownEditor } from './MarkdownEditor';
+import { PreviewPane } from './PreviewPane';
 import { readFile, writeFile, deleteFile } from './api';
 import { parse, stringify } from './frontmatter';
 
@@ -23,8 +24,17 @@ export const Editor: FC<Props> = ({ collection, path, onDone, onPublished }) => 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [dirty, setDirty] = useState(false); // unsaved-changes guard
+  const [preview, setPreview] = useState(() => localStorage.getItem('studio.preview') === '1');
 
   const isFileCollection = collection.kind === 'file';
+  const hasBody = !isFileCollection && !!collection.bodyLabel;
+  const showPreview = preview && hasBody;
+
+  const togglePreview = () => {
+    const next = !preview;
+    setPreview(next);
+    localStorage.setItem('studio.preview', next ? '1' : '0');
+  };
 
   // Warn on browser/tab close if there are unsaved edits.
   useEffect(() => {
@@ -98,10 +108,16 @@ export const Editor: FC<Props> = ({ collection, path, onDone, onPublished }) => 
   if (loading) return <div className="st-loading">Loading…</div>;
 
   return (
-    <div className="st-editor">
+    <div className={`st-editor${showPreview ? ' st-editor--split' : ''}`}>
       <div className="st-editor__bar">
         <button className="st-btn st-btn--ghost" onClick={guardedDone}>← Back</button>
         <div className="st-editor__bar-right">
+          {hasBody && (
+            <button type="button" role="switch" aria-checked={preview}
+              className={`st-btn st-btn--toggle${preview ? ' is-on' : ''}`} onClick={togglePreview}>
+              {preview ? '◉' : '○'} Preview
+            </button>
+          )}
           {filePath && !isFileCollection && (
             <button className="st-btn st-btn--danger" onClick={remove} disabled={saving}>Delete</button>
           )}
@@ -119,17 +135,28 @@ export const Editor: FC<Props> = ({ collection, path, onDone, onPublished }) => 
 
       {error && <div className="st-error">{error}</div>}
 
-      <div className="st-editor__form">
-        {collection.fields.map((f) => (
-          <Field key={f.name} field={f} value={data[f.name]} onChange={(v) => set(f.name, v)} />
-        ))}
+      <div className="st-editor__cols">
+        <div className="st-editor__form">
+          {collection.fields.map((f) => (
+            <Field key={f.name} field={f} value={data[f.name]} onChange={(v) => set(f.name, v)} />
+          ))}
 
-        {!isFileCollection && collection.bodyLabel && (
-          <div className="sf">
-            <label className="sf__label">{collection.bodyLabel}</label>
-            <MarkdownEditor value={body} onChange={setBodyDirty} mediaDir={collection.mediaDir} />
-            <p className="sf__hint">Use the toolbar or type markdown. Headings (##) build the table of contents; drag an image into the box to insert it.</p>
-          </div>
+          {hasBody && (
+            <div className="sf">
+              <label className="sf__label">{collection.bodyLabel}</label>
+              <MarkdownEditor value={body} onChange={setBodyDirty} mediaDir={collection.mediaDir} />
+              <p className="sf__hint">Use the toolbar or type markdown. Headings (##) build the table of contents; drag an image into the box to insert it.</p>
+            </div>
+          )}
+        </div>
+
+        {showPreview && (
+          <PreviewPane
+            body={body}
+            title={data[collection.labelField]}
+            cover={data.coverImage}
+            coverDir={collection.mediaDir}
+          />
         )}
       </div>
 

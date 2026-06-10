@@ -234,3 +234,51 @@ h1 { font-family: var(--display); }
 .md__video-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 .md__video-row .sf__input { flex: 1; min-width: 12rem; }
 .md__video-err { margin: 0.2rem 0 0; color: var(--danger); font-size: 0.8rem; }
+
+/* ---- live preview ---- */
+.st-btn--toggle { font-family: var(--mono); font-size: 0.8rem; }
+.st-btn--toggle.is-on { border-color: var(--field-bright); color: var(--field-bright); }
+
+.st-editor__cols { display: block; }
+
+/* let the editor area use more width while the split preview is open */
+@media (min-width: 1100px) {
+  .st-main:has(.st-editor--split) { max-width: 80rem; }
+}
+
+/* desktop: editor | preview side by side */
+@media (min-width: 880px) {
+  .st-editor--split .st-editor__cols {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+    gap: 1.5rem; align-items: start;
+  }
+  .st-editor--split .st-preview { position: sticky; top: 1rem; }
+}
+/* mobile: preview replaces the form (the toggle swaps the view) */
+@media (max-width: 879px) {
+  .st-editor--split .st-editor__form { display: none; }
+}
+
+.st-preview { border: 1px solid var(--line); border-radius: 10px; background: var(--ink-1); overflow: hidden; }
+.st-preview__head { font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); padding: 0.6rem 1rem; border-bottom: 1px solid var(--line); background: var(--ink-2); }
+.st-preview__scroll { max-height: calc(100vh - 8rem); overflow-y: auto; padding: 1.6rem; }
+
+/* studio prose — mirrors the site's .prose, scoped to the admin preview */
+.st-prose { color: var(--paper-soft); line-height: 1.75; font-size: 0.98rem; }
+.st-prose > * + * { margin-top: 1.1rem; }
+.st-prose__title { font-family: var(--display); font-size: 1.6rem; color: var(--paper); margin: 0 0 0.8rem; }
+.st-prose__cover { width: 100%; border-radius: 10px; margin: 0 0 1.2rem; }
+.st-prose__empty { color: var(--muted); font-style: italic; }
+.st-prose h2 { font-family: var(--display); font-size: 1.3rem; color: var(--paper); margin-top: 2rem; }
+.st-prose h3 { font-family: var(--display); font-size: 1.1rem; color: var(--paper); margin-top: 1.6rem; }
+.st-prose a { color: var(--field-bright); text-decoration: underline; text-underline-offset: 3px; }
+.st-prose strong { color: var(--paper); }
+.st-prose ul, .st-prose ol { padding-left: 1.4rem; }
+.st-prose li + li { margin-top: 0.3rem; }
+.st-prose blockquote { border-left: 2px solid var(--field-bright); padding: 0.3rem 1rem; color: var(--muted); font-style: italic; }
+.st-prose img { border-radius: 10px; width: 100%; height: auto; }
+.st-prose :not(pre) > code { background: var(--ink-2); padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em; font-family: var(--mono); }
+.st-prose pre { background: var(--ink-0); border: 1px solid var(--line); border-radius: 8px; padding: 1rem; overflow-x: auto; font-size: 0.85rem; }
+.st-prose .video-embed { position: relative; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: #000; }
+.st-prose .video-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.st-prose .video-embed-native { width: 100%; height: auto; border-radius: 10px; display: block; background: #000; }
