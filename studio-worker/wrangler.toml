@@ -15,8 +15,10 @@ compatibility_date = "2024-11-01"
 GITHUB_REPO = "engr-sharif/portfolio"
 GITHUB_BRANCH = "main"
 ALLOWED_ORIGIN = "https://engr-sharif.github.io"
-# Optional model overrides for the AI assistant (defaults are sensible):
-# AI_TEXT_MODEL = "@cf/meta/llama-3.1-8b-instruct"
+# Optional model overrides for the AI assistant. Defaults: Llama 3.3 70B for
+# text (best writing quality on Workers AI) and LLaVA for vision. Drop the text
+# model to "@cf/meta/llama-3.1-8b-instruct" if you want faster/cheaper edits.
+# AI_TEXT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 # AI_VISION_MODEL = "@cf/llava-hf/llava-1.5-7b-hf"
 
 # Cloudflare Workers AI — powers the in-Studio assistant (free tier, open models).

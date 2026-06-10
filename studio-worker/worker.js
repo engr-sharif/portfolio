@@ -266,7 +266,7 @@ export default {
           const r = await env.AI.run(model, { image: bytes, prompt: `${guide}\n\n${instruction}`, max_tokens: 256 });
           out = r.description ?? r.response ?? '';
         } else {
-          const model = env.AI_TEXT_MODEL || '@cf/meta/llama-3.1-8b-instruct';
+          const model = env.AI_TEXT_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
           const r = await env.AI.run(model, {
             max_tokens: 1024,
             messages: [
