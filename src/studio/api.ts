@@ -87,3 +87,13 @@ export const listDir = (dir: string): Promise<ListEntry[]> =>
 
 export const uploadImage = (path: string, base64: string, message: string) =>
   call('/api/upload', { method: 'POST', body: JSON.stringify({ path, base64, message }) });
+
+/** Public raw-content URL for a repo image (the repo is public, so no auth).
+ * Accepts stored values like "/src/assets/covers/x.jpg" or "x.jpg". */
+export function rawImageUrl(stored: string, fallbackDir = 'src/assets'): string {
+  if (!stored) return '';
+  if (/^https?:\/\//.test(stored)) return stored;
+  let path = stored.replace(/^\//, '');
+  if (!path.startsWith('src/')) path = `${fallbackDir}/${path.split('/').pop()}`;
+  return `https://raw.githubusercontent.com/engr-sharif/portfolio/main/${path}`;
+}

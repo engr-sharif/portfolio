@@ -1,6 +1,7 @@
 import { useEffect, useState, type FC } from 'react';
 import type { Collection } from './schema';
 import { Field } from './Field';
+import { MarkdownEditor } from './MarkdownEditor';
 import { readFile, writeFile, deleteFile } from './api';
 import { parse, stringify } from './frontmatter';
 
@@ -104,11 +105,9 @@ export const Editor: FC<Props> = ({ collection, path, onDone, onPublished }) => 
 
         {!isFileCollection && collection.bodyLabel && (
           <div className="sf">
-            <label className="sf__label" htmlFor="st-body">{collection.bodyLabel}</label>
-            <textarea id="st-body" className="sf__input sf__textarea sf__textarea--lg" rows={18}
-              value={body} onChange={(e) => setBody(e.target.value)}
-              placeholder="Markdown — ## headings, **bold**, links…" />
-            <p className="sf__hint">Markdown. Headings (##) build the table of contents; code blocks get syntax highlighting.</p>
+            <label className="sf__label">{collection.bodyLabel}</label>
+            <MarkdownEditor value={body} onChange={setBody} mediaDir={collection.mediaDir} />
+            <p className="sf__hint">Use the toolbar or type markdown. Headings (##) build the table of contents; drag an image into the box to insert it.</p>
           </div>
         )}
       </div>

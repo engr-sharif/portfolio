@@ -1,6 +1,7 @@
-import { useState, type FC } from 'react';
+import { useState, useEffect, useRef, type FC } from 'react';
 import type { Field as FieldDef } from './schema';
-import { uploadImage } from './api';
+import { uploadImage, rawImageUrl } from './api';
+import { listImages, type MediaItem } from './studio-lib';
 
 interface Props {
   field: FieldDef;
@@ -123,58 +124,122 @@ export const Field: FC<Props> = ({ field, value, onChange }) => {
 /* -------------------------------------------------------------- Tags / list */
 const TagsField: FC<Props & { label: React.ReactNode }> = ({ field, value, onChange, label }) => {
   const [draft, setDraft] = useState('');
+  const [lib, setLib] = useState(false);
   const arr: string[] = Array.isArray(value) ? value : [];
   const isImage = field.itemType === 'image';
+  const dir = field.mediaDir || 'src/assets/gallery';
 
   const add = (v: string) => { if (v.trim()) onChange([...arr, v.trim()]); setDraft(''); };
   const remove = (i: number) => onChange(arr.filter((_, j) => j !== i));
+  const move = (i: number, d: number) => {
+    const n = [...arr]; const t = i + d;
+    if (t < 0 || t >= n.length) return;
+    [n[i], n[t]] = [n[t], n[i]]; onChange(n);
+  };
 
   return (
     <div className="sf">
       {label}
-      <div className="sf__tags">
-        {arr.map((t, i) => (
-          <span className="sf__tag" key={i}>
-            {isImage ? t.split('/').pop() : t}
-            <button type="button" onClick={() => remove(i)} aria-label="Remove">×</button>
-          </span>
-        ))}
-      </div>
       {isImage ? (
-        <label className="sf__btn sf__btn--upload">
-          + Add image
-          <input type="file" accept="image/*" hidden onChange={async (e) => {
-            const f = e.target.files?.[0]; if (f) onChange([...arr, await uploadFile(f, field.mediaDir || 'src/assets/gallery')]);
-          }} />
-        </label>
+        <div className="sf__imggrid">
+          {arr.map((t, i) => (
+            <div className="sf__imggrid-item" key={i}>
+              <img src={rawImageUrl(t, dir)} alt="" loading="lazy" />
+              <div className="sf__imggrid-actions">
+                <button type="button" onClick={() => move(i, -1)} aria-label="Move earlier">←</button>
+                <button type="button" onClick={() => move(i, 1)} aria-label="Move later">→</button>
+                <button type="button" onClick={() => remove(i)} aria-label="Remove">×</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="sf__tags">
+          {arr.map((t, i) => (
+            <span className="sf__tag" key={i}>{t}<button type="button" onClick={() => remove(i)} aria-label="Remove">×</button></span>
+          ))}
+        </div>
+      )}
+      {isImage ? (
+        <div className="sf__image-actions">
+          <label className="sf__btn sf__btn--upload">
+            + Upload
+            <input type="file" accept="image/*" multiple hidden onChange={async (e) => {
+              const files = Array.from(e.target.files || []);
+              let next = [...arr];
+              for (const f of files) next = [...next, await uploadFile(f, dir)];
+              onChange(next);
+            }} />
+          </label>
+          <button type="button" className="sf__btn sf__btn--ghost" onClick={() => setLib(true)}>Choose existing</button>
+        </div>
       ) : (
         <input className="sf__input sf__input--sm" placeholder="Type and press Enter" value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(draft); } }} />
       )}
       {field.hint && <p className="sf__hint">{field.hint}</p>}
+      {lib && <MediaLibrary dir={dir} onPick={(p) => { onChange([...arr, p]); setLib(false); }} onClose={() => setLib(false)} />}
     </div>
   );
 };
 
 const ImageField: FC<Props & { label: React.ReactNode }> = ({ field, value, onChange, label }) => {
   const [busy, setBusy] = useState(false);
+  const [lib, setLib] = useState(false);
+  const dir = field.mediaDir || 'src/assets/covers';
   return (
     <div className="sf">
       {label}
       <div className="sf__image">
-        {value ? <span className="sf__image-name">{String(value).split('/').pop()}</span> : <span className="sf__image-empty">No image</span>}
-        <label className="sf__btn sf__btn--upload">
-          {busy ? 'Uploading…' : value ? 'Replace' : 'Upload'}
-          <input type="file" accept="image/*" hidden disabled={busy} onChange={async (e) => {
-            const f = e.target.files?.[0]; if (!f) return;
-            setBusy(true);
-            try { onChange(await uploadFile(f, field.mediaDir || 'src/assets/covers')); } finally { setBusy(false); }
-          }} />
-        </label>
-        {value && <button type="button" className="sf__btn sf__btn--ghost" onClick={() => onChange('')}>Clear</button>}
+        {value ? (
+          <span className="sf__thumb"><img src={rawImageUrl(String(value), dir)} alt="" loading="lazy" /></span>
+        ) : (
+          <span className="sf__thumb sf__thumb--empty">No image</span>
+        )}
+        <div className="sf__image-actions">
+          <label className="sf__btn sf__btn--upload">
+            {busy ? 'Uploading…' : value ? 'Replace' : 'Upload'}
+            <input type="file" accept="image/*" hidden disabled={busy} onChange={async (e) => {
+              const f = e.target.files?.[0]; if (!f) return;
+              setBusy(true);
+              try { onChange(await uploadFile(f, dir)); } finally { setBusy(false); }
+            }} />
+          </label>
+          <button type="button" className="sf__btn sf__btn--ghost" onClick={() => setLib(true)}>Choose existing</button>
+          {value && <button type="button" className="sf__btn sf__btn--ghost" onClick={() => onChange('')}>Clear</button>}
+        </div>
       </div>
       {field.hint && <p className="sf__hint">{field.hint}</p>}
+      {lib && <MediaLibrary dir={dir} onPick={(p) => { onChange(p); setLib(false); }} onClose={() => setLib(false)} />}
+    </div>
+  );
+};
+
+/* ----------------------------------------------------------- Media library */
+const MediaLibrary: FC<{ dir: string; onPick: (path: string) => void; onClose: () => void }> = ({ dir, onPick, onClose }) => {
+  const [items, setItems] = useState<MediaItem[] | null>(null);
+  useEffect(() => { listImages(dir).then(setItems); }, [dir]);
+  return (
+    <div className="st-modal" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="st-modal__panel">
+        <div className="st-modal__head">
+          <h3>Media library <span className="st-modal__dir">{dir}</span></h3>
+          <button className="sf__btn sf__btn--ghost" onClick={onClose}>Close</button>
+        </div>
+        {items === null ? <div className="st-loading">Loading…</div> : items.length === 0 ? (
+          <p className="st-list__empty">No images here yet — upload one.</p>
+        ) : (
+          <div className="st-media">
+            {items.map((m) => (
+              <button type="button" key={m.path} className="st-media__item" onClick={() => onPick(m.path)} title={m.name}>
+                <img src={m.url} alt="" loading="lazy" />
+                <span className="st-media__name">{m.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
