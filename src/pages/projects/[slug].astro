@@ -3,10 +3,13 @@ import { render } from 'astro:content';
 import { Image, getImage } from 'astro:assets';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import TableOfContents from '../../components/blog/TableOfContents.astro';
+import StatusBadge from '../../components/atlas/StatusBadge.astro';
+import Breadcrumb from '../../components/atlas/Breadcrumb.astro';
+import LiveRegulatoryStatus from '../../components/LiveRegulatoryStatus.tsx';
 import { getCover, getGalleryImage } from '../../lib/images';
 import { getCaption } from '../../lib/captions';
 import { withBase } from '../../lib/path';
-import { getProjects, statusLabel, dateRange } from '../../lib/projects';
+import { getProjects, dateRange } from '../../lib/projects';
 
 export async function getStaticPaths() {
   const projects = await getProjects();
@@ -41,22 +44,25 @@ const galleryItems = await Promise.all(
 <BaseLayout title={`${data.title} — ${data.siteType}`} description={data.summary} ogType="article">
   <article class="detail">
     <div class="u-container">
-      <a href={withBase('projects/')} class="detail__back link-underline">← All projects</a>
+      <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Projects', href: 'projects/' }, { label: data.title }]} />
 
       <header class="detail__header" data-reveal>
-        <span class={`card__status card__status--${data.status}`} style="position:static;display:inline-block;">
-          {statusLabel[data.status]}
-        </span>
+        <StatusBadge status={data.status} />
         <h1 class="detail__title">{data.title}</h1>
         <dl class="detail__facts">
           <div><dt>Client / Site</dt><dd>{data.client}</dd></div>
           <div><dt>Type</dt><dd>{data.siteType}</dd></div>
           <div><dt>Role</dt><dd>{data.role}</dd></div>
-          <div><dt>Dates</dt><dd>{dateRange(data.startDate, data.endDate)}</dd></div>
+          <div><dt>Dates</dt><dd class="u-mono">{dateRange(data.startDate, data.endDate)}</dd></div>
         </dl>
-        <ul class="card__tags" style="margin-top:1.4rem;">
-          {data.techniques.map((t) => <li>{t}</li>)}
+        <ul class="card__tags" style="margin-top:1.4rem;display:flex;flex-wrap:wrap;gap:0.4rem;list-style:none;padding:0;">
+          {data.techniques.map((t) => <li class="chip">{t}</li>)}
         </ul>
+        {data.envirostorQuery && (
+          <div style="margin-top:1.8rem;max-width:42rem;">
+            <LiveRegulatoryStatus query={data.envirostorQuery} client:visible />
+          </div>
+        )}
       </header>
     </div>
 

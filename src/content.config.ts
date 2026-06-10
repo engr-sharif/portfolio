@@ -49,6 +49,10 @@ const projects = defineCollection({
     externalLink: z.string().url().optional(),
     featured: z.boolean().default(false),
     order: z.number().default(0),
+    // Live regulatory data: a site name to look up in California's EnviroStor
+    // (DTSC) public dataset, rendering an official status badge fetched live in
+    // the browser. e.g. "Sulphur Bank Mercury Mine". Empty = no live badge.
+    envirostorQuery: z.string().optional(),
     // Confidentiality gate: a project only renders publicly when Nawaz has
     // confirmed every site/client detail is cleared for public sharing.
     published: z.boolean().default(false),
