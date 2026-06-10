@@ -28,9 +28,9 @@ export interface SiteSettings {
 export const site = siteJson as SiteSettings;
 
 export const nav = [
-  { label: 'Work', href: '/#work' },
-  { label: 'Field', href: '/#field' },
+  { label: 'Projects', href: '/projects/' },
+  { label: 'Tools', href: '/tools/' },
   { label: 'Writing', href: '/blog/' },
-  { label: 'About', href: '/#about' },
+  { label: 'About', href: '/about/' },
   { label: 'Contact', href: '/#contact' },
 ];

@@ -1,0 +1,37 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHeader from '../../components/atlas/PageHeader.astro';
+import ProjectCard from '../../components/ProjectCard.astro';
+import ProjectExplorer from '../../components/ProjectExplorer.tsx';
+import { getProjects, getTechniques } from '../../lib/projects';
+
+const projects = await getProjects();
+const techniques = await getTechniques();
+const statusCounts = projects.reduce<Record<string, number>>((acc, p) => {
+  acc[p.data.status] = (acc[p.data.status] ?? 0) + 1;
+  return acc;
+}, {});
+---
+<BaseLayout
+  title="Projects — Nawaz Sharif"
+  description="Environmental projects: site characterization, remediation, PFAS, landfill CQA, and groundwater/landfill-gas monitoring across California."
+>
+  <main class="u-container">
+    <PageHeader
+      eyebrow="Project dashboard"
+      title="Environmental projects"
+      count={`${projects.length} documented`}
+      intro="A live record of characterization, remediation, and quality-assurance work. Filter by status or technique. All entries use public, high-level descriptions."
+      crumbs={[{ label: 'Home', href: '/' }, { label: 'Projects' }]}
+    />
+
+    <ProjectExplorer statusCounts={statusCounts} techniques={techniques} client:visible />
+
+    <div class="project-grid" data-reveal-stagger>
+      {projects.map((project) => <ProjectCard project={project} />)}
+    </div>
+    <p class="explorer-empty" data-explorer-empty style="display:none;">
+      No projects match those filters.
+    </p>
+  </main>
+</BaseLayout>

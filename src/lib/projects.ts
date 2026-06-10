@@ -19,6 +19,16 @@ export async function getFeatured(): Promise<Project[]> {
   return all.filter((p) => p.data.featured).sort((a, b) => a.data.order - b.data.order);
 }
 
+/** Unique techniques across published projects, sorted by frequency then name. */
+export async function getTechniques(): Promise<string[]> {
+  const all = await getProjects();
+  const counts = new Map<string, number>();
+  for (const p of all) for (const t of p.data.techniques) counts.set(t, (counts.get(t) ?? 0) + 1);
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([t]) => t);
+}
+
 export const statusLabel: Record<string, string> = {
   active: 'Active',
   complete: 'Complete',
