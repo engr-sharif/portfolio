@@ -1,0 +1,21 @@
+---
+import Section from './Section.astro';
+import BlogCard from './BlogCard.astro';
+import { withBase } from '../lib/path';
+import { getPosts } from '../lib/blog';
+
+const posts = (await getPosts()).slice(0, 3);
+---
+{posts.length > 0 && (
+  <Section id="writing" eyebrow="Field notes" title="Latest writing">
+    <p style="color:var(--color-muted);max-width:52ch;margin:-2rem 0 2.5rem;font-size:var(--text-sm);">
+      Technical notes from the field, explainers on environmental methods, and the tools behind the work.
+    </p>
+    <div class="blog-grid" data-reveal-stagger>
+      {posts.map((post) => <BlogCard post={post} />)}
+    </div>
+    <p style="margin-top:2.5rem;">
+      <a href={withBase('blog/')} class="btn btn--ghost" data-magnetic="0.3">All writing →</a>
+    </p>
+  </Section>
+)}

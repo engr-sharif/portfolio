@@ -65,6 +65,7 @@ const galleryItems = await Promise.all(
         <button
           class="detail__cover-btn"
           data-lightbox
+          data-figure
           data-gallery={group}
           data-full={coverFull}
           data-caption={coverCaption}
@@ -145,7 +146,7 @@ const galleryItems = await Promise.all(
   .detail__facts dt { color: var(--color-muted); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.12em; }
   .detail__facts dd { margin-top: 0.4rem; font-size: var(--text-base); }
   .detail__cover-btn { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
-  .detail__cover { width: 100%; height: auto; border-radius: 18px; margin: clamp(2rem, 6vw, 4rem) 0; aspect-ratio: 16 / 9; object-fit: cover; transition: transform 0.5s var(--ease-out-expo); }
+  .detail__cover { width: 100%; height: auto; border-radius: 6px; margin: clamp(2rem, 6vw, 4rem) 0; aspect-ratio: 16 / 9; object-fit: cover; transition: transform 0.5s var(--ease-out-expo); border: 1px solid var(--color-line); }
   .detail__cover-btn:hover .detail__cover { transform: scale(1.01); }
   .detail__bodywrap { display: grid; grid-template-columns: 1fr; gap: 2.5rem; }
   @media (min-width: 900px) {

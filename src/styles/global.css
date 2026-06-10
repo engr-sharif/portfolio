@@ -535,10 +535,10 @@ html.js [data-reveal-stagger] > * {
   position: relative;
   width: min(80vw, 46rem);
   height: 70vh;
-  border-radius: 18px;
+  border-radius: 6px;
   overflow: hidden;
   flex-shrink: 0;
-  border: 1px solid color-mix(in srgb, var(--color-paper) 10%, transparent);
+  border: 1px solid var(--color-line);
 }
 .showcase__panel img {
   position: absolute;
@@ -546,16 +546,20 @@ html.js [data-reveal-stagger] > * {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.9s var(--ease-out-expo);
 }
+.showcase__panel:hover img { transform: scale(1.04); }
 .showcase__overlay {
   position: absolute;
   inset: auto 0 0 0;
   padding: clamp(1.5rem, 4vw, 3rem);
-  background: linear-gradient(transparent, color-mix(in srgb, var(--color-ink) 92%, transparent));
+  background: linear-gradient(transparent, color-mix(in srgb, var(--color-ink) 94%, transparent));
 }
-.showcase__index { color: var(--color-field-bright); font-family: var(--font-display); font-size: var(--text-sm); }
-.showcase__name { font-size: var(--text-xl); margin-top: 0.4rem; }
+.showcase__top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.7rem; }
+.showcase__index { color: var(--color-field-bright); font-size: var(--text-sm); }
+.showcase__name { font-size: var(--text-xl); margin-top: 0.2rem; }
 .showcase__type { color: var(--color-paper-soft); font-size: var(--text-sm); margin-top: 0.4rem; }
+.showcase__tags { list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0; margin-top: 1rem; }
 /* On touch / no-JS the track simply scrolls horizontally — no pin/jank.
    Override width:max-content → a viewport-width scroll area so it never forces
    the page itself to scroll sideways. */
@@ -580,17 +584,20 @@ html.js [data-reveal-stagger] > * {
 }
 @media (max-width: 640px) { .gallery { columns: 2 9rem; } }
 .gallery__item {
+  position: relative;
   display: block;
   width: 100%;
   margin: 0 0 clamp(0.8rem, 2vw, 1.4rem);
   padding: 0;
-  border: none;
-  border-radius: 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
   overflow: hidden;
   cursor: pointer;
-  background: var(--color-ink-soft);
+  background: var(--color-ink-1);
   break-inside: avoid;
+  transition: border-color var(--dur-fast) var(--ease-out-expo);
 }
+.gallery__item:hover { border-color: color-mix(in srgb, var(--color-field-bright) 55%, transparent); }
 .gallery__item img {
   width: 100%;
   height: auto;
@@ -598,6 +605,24 @@ html.js [data-reveal-stagger] > * {
   transition: transform 0.6s var(--ease-out-expo), opacity 0.4s;
 }
 .gallery__item:hover img { transform: scale(1.04); }
+/* FIG. label — appears on hover like a developing photo's stamp */
+.gallery__tag {
+  position: absolute;
+  left: 0.7rem; bottom: 0.7rem;
+  z-index: 2;
+  font-size: var(--text-xs);
+  color: var(--color-field-bright);
+  background: color-mix(in srgb, var(--color-ink) 70%, transparent);
+  backdrop-filter: blur(6px);
+  padding: 0.2em 0.5em;
+  border-radius: 4px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity var(--dur-fast) var(--ease-out-expo), transform var(--dur-fast) var(--ease-out-expo);
+}
+.gallery__item:hover .gallery__tag { opacity: 1; transform: translateY(0); }
+.gallery__item .figure__corner { opacity: 0; transition: opacity var(--dur-fast) var(--ease-out-expo); }
+.gallery__item:hover .figure__corner { opacity: 1; }
 
 .gallery-video {
   display: grid;

@@ -49,7 +49,7 @@ function videoHref(v: { provider: string; id: string; url: string }) {
 
   {images.length > 0 ? (
     <div class="gallery">
-      {images.map(({ img, alt, caption, full }) => (
+      {images.map(({ img, alt, caption, full }, i) => (
         <button
           class="gallery__item"
           data-lightbox
@@ -58,7 +58,10 @@ function videoHref(v: { provider: string; id: string; url: string }) {
           data-caption={caption}
           aria-label={`Open photo: ${alt}`}
         >
+          <span class="figure__corner figure__corner--bl" aria-hidden="true"></span>
+          <span class="figure__corner figure__corner--br" aria-hidden="true"></span>
           <Image src={img!} alt={alt} widths={[300, 600, 900]} sizes="(max-width: 640px) 45vw, 18rem" loading="lazy" />
+          <span class="gallery__tag u-mono">FIG. {String(i + 1).padStart(2, '0')}</span>
         </button>
       ))}
     </div>

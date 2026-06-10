@@ -4,25 +4,37 @@ import Hero from '../components/Hero.astro';
 import Showcase from '../components/Showcase.astro';
 import Dashboard from '../components/Dashboard.astro';
 import Stats from '../components/Stats.astro';
-import SkillsMatrix from '../components/SkillsMatrix.astro';
 import Tools from '../components/Tools.astro';
 import Gallery from '../components/Gallery.astro';
-import Timeline from '../components/Timeline.astro';
-import Credentials from '../components/Credentials.astro';
-import About from '../components/About.astro';
+import LatestWriting from '../components/LatestWriting.astro';
 import Contact from '../components/Contact.astro';
+import TopoDivider from '../components/atlas/TopoDivider.astro';
 ---
 
 <BaseLayout>
+  {/* Act 1 — arrival */}
   <Hero />
+
+  {/* Act 2 — the flagship work, told cinematically */}
   <Showcase />
+
+  {/* Act 3 — the proof: selected projects + the numbers */}
   <Dashboard />
   <Stats />
-  <SkillsMatrix />
+
+  <div class="u-container"><TopoDivider /></div>
+
+  {/* Act 4 — the differentiator: an engineer who ships software */}
   <Tools />
+
+  <div class="u-container"><TopoDivider /></div>
+
+  {/* Act 5 — from the field */}
   <Gallery />
-  <Timeline />
-  <Credentials />
-  <About />
+
+  {/* Act 6 — the writing */}
+  <LatestWriting />
+
+  {/* Act 7 — the ask */}
   <Contact />
 </BaseLayout>

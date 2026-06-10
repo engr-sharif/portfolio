@@ -3,8 +3,10 @@ import { Image } from 'astro:assets';
 import { getCover } from '../lib/images';
 import { withBase } from '../lib/path';
 import { getFeatured } from '../lib/projects';
+import StatusBadge from './atlas/StatusBadge.astro';
 
 const featured = await getFeatured();
+const total = String(featured.length).padStart(2, '0');
 ---
 {featured.length > 0 && (
   <section class="showcase section" data-showcase aria-label="Flagship projects">
@@ -20,6 +22,8 @@ const featured = await getFeatured();
         const cover = getCover(project.data.coverImage);
         return (
           <a class="showcase__panel" href={withBase(`projects/${project.id}/`)}>
+            <span class="figure__corner figure__corner--bl" aria-hidden="true"></span>
+            <span class="figure__corner figure__corner--br" aria-hidden="true"></span>
             {cover && (
               <Image
                 src={cover}
@@ -30,9 +34,15 @@ const featured = await getFeatured();
               />
             )}
             <div class="showcase__overlay">
-              <span class="showcase__index">{String(i + 1).padStart(2, '0')} / {String(featured.length).padStart(2, '0')}</span>
+              <div class="showcase__top">
+                <span class="showcase__index u-mono">{String(i + 1).padStart(2, '0')} / {total}</span>
+                <StatusBadge status={project.data.status} />
+              </div>
               <h3 class="showcase__name">{project.data.title}</h3>
               <p class="showcase__type">{project.data.siteType}</p>
+              <ul class="showcase__tags">
+                {project.data.techniques.slice(0, 3).map((t) => <li class="chip">{t}</li>)}
+              </ul>
             </div>
           </a>
         );
