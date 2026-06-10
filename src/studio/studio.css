@@ -282,3 +282,7 @@ h1 { font-family: var(--display); }
 .st-prose .video-embed { position: relative; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: #000; }
 .st-prose .video-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .st-prose .video-embed-native { width: 100%; height: auto; border-radius: 10px; display: block; background: #000; }
+
+/* upload error / progress feedback */
+.sf__hint--err { color: var(--danger); }
+.sf__btn--upload.is-busy { opacity: 0.8; cursor: default; }
