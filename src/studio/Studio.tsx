@@ -123,7 +123,7 @@ const Dashboard: FC<{ onOpen: (id: string) => void; onNew: (id: string) => void 
   return (
     <div className="st-dash">
       <header className="st-dash__head">
-        <h1>Welcome back</h1>
+        <h1 className="st-page-title">Welcome back</h1>
         <p>Edit anything on your site. Saves commit to GitHub and rebuild automatically.</p>
       </header>
 
@@ -191,7 +191,8 @@ const CollectionList: FC<{ collection: Collection; onNew: () => void; onOpen: (p
     catch (e: any) { setError(e.message); }
     finally { setSavingOrder(false); }
   };
-  const duplicate = async (path: string) => {
+  const duplicate = async (path: string, label: string) => {
+    if (!confirm(`Duplicate “${label}” as a new draft?`)) return;
     try {
       const doc = await duplicateEntry(path, collection.labelField);
       const base = slugifyLabel(String(doc.data[collection.labelField] || 'copy'));
@@ -209,7 +210,7 @@ const CollectionList: FC<{ collection: Collection; onNew: () => void; onOpen: (p
   return (
     <div className="st-list">
       <header className="st-list__head">
-        <h1>{collection.label}</h1>
+        <h1 className="st-page-title">{collection.label}</h1>
         <div className="st-list__head-actions">
           {canReorder && entries.length > 1 && (
             reordering
@@ -244,7 +245,7 @@ const CollectionList: FC<{ collection: Collection; onNew: () => void; onOpen: (p
                     <span className="st-list__label">{e.label}</span>
                     {e.status && <span className={`st-list__status st-list__status--${e.status}`}>{e.status}</span>}
                   </button>
-                  <button className="st-list__dup" title="Duplicate" onClick={() => duplicate(e.path)}>⧉</button>
+                  <button className="st-list__dup" title="Duplicate as draft" aria-label={`Duplicate ${e.label}`} onClick={() => duplicate(e.path, e.label)}>⧉</button>
                 </>
               )}
             </li>
