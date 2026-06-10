@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, type FC } from 'react';
 import type { Field as FieldDef } from './schema';
-import { uploadImage, rawImageUrl } from './api';
+import { uploadImage, rawImageUrl, rawRepoUrl } from './api';
 import { listImages, type MediaItem } from './studio-lib';
 
 interface Props {
@@ -24,6 +24,21 @@ async function uploadFile(file: File, dir: string): Promise<string> {
   const path = `${dir}/${name}`;
   await uploadImage(path, base64, `studio: upload ${name}`);
   return `/${path}`; // stored as /src/assets/... — the basename resolver handles it
+}
+
+/** Upload a non-image asset (PDF, share image) into /public and return the
+ * SERVED path (e.g. public/resume/cv.pdf → /resume/cv.pdf). */
+async function uploadPublicFile(file: File, dir: string): Promise<string> {
+  const base64 = await new Promise<string>((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result));
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+  const name = slugify(file.name);
+  const path = `${dir}/${name}`;
+  await uploadImage(path, base64, `studio: upload ${name}`);
+  return '/' + path.replace(/^public\//, ''); // public/og/x.png → /og/x.png
 }
 
 export const Field: FC<Props> = ({ field, value, onChange }) => {
@@ -112,6 +127,9 @@ export const Field: FC<Props> = ({ field, value, onChange }) => {
 
     case 'image':
       return <ImageField field={field} value={value} onChange={onChange} label={label} />;
+
+    case 'file':
+      return <FileField field={field} value={value} onChange={onChange} label={label} />;
 
     case 'list':
       return <ListField field={field} value={value} onChange={onChange} />;
@@ -212,6 +230,40 @@ const ImageField: FC<Props & { label: React.ReactNode }> = ({ field, value, onCh
       </div>
       {field.hint && <p className="sf__hint">{field.hint}</p>}
       {lib && <MediaLibrary dir={dir} onPick={(p) => { onChange(p); setLib(false); }} onClose={() => setLib(false)} />}
+    </div>
+  );
+};
+
+const isImagePath = (s: string) => /\.(jpg|jpeg|png|webp|avif|gif|svg)$/i.test(s);
+
+const FileField: FC<Props & { label: React.ReactNode }> = ({ field, value, onChange, label }) => {
+  const [busy, setBusy] = useState(false);
+  const dir = field.mediaDir || 'public/uploads';
+  const val = String(value || '');
+  return (
+    <div className="sf">
+      {label}
+      <div className="sf__file">
+        {val ? (
+          isImagePath(val)
+            ? <span className="sf__thumb"><img src={rawRepoUrl(`public${val}`)} alt="" loading="lazy" /></span>
+            : <span className="sf__file-name">{val.split('/').pop()}</span>
+        ) : (
+          <span className="sf__file-name sf__file-name--empty">No file</span>
+        )}
+        <div className="sf__image-actions">
+          <label className="sf__btn sf__btn--upload">
+            {busy ? 'Uploading…' : val ? 'Replace' : 'Upload'}
+            <input type="file" accept={field.accept || undefined} hidden disabled={busy} onChange={async (e) => {
+              const f = e.target.files?.[0]; if (!f) return;
+              setBusy(true);
+              try { onChange(await uploadPublicFile(f, dir)); } finally { setBusy(false); }
+            }} />
+          </label>
+          {val && <button type="button" className="sf__btn sf__btn--ghost" onClick={() => onChange('')}>Clear</button>}
+        </div>
+      </div>
+      {field.hint && <p className="sf__hint">{field.hint}</p>}
     </div>
   );
 };

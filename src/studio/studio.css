@@ -222,3 +222,8 @@ h1 { font-family: var(--display); }
 .st-list__reorder { display: flex; gap: 0.3rem; }
 .st-list__reorder button { width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 6px; background: var(--ink-2); color: var(--paper); }
 .st-list__reorder button:hover { border-color: var(--field-bright); }
+
+/* ---- file upload field (PDF / share image) ---- */
+.sf__file { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.sf__file-name { font-family: var(--mono); font-size: 0.85rem; color: var(--paper-soft); word-break: break-all; }
+.sf__file-name--empty { color: var(--muted); }

@@ -19,10 +19,13 @@ export interface Props {
   ogType?: string;
 }
 
+// Site-wide SEO/share defaults are editable in the Studio (Site Settings);
+// fall back to the baked-in copy when those fields are left blank. Per-page
+// props still override everything.
 const {
-  title = 'Mohammad “Nawaz” Sharif — Environmental Engineer, EIT',
-  description = 'Environmental Engineer (EIT) at Jacobs — environmental characterization & remediation. Project dashboard, field work, and resume.',
-  image = '/og-image.png',
+  title = site.seoTitle?.trim() || 'Mohammad “Nawaz” Sharif — Environmental Engineer, EIT',
+  description = site.seoDescription?.trim() || 'Environmental Engineer (EIT) at Jacobs — environmental characterization & remediation. Project dashboard, field work, and resume.',
+  image = site.ogImage?.trim() || '/og-image.png',
   showChrome = true,
   ogType = 'website',
 } = Astro.props;
