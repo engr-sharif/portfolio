@@ -227,3 +227,10 @@ h1 { font-family: var(--display); }
 .sf__file { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
 .sf__file-name { font-family: var(--mono); font-size: 0.85rem; color: var(--paper-soft); word-break: break-all; }
 .sf__file-name--empty { color: var(--muted); }
+
+/* ---- markdown editor: video popover ---- */
+.md__video { padding: 0.8rem; background: var(--ink-1); border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 0.4rem; }
+.md__video-label { margin: 0.3rem 0 0; color: var(--muted); font-size: 0.8rem; }
+.md__video-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.md__video-row .sf__input { flex: 1; min-width: 12rem; }
+.md__video-err { margin: 0.2rem 0 0; color: var(--danger); font-size: 0.8rem; }
