@@ -2,7 +2,7 @@
  * Studio helpers that compose the api + schema (kept out of api.ts so api stays
  * a thin transport layer).
  */
-import { login as apiLogin, clearToken, isLoggedIn as apiIsLoggedIn, listDir, readFile, rawImageUrl } from './api';
+import { login as apiLogin, clearToken, isLoggedIn as apiIsLoggedIn, listDir, readFile, writeFile, rawImageUrl } from './api';
 import { parse } from './frontmatter';
 import { collections, type Collection } from './schema';
 
@@ -67,4 +67,30 @@ export async function listImages(dir: string): Promise<MediaItem[]> {
   } catch {
     return [];
   }
+}
+
+/** Persist a new order for a folder collection by writing each entry's `order`
+ * field to match its position. Sequential commits (small N). */
+export async function saveOrder(paths: string[]): Promise<void> {
+  for (let i = 0; i < paths.length; i++) {
+    const { content, sha } = await readFile(paths[i]);
+    if (content == null) continue;
+    const doc = parse(content);
+    if (doc.data.order === i) continue; // no change
+    doc.data.order = i;
+    const { stringify } = await import('./frontmatter');
+    await writeFile(paths[i], stringify(doc), `studio: reorder (${i})`, sha);
+  }
+}
+
+/** Duplicate an entry: read it, append " copy" to the label, return the new
+ * draft content (caller saves it as a new file). */
+export async function duplicateEntry(path: string, labelField: string) {
+  const { content } = await readFile(path);
+  const doc = parse(content || '');
+  if (doc.data[labelField]) doc.data[labelField] = `${doc.data[labelField]} (copy)`;
+  // copies start hidden
+  if ('published' in doc.data) doc.data.published = false;
+  if ('draft' in doc.data) doc.data.draft = true;
+  return doc;
 }

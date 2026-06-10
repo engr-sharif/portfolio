@@ -22,8 +22,21 @@ export const Editor: FC<Props> = ({ collection, path, onDone, onPublished }) => 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [dirty, setDirty] = useState(false); // unsaved-changes guard
 
   const isFileCollection = collection.kind === 'file';
+
+  // Warn on browser/tab close if there are unsaved edits.
+  useEffect(() => {
+    const warn = (e: BeforeUnloadEvent) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
+
+  const guardedDone = () => {
+    if (dirty && !confirm('You have unsaved changes. Discard them and leave?')) return;
+    onDone();
+  };
 
   useEffect(() => {
     (async () => {
@@ -48,7 +61,8 @@ export const Editor: FC<Props> = ({ collection, path, onDone, onPublished }) => 
     })();
   }, [collection.id, path]);
 
-  const set = (name: string, v: any) => setData((d) => ({ ...d, [name]: v }));
+  const set = (name: string, v: any) => { setData((d) => ({ ...d, [name]: v })); setDirty(true); };
+  const setBodyDirty = (v: string) => { setBody(v); setDirty(true); };
 
   const save = async () => {
     setSaving(true); setError('');
@@ -66,6 +80,7 @@ export const Editor: FC<Props> = ({ collection, path, onDone, onPublished }) => 
         const res = await writeFile(p, content, `studio: ${path ? 'update' : 'create'} ${data[collection.labelField] || ''}`, sha);
         setSha(res.sha ?? null);
       }
+      setDirty(false);
       onPublished?.();
       onDone();
     } catch (e: any) { setError(e.message); }
@@ -85,7 +100,7 @@ export const Editor: FC<Props> = ({ collection, path, onDone, onPublished }) => 
   return (
     <div className="st-editor">
       <div className="st-editor__bar">
-        <button className="st-btn st-btn--ghost" onClick={onDone}>← Back</button>
+        <button className="st-btn st-btn--ghost" onClick={guardedDone}>← Back</button>
         <div className="st-editor__bar-right">
           {filePath && !isFileCollection && (
             <button className="st-btn st-btn--danger" onClick={remove} disabled={saving}>Delete</button>
@@ -106,7 +121,7 @@ export const Editor: FC<Props> = ({ collection, path, onDone, onPublished }) => 
         {!isFileCollection && collection.bodyLabel && (
           <div className="sf">
             <label className="sf__label">{collection.bodyLabel}</label>
-            <MarkdownEditor value={body} onChange={setBody} mediaDir={collection.mediaDir} />
+            <MarkdownEditor value={body} onChange={setBodyDirty} mediaDir={collection.mediaDir} />
             <p className="sf__hint">Use the toolbar or type markdown. Headings (##) build the table of contents; drag an image into the box to insert it.</p>
           </div>
         )}
