@@ -35,6 +35,29 @@ If your Worker URL differs from the default in `src/studio/api.ts`, update the
 
 That's it. Visit **`/portfolio/studio/`**, sign in with your password, and edit.
 
+### 5. (Optional) Enable the AI assistant
+The Studio's ✨ assistant (polish/summarize/expand text, and write captions/alt
+text from photos) runs on **Cloudflare Workers AI** — open-source models on
+Cloudflare's free tier, no extra API key. The binding is already declared in
+`wrangler.toml`:
+```toml
+[ai]
+binding = "AI"
+```
+Just enable Workers AI on your Cloudflare account (Dashboard → **AI** → Workers
+AI → follow the one-time enable prompt) and redeploy:
+```bash
+cd studio-worker && npx wrangler deploy
+```
+Until that's done, the ✨ buttons return a friendly "AI not enabled yet" message
+and everything else keeps working. Models default to
+`@cf/meta/llama-3.3-70b-instruct-fp8-fast` (text — best writing quality on
+Workers AI) and `@cf/llava-hf/llava-1.5-7b-hf` (vision); override via
+`AI_TEXT_MODEL` / `AI_VISION_MODEL` in `wrangler.toml`. If the 70B model uses too
+much of the free daily allowance, drop the text model to
+`@cf/meta/llama-3.1-8b-instruct` for faster, cheaper edits. The assistant's
+voice/tone guide lives in the Worker (and is editable at **Studio → AI Assistant**).
+
 ## How it works
 - **Login:** `POST /api/login` with the password → returns a signed JWT (8 h).
 - **Edits:** the studio reads/writes content files via the Worker, which uses

@@ -286,3 +286,13 @@ h1 { font-family: var(--display); }
 /* upload error / progress feedback */
 .sf__hint--err { color: var(--danger); }
 .sf__btn--upload.is-busy { opacity: 0.8; cursor: default; }
+
+/* ---- AI assist (markdown editor + image fields) ---- */
+.md__btn--ai.is-on { color: var(--field-bright); border-color: var(--field-bright); }
+.md__ai { padding: 0.8rem; background: var(--ink-1); border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 0.5rem; }
+.md__ai-label { margin: 0; color: var(--muted); font-size: 0.8rem; }
+.md__ai-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.md__ai-err, .sf__ai-draft + .sf__hint--err { color: var(--danger); font-size: 0.8rem; margin: 0; }
+.md__ai-result { display: flex; flex-direction: column; gap: 0.4rem; }
+.md__ai-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.sf__ai-draft { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.5rem; }

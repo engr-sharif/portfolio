@@ -154,6 +154,17 @@ export const collections: Collection[] = [
     ],
   },
   {
+    id: 'ai',
+    label: 'AI Assistant',
+    icon: 'M9.5 2a.5.5 0 0 1 .5.5V3h2.5a.5.5 0 0 1 0 1H10v.5a.5.5 0 0 1-1 0V4H3.5a.5.5 0 0 1 0-1H9v-.5a.5.5 0 0 1 .5-.5Z',
+    kind: 'file',
+    file: 'src/content/settings/ai.json',
+    labelField: 'guide',
+    fields: [
+      { name: 'guide', label: 'Writing guide', type: 'markdown', hint: 'Leave blank to use the built-in guide (your voice, tone & rules). Paste your own here to customize how the AI writes for you.' },
+    ],
+  },
+  {
     id: 'gallery',
     label: 'Field Gallery',
     icon: 'M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0',
