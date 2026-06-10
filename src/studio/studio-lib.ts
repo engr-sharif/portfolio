@@ -2,7 +2,7 @@
  * Studio helpers that compose the api + schema (kept out of api.ts so api stays
  * a thin transport layer).
  */
-import { login as apiLogin, clearToken, isLoggedIn as apiIsLoggedIn, listDir, readFile } from './api';
+import { login as apiLogin, clearToken, isLoggedIn as apiIsLoggedIn, listDir, readFile, rawImageUrl } from './api';
 import { parse } from './frontmatter';
 import { collections, type Collection } from './schema';
 
@@ -52,4 +52,19 @@ export async function listEntries(collection: Collection): Promise<EntryRow[]> {
   if (collection.id === 'blog') rows.sort((a, b) => (b.date > a.date ? 1 : -1));
   else rows.sort((a, b) => a.order - b.order);
   return rows.map(({ path, label, status }) => ({ path, label, status }));
+}
+
+export interface MediaItem { path: string; name: string; url: string }
+
+/** Browse all images already uploaded in a media directory (for the picker). */
+export async function listImages(dir: string): Promise<MediaItem[]> {
+  try {
+    const files = await listDir(dir);
+    return files
+      .filter((f) => f.type === 'file' && /\.(jpe?g|png|webp|avif|gif)$/i.test(f.name))
+      .map((f) => ({ path: `/${f.path}`, name: f.name, url: rawImageUrl(f.path) }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  } catch {
+    return [];
+  }
 }
