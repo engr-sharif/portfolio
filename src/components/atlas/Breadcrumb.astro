@@ -1,0 +1,34 @@
+---
+import { withBase } from '../../lib/path';
+interface Crumb { label: string; href?: string }
+interface Props { items: Crumb[] }
+const { items } = Astro.props;
+// BreadcrumbList JSON-LD for rich results.
+const ld = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: items.map((c, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    name: c.label,
+    ...(c.href ? { item: new URL(withBase(c.href), Astro.site).href } : {}),
+  })),
+};
+---
+<nav class="crumb u-mono" aria-label="Breadcrumb">
+  {items.map((c, i) => (
+    <>
+      {i > 0 && <span class="crumb__sep" aria-hidden="true">/</span>}
+      {c.href && i < items.length - 1
+        ? <a href={withBase(c.href)} class="link-underline">{c.label}</a>
+        : <span aria-current="page">{c.label}</span>}
+    </>
+  ))}
+</nav>
+<script type="application/ld+json" set:html={JSON.stringify(ld)} is:inline />
+
+<style>
+  .crumb { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6em; font-size: var(--text-xs); color: var(--color-muted); }
+  .crumb [aria-current="page"] { color: var(--color-paper-soft); }
+  .crumb__sep { color: var(--color-line); }
+</style>

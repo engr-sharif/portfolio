@@ -1,0 +1,35 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHeader from '../../components/atlas/PageHeader.astro';
+import { withBase } from '../../lib/path';
+import { getTools } from '../../lib/tools';
+
+const tools = await getTools();
+---
+<BaseLayout
+  title="Tools — Nawaz Sharif"
+  description="Software I've built to remove friction from environmental fieldwork — mapping, data, and QC tools."
+>
+  <main class="u-container">
+    <PageHeader
+      eyebrow="Engineer who builds"
+      title="Tools I've built"
+      count={`${tools.length} shipped`}
+      intro="An environmental engineer who ships software. Mapping, data, and QC tools built for real fieldwork — open any one for the problem, the approach, and a code snippet."
+      crumbs={[{ label: 'Home', href: '/' }, { label: 'Tools' }]}
+    />
+
+    <div class="tools-grid" data-reveal-stagger>
+      {tools.map((t) => (
+        <a class="tool-card tool-card--link" href={withBase(`tools/${t.id}/`)} aria-label={`Open ${t.data.name}`}>
+          <h3 class="tool-card__name">{t.data.name}</h3>
+          <p class="tool-card__problem">{t.data.summary}</p>
+          <div class="tool-card__tech">
+            {t.data.tech.slice(0, 4).map((x) => <span class="chip">{x}</span>)}
+          </div>
+          <span class="tool-card__more">Read more →</span>
+        </a>
+      ))}
+    </div>
+  </main>
+</BaseLayout>

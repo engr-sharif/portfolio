@@ -11,16 +11,21 @@ const tools = await getTools();
       mapping, data, and QC tools. Open any one for the full story.
     </p>
     <div class="tools-grid" data-reveal-stagger>
-      {tools.map((t) => (
+      {tools.slice(0, 4).map((t) => (
         <a class="tool-card tool-card--link" href={withBase(`tools/${t.id}/`)} aria-label={`Open ${t.data.name}`}>
           <h3 class="tool-card__name">{t.data.name}</h3>
           <p class="tool-card__problem">{t.data.summary}</p>
           <div class="tool-card__tech">
-            {t.data.tech.slice(0, 4).map((x) => <span>{x}</span>)}
+            {t.data.tech.slice(0, 4).map((x) => <span class="chip">{x}</span>)}
           </div>
           <span class="tool-card__more">Read more →</span>
         </a>
       ))}
     </div>
+    {tools.length > 4 && (
+      <p style="margin-top:2.5rem;">
+        <a href={withBase('tools/')} class="btn btn--ghost" data-magnetic="0.3">All {tools.length} tools →</a>
+      </p>
+    )}
   </Section>
 )}

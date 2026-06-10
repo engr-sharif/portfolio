@@ -41,7 +41,7 @@ const galleryItems = await Promise.all(
 <BaseLayout title={`${data.title} — ${data.siteType}`} description={data.summary} ogType="article">
   <article class="detail">
     <div class="u-container">
-      <a href={withBase('#work')} class="detail__back link-underline">← Back to all projects</a>
+      <a href={withBase('projects/')} class="detail__back link-underline">← All projects</a>
 
       <header class="detail__header" data-reveal>
         <span class={`card__status card__status--${data.status}`} style="position:static;display:inline-block;">

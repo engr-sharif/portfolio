@@ -1,6 +1,15 @@
 ---
 import { nav, site } from '../lib/site';
 import { withBase } from '../lib/path';
+
+// Active-section detection: a nav item is current when the current path starts
+// with its section root (e.g. /projects/x → "Projects").
+const path = Astro.url.pathname.replace(/\/$/, '') + '/';
+const isCurrent = (href: string) => {
+  if (href.startsWith('/#')) return false; // homepage anchors never "current"
+  const root = withBase(href);
+  return path === root || path.startsWith(root);
+};
 ---
 <nav class="site-nav" aria-label="Primary" data-nav>
   <a href={withBase()} class="site-nav__brand" data-magnetic="0.25">{site.shortName}</a>
@@ -19,7 +28,12 @@ import { withBase } from '../lib/path';
 
   <div class="site-nav__links" id="nav-menu" data-nav-menu>
     {nav.map((item) => (
-      <a href={withBase(item.href)} class="link-underline" data-nav-link>{item.label}</a>
+      <a
+        href={withBase(item.href)}
+        class:list={['link-underline', { 'is-current': isCurrent(item.href) }]}
+        aria-current={isCurrent(item.href) ? 'page' : undefined}
+        data-nav-link
+      >{item.label}</a>
     ))}
   </div>
 </nav>

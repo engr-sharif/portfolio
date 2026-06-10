@@ -1,0 +1,31 @@
+---
+/** Standard index/listing page header: breadcrumb + eyebrow + big title + intro. */
+import Breadcrumb from './Breadcrumb.astro';
+interface Crumb { label: string; href?: string }
+interface Props {
+  eyebrow?: string;
+  title: string;
+  intro?: string;
+  crumbs?: Crumb[];
+  count?: string;
+}
+const { eyebrow, title, intro, crumbs, count } = Astro.props;
+---
+<header class="page-head">
+  {crumbs && crumbs.length > 0 && <Breadcrumb items={crumbs} />}
+  {eyebrow && <p class="section__eyebrow" data-reveal>{eyebrow}</p>}
+  <div class="page-head__row" data-reveal data-reveal-delay="0.05">
+    <h1 class="page-head__title">{title}</h1>
+    {count && <span class="page-head__count u-mono">{count}</span>}
+  </div>
+  {intro && <p class="page-head__intro" data-reveal data-reveal-delay="0.1">{intro}</p>}
+</header>
+
+<style>
+  .page-head { padding-top: 8rem; margin-bottom: clamp(2.5rem, 6vw, 4.5rem); }
+  .page-head .section__eyebrow { margin-top: 1.4rem; }
+  .page-head__row { display: flex; align-items: baseline; justify-content: space-between; gap: 1.5rem; margin-top: 1rem; flex-wrap: wrap; }
+  .page-head__title { font-size: var(--text-3xl); max-width: 18ch; }
+  .page-head__count { color: var(--color-field-bright); font-size: var(--text-base); }
+  .page-head__intro { color: var(--color-muted); max-width: 56ch; margin-top: 1.3rem; font-size: var(--text-base); }
+</style>
