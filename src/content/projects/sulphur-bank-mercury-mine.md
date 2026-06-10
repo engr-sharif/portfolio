@@ -24,6 +24,9 @@ gallery:
 externalLink: https://www.epa.gov/superfund
 featured: true
 order: 1
+location: "Clearlake Oaks, CA"
+lat: 39.00
+lng: -122.66
 published: true
 ---
 

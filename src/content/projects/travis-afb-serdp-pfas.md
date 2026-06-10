@@ -12,6 +12,9 @@ coverImage: "pfas.jpg"
 featured: true
 order: 3
 externalLink: "https://serdp-estcp.mil/"
+location: "Travis AFB, Fairfield, CA"
+lat: 38.27
+lng: -121.93
 published: true
 ---
 

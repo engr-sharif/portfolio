@@ -16,6 +16,9 @@ techniques:
   - "Python report tooling"
 featured: true
 order: 0
+location: "Roseville, CA"
+lat: 38.75
+lng: -121.29
 published: true
 ---
 
