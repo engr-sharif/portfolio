@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef, type FC } from 'react';
 import type { Field as FieldDef } from './schema';
-import { uploadImage, rawImageUrl, rawRepoUrl } from './api';
-import { listImages, type MediaItem } from './studio-lib';
+import { uploadImage, rawImageUrl, rawRepoUrl, aiAssist } from './api';
+import { listImages, aiGuide, type MediaItem } from './studio-lib';
 import { processImage, type ImageMeta } from './image-process';
 
 interface Props {
   field: FieldDef;
   value: any;
   onChange: (v: any) => void;
-  onMeta?: (m: ImageMeta) => void;   // image fields: surface extracted EXIF (GPS/date)
+  onMeta?: (m: ImageMeta) => void;       // image fields: surface extracted EXIF (GPS/date)
+  onCaption?: (text: string) => void;    // image fields: AI-written caption/alt accepted
 }
 
 const slugify = (s: string) =>
@@ -47,7 +48,7 @@ async function uploadPublicFile(file: File, dir: string): Promise<string> {
   return '/' + path.replace(/^public\//, ''); // public/og/x.png → /og/x.png
 }
 
-export const Field: FC<Props> = ({ field, value, onChange, onMeta }) => {
+export const Field: FC<Props> = ({ field, value, onChange, onMeta, onCaption }) => {
   const id = `f-${field.name}`;
   const label = (
     <label className="sf__label" htmlFor={id}>
@@ -132,7 +133,7 @@ export const Field: FC<Props> = ({ field, value, onChange, onMeta }) => {
       return <TagsField field={field} value={value} onChange={onChange} label={label} />;
 
     case 'image':
-      return <ImageField field={field} value={value} onChange={onChange} onMeta={onMeta} label={label} />;
+      return <ImageField field={field} value={value} onChange={onChange} onMeta={onMeta} onCaption={onCaption} label={label} />;
 
     case 'file':
       return <FileField field={field} value={value} onChange={onChange} label={label} />;
@@ -237,10 +238,27 @@ const TagsField: FC<Props & { label: React.ReactNode }> = ({ field, value, onCha
   );
 };
 
-const ImageField: FC<Props & { label: React.ReactNode }> = ({ field, value, onChange, onMeta, label }) => {
+const ImageField: FC<Props & { label: React.ReactNode }> = ({ field, value, onChange, onMeta, onCaption, label }) => {
   const [busy, setBusy] = useState(false);
   const [lib, setLib] = useState(false);
+  const [describing, setDescribing] = useState(false);
+  const [draft, setDraft] = useState<string | null>(null);
+  const [err, setErr] = useState('');
   const dir = field.mediaDir || 'src/assets/covers';
+
+  const describe = async () => {
+    if (!value) return;
+    setDescribing(true); setErr(''); setDraft(null);
+    try {
+      const guide = await aiGuide();
+      const url = rawImageUrl(String(value), dir);
+      const { result } = await aiAssist('alt', '', { image: url, ...(guide ? { system: guide } : {}) });
+      if (!result) setErr('No description came back — try again.');
+      else setDraft(result);
+    } catch (e: any) { setErr(e?.message || 'AI request failed.'); }
+    finally { setDescribing(false); }
+  };
+
   return (
     <div className="sf">
       {label}
@@ -261,9 +279,24 @@ const ImageField: FC<Props & { label: React.ReactNode }> = ({ field, value, onCh
             }} />
           </label>
           <button type="button" className="sf__btn sf__btn--ghost" onClick={() => setLib(true)}>Choose existing</button>
+          {value && onCaption && (
+            <button type="button" className="sf__btn sf__btn--ghost" disabled={describing} onClick={describe}>
+              {describing ? 'Looking…' : '✨ Describe'}
+            </button>
+          )}
           {value && <button type="button" className="sf__btn sf__btn--ghost" onClick={() => onChange('')}>Clear</button>}
         </div>
       </div>
+      {err && <p className="sf__hint sf__hint--err">{err}</p>}
+      {draft !== null && (
+        <div className="sf__ai-draft">
+          <textarea className="sf__input sf__textarea" rows={2} value={draft} onChange={(e) => setDraft(e.target.value)} />
+          <div className="sf__image-actions">
+            <button type="button" className="sf__btn sf__btn--upload" onClick={() => { onCaption?.(draft); setDraft(null); }}>Use this</button>
+            <button type="button" className="sf__btn sf__btn--ghost" onClick={() => setDraft(null)}>Discard</button>
+          </div>
+        </div>
+      )}
       {field.hint && <p className="sf__hint">{field.hint}</p>}
       {lib && <MediaLibrary dir={dir} onPick={(p) => { onChange(p); setLib(false); }} onClose={() => setLib(false)} />}
     </div>
@@ -345,11 +378,18 @@ const ListField: FC<Props> = ({ field, value, onChange }) => {
   // Geo-aware lists (those with a lat field, e.g. the Field Gallery) auto-fill
   // an item's coordinates + date from the photo's EXIF on upload.
   const geoAware = (field.fields || []).some((f) => f.name === 'lat');
+  const hasAlt = (field.fields || []).some((f) => f.name === 'alt');
   const applyMeta = (i: number, m: ImageMeta) => {
     const patch: Record<string, any> = {};
     if (m.lat != null) { patch.lat = m.lat; patch.lng = m.lng; }
     if (m.takenAt) patch.takenAt = m.takenAt;
     if (Object.keys(patch).length) update(i, patch);
+  };
+  // AI-written description fills alt, and caption too if it's still empty.
+  const applyCaption = (i: number, text: string) => {
+    const patch: Record<string, any> = { alt: text };
+    if (!arr[i]?.caption) patch.caption = text;
+    update(i, patch);
   };
 
   return (
@@ -368,7 +408,8 @@ const ListField: FC<Props> = ({ field, value, onChange }) => {
             </div>
             {(field.fields || []).map((sf) => (
               <Field key={sf.name} field={sf} value={item[sf.name]} onChange={(v) => update(i, { [sf.name]: v })}
-                onMeta={geoAware && sf.type === 'image' ? (m) => applyMeta(i, m) : undefined} />
+                onMeta={geoAware && sf.type === 'image' ? (m) => applyMeta(i, m) : undefined}
+                onCaption={hasAlt && sf.type === 'image' ? (t) => applyCaption(i, t) : undefined} />
             ))}
           </div>
         ))}

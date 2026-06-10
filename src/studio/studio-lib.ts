@@ -94,3 +94,15 @@ export async function duplicateEntry(path: string, labelField: string) {
   if ('draft' in doc.data) doc.data.draft = true;
   return doc;
 }
+
+/** The AI writing guide (from settings/ai.json). Empty string means "use the
+ * Worker's built-in default guide". Cached for the session. */
+let _aiGuide: string | undefined;
+export async function aiGuide(): Promise<string> {
+  if (_aiGuide !== undefined) return _aiGuide;
+  try {
+    const f = await readFile('src/content/settings/ai.json');
+    _aiGuide = f.content ? (JSON.parse(f.content).guide || '') : '';
+  } catch { _aiGuide = ''; }
+  return _aiGuide ?? '';
+}

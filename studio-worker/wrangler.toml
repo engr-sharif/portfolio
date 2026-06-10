@@ -15,3 +15,12 @@ compatibility_date = "2024-11-01"
 GITHUB_REPO = "engr-sharif/portfolio"
 GITHUB_BRANCH = "main"
 ALLOWED_ORIGIN = "https://engr-sharif.github.io"
+# Optional model overrides for the AI assistant (defaults are sensible):
+# AI_TEXT_MODEL = "@cf/meta/llama-3.1-8b-instruct"
+# AI_VISION_MODEL = "@cf/llava-hf/llava-1.5-7b-hf"
+
+# Cloudflare Workers AI — powers the in-Studio assistant (free tier, open models).
+# This binding gives the Worker `env.AI`. No API key needed; it uses your
+# Cloudflare account. After adding this, redeploy:  npx wrangler deploy
+[ai]
+binding = "AI"
