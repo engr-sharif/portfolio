@@ -1,0 +1,14 @@
+---
+/** Colour-coded status badge in the data voice. Amber = active. */
+interface Props {
+  status: 'active' | 'complete' | 'proposed' | string;
+  class?: string;
+}
+const { status, class: className = '' } = Astro.props;
+const labels: Record<string, string> = {
+  active: 'Active',
+  complete: 'Complete',
+  proposed: 'Proposed',
+};
+---
+<span class={`status status--${status} ${className}`}>{labels[status] ?? status}</span>

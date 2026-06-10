@@ -226,10 +226,54 @@ function initReveals() {
   });
 }
 
+/* ----------------------------------------------------------- SVG line draw */
+/** Topo dividers + any [data-draw] path: stroke draws itself in on scroll. */
+function initDraw() {
+  if (prefersReduced()) return;
+  document.querySelectorAll<SVGPathElement>('[data-draw]').forEach((path) => {
+    if (path.dataset.drawn) return;
+    path.dataset.drawn = '1';
+    const len = path.getTotalLength();
+    gsap.set(path, { strokeDasharray: len, strokeDashoffset: len });
+    gsap.to(path, {
+      strokeDashoffset: 0,
+      duration: 1.4,
+      ease: 'power2.out',
+      scrollTrigger: { trigger: path.closest('[data-topo]') ?? path, start: 'top 92%', once: true },
+    });
+  });
+}
+
+/* ----------------------------------------------------------- Figure reveal */
+/** Figures wipe in with a clip-path "scanline" — like an image developing. */
+function initFigures() {
+  if (prefersReduced()) {
+    gsap.set('[data-figure]', { clearProps: 'all', opacity: 1 });
+    return;
+  }
+  document.querySelectorAll<HTMLElement>('[data-figure]').forEach((el) => {
+    if (el.dataset.figBound) return;
+    el.dataset.figBound = '1';
+    gsap.fromTo(
+      el,
+      { clipPath: 'inset(0 100% 0 0)', opacity: 0.4 },
+      {
+        clipPath: 'inset(0 0% 0 0)',
+        opacity: 1,
+        duration: 1,
+        ease: 'expo.out',
+        scrollTrigger: { trigger: el, start: 'top 85%', once: true },
+      },
+    );
+  });
+}
+
 /* ------------------------------------------------------------- Page setup */
 function setupPage() {
   initMagnetic();
   initReveals();
+  initDraw();
+  initFigures();
   ScrollTrigger.refresh();
 }
 

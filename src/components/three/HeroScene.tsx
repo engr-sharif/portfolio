@@ -16,7 +16,10 @@ const DENSITY = { desktop: { cols: 104, rows: 66 }, mobile: { cols: 60, rows: 40
 const vertexShader = /* glsl */ `
   uniform float uTime;
   uniform float uReduced;
+  uniform vec2 uPointer;   // pointer position in plane space
+  uniform float uRipple;   // ripple strength (eases in/out with pointer presence)
   varying float vElevation;
+  varying float vRipple;
 
   // Cheap value-noise via sines — smooth, periodic, plenty for a backdrop.
   float wave(vec2 p, float t) {
@@ -29,13 +32,20 @@ const vertexShader = /* glsl */ `
     vec3 pos = position;
     float t = uTime * (1.0 - uReduced); // freeze when reduced
     float e = wave(pos.xy, t);
-    pos.z += e * 1.15;
+
+    // Pointer ripple: a travelling ring of displacement around the cursor.
+    float dist = distance(pos.xy, uPointer);
+    float ring = sin(dist * 2.4 - uTime * 4.0) * exp(-dist * 0.5);
+    float r = ring * uRipple * (1.0 - uReduced);
+    vRipple = r;
+
+    pos.z += e * 1.15 + r * 1.6;
     vElevation = e;
 
     vec4 mv = modelViewMatrix * vec4(pos, 1.0);
     gl_Position = projectionMatrix * mv;
     // Bigger points so the field reads clearly (esp. on small/high-DPI screens).
-    gl_PointSize = (3.4 + (e + 1.0) * 2.4) * (320.0 / -mv.z);
+    gl_PointSize = (3.4 + (e + 1.0) * 2.4 + abs(r) * 5.0) * (320.0 / -mv.z);
   }
 `;
 
@@ -44,6 +54,7 @@ const fragmentShader = /* glsl */ `
   uniform vec3 uColorLow;
   uniform vec3 uColorHigh;
   varying float vElevation;
+  varying float vRipple;
 
   void main() {
     // round, soft points
@@ -51,6 +62,8 @@ const fragmentShader = /* glsl */ `
     if (d > 0.5) discard;
     float a = smoothstep(0.5, 0.08, d);
     vec3 c = mix(uColorLow, uColorHigh, smoothstep(-1.2, 1.3, vElevation));
+    // points caught in the ripple flash brighter
+    c += vec3(0.35, 0.6, 0.45) * abs(vRipple) * 1.4;
     gl_FragColor = vec4(c, a);
   }
 `;
@@ -70,21 +83,49 @@ const Terrain: FC<{ reduced: boolean; cols: number; rows: number }> = ({ reduced
       uReduced: { value: reduced ? 1 : 0 },
       uColorLow: { value: new THREE.Color('#2f6f4e') },
       uColorHigh: { value: new THREE.Color('#7fe3ad') },
+      uPointer: { value: new THREE.Vector2(999, 999) },
+      uRipple: { value: 0 },
     }),
     [reduced],
   );
+
+  // Pointer in plane space (the plane spans ~26×18 before scale).
+  const planePointer = useRef(new THREE.Vector2(999, 999));
+  const targetRipple = useRef(0);
 
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
       pointer.current.x = (e.clientX / window.innerWidth - 0.5) * 2;
       pointer.current.y = (e.clientY / window.innerHeight - 0.5) * 2;
+      // map screen → plane coords (scaled to the geometry extents)
+      planePointer.current.set(
+        (e.clientX / window.innerWidth - 0.5) * 26,
+        -(e.clientY / window.innerHeight - 0.5) * 18,
+      );
+      targetRipple.current = 0.5;
+    };
+    const onLeave = () => {
+      targetRipple.current = 0;
     };
     window.addEventListener('pointermove', onMove);
-    return () => window.removeEventListener('pointermove', onMove);
+    window.addEventListener('pointerleave', onLeave);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerleave', onLeave);
+    };
   }, []);
 
   useFrame((state, delta) => {
-    if (matRef.current) matRef.current.uniforms.uTime.value += delta * 0.75;
+    const m = matRef.current;
+    if (m) {
+      m.uniforms.uTime.value += delta * 0.75;
+      if (!reduced) {
+        m.uniforms.uPointer.value.lerp(planePointer.current, 0.12);
+        m.uniforms.uRipple.value = THREE.MathUtils.lerp(m.uniforms.uRipple.value, targetRipple.current, 0.06);
+        // ripple settles back toward 0 so it fades when the pointer rests
+        targetRipple.current *= 0.96;
+      }
+    }
     if (reduced) return;
     // gentle pointer parallax (small offset only — the tilt lives on the points)
     const g = state.scene;

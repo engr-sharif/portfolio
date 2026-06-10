@@ -1,0 +1,18 @@
+---
+/**
+ * Topographic contour divider. Renders nested contour-like SVG paths that
+ * draw themselves in on scroll (see behaviors: [data-draw]). Decorative.
+ */
+interface Props { class?: string }
+const { class: className = '' } = Astro.props;
+// A few smooth, offset sine-ish contour lines across the width.
+const lines = [0, 1, 2, 3];
+const path = (o: number) =>
+  `M0 ${20 + o * 2} C 160 ${6 + o * 3}, 320 ${34 - o * 2}, 480 ${20 + o} ` +
+  `S 800 ${6 + o * 2}, 960 ${22 - o}, 1200 ${18 + o * 2}`;
+---
+<div class={`topo-wrap ${className}`} aria-hidden="true" data-topo>
+  <svg class="topo-divider" viewBox="0 0 1200 44" preserveAspectRatio="none">
+    {lines.map((o) => <path d={path(o)} data-draw style={`opacity:${0.9 - o * 0.18}`} />)}
+  </svg>
+</div>

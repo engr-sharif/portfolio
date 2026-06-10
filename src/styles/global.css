@@ -6,17 +6,27 @@
    accent that quietly nods to environmental work without being literal.
    ========================================================================== */
 @theme {
-  /* Base palette */
-  --color-ink: #0c0e0d; /* near-black */
-  --color-ink-soft: #161a18;
-  --color-paper: #f4f3ee; /* warm off-white */
-  --color-paper-soft: #e9e7df;
-  --color-muted: #6b716c;
+  /* ---- Surface elevation system (ink-0 deepest → ink-2 raised) ---- */
+  --color-ink: #0b0d0c;          /* page base, deepest */
+  --color-ink-0: #0b0d0c;
+  --color-ink-1: #121613;        /* raised surface (cards) */
+  --color-ink-2: #1a201c;        /* higher surface (hover/insets) */
+  --color-ink-soft: #121613;     /* legacy alias → ink-1 */
+  --color-line: #262b27;         /* hairlines / frames */
 
-  /* Accent — deep field green */
+  /* ---- Paper (foreground) ---- */
+  --color-paper: #f4f3ee;        /* warm off-white */
+  --color-paper-soft: #d6d8d1;   /* secondary text (raised for AA) */
+  --color-muted: #8a918a;        /* tertiary text (raised from #6b716c for AA) */
+
+  /* ---- Accent: field green ---- */
   --color-field: #2f6f4e;
-  --color-field-bright: #4ca97b;
+  --color-field-bright: #57c08a; /* brightened for contrast on ink */
   --color-field-dim: #1d4632;
+
+  /* ---- Signal: hazard amber, reserved for "active" status only ---- */
+  --color-hazard: #e0a93b;
+  --color-hazard-dim: #6b5320;
 
   /* Type scale (fluid) */
   --text-xs: clamp(0.72rem, 0.7rem + 0.1vw, 0.78rem);
@@ -28,14 +38,21 @@
   --text-3xl: clamp(2.6rem, 1.8rem + 4vw, 4.5rem);
   --text-hero: clamp(2rem, 0.4rem + 6vw, 8rem);
 
-  /* Fonts (self-hosted variable fonts via @fontsource-variable) */
+  /* Fonts: editorial display, sans body, + a monospace "data voice" used for
+     anything that IS data — dates, counts, coordinates, status, figure labels. */
   --font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-display: 'Space Grotesk Variable', 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 
   /* Named easing curves — reuse these everywhere for consistency */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Motion timing tokens (shared by CSS + JS choreography) */
+  --dur-fast: 0.3s;
+  --dur-base: 0.6s;
+  --dur-slow: 0.9s;
 }
 
 /* ==========================================================================
@@ -342,15 +359,17 @@ html.js [data-reveal-stagger] > * {
 /* Keep in-page anchor targets clear of the fixed nav (and as a fallback if JS
    smooth-scroll is unavailable). */
 :where(section, footer)[id] { scroll-margin-top: 5.5rem; }
+/* Section label — now in the monospace "data voice" with an index marker. */
 .section__eyebrow {
+  font-family: var(--font-mono);
   color: var(--color-field-bright);
-  letter-spacing: 0.22em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   font-size: var(--text-xs);
   font-weight: 500;
   display: inline-flex;
   align-items: center;
-  gap: 0.6em;
+  gap: 0.7em;
 }
 .section__eyebrow::before {
   content: '';
@@ -358,6 +377,95 @@ html.js [data-reveal-stagger] > * {
   height: 1px;
   background: var(--color-field-bright);
 }
+
+/* ==========================================================================
+   FIELD ATLAS — identity primitives (the "survey document" voice)
+   ========================================================================== */
+/* The data voice: any element that IS data wears the mono font. */
+.u-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Data chip — small mono pill for techniques, tags, stats. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.01em;
+  padding: 0.34em 0.7em;
+  border-radius: 6px;
+  border: 1px solid var(--color-line);
+  color: var(--color-paper-soft);
+  background: color-mix(in srgb, var(--color-ink-1) 70%, transparent);
+  transition: border-color var(--dur-fast) var(--ease-out-expo), color var(--dur-fast) var(--ease-out-expo);
+}
+.chip--accent { color: var(--color-field-bright); border-color: color-mix(in srgb, var(--color-field-bright) 35%, transparent); }
+
+/* Status badge — colour-coded; hazard amber reserved for "active". */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.3em 0.7em;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+.status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.status--active { color: var(--color-hazard); }
+.status--active::before { animation: pulse-dot 2.4s var(--ease-in-out-quart) infinite; }
+.status--complete { color: var(--color-field-bright); }
+.status--proposed { color: var(--color-muted); }
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-hazard) 60%, transparent); }
+  50% { box-shadow: 0 0 0 4px transparent; }
+}
+
+/* Figure frame — every photo/screenshot presented like a report figure:
+   registration marks at the corners + a mono caption. */
+.figure {
+  position: relative;
+  margin: 0;
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
+  background: var(--color-ink-1);
+  overflow: hidden;
+}
+.figure__media { display: block; width: 100%; height: auto; }
+/* corner registration marks */
+.figure::before, .figure::after,
+.figure > .figure__corner {
+  position: absolute;
+  width: 10px; height: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-field-bright) 70%, transparent);
+  pointer-events: none;
+  z-index: 2;
+}
+.figure::before { top: 8px; left: 8px; border-right: 0; border-bottom: 0; }
+.figure::after { top: 8px; right: 8px; border-left: 0; border-bottom: 0; }
+.figure__corner--bl { bottom: 8px; left: 8px; border-right: 0; border-top: 0; }
+.figure__corner--br { bottom: 8px; right: 8px; border-left: 0; border-top: 0; }
+.figure__caption {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  padding: 0.7rem 0.9rem;
+  border-top: 1px solid var(--color-line);
+  display: flex;
+  gap: 0.7em;
+}
+.figure__caption b { color: var(--color-field-bright); font-weight: 500; white-space: nowrap; }
+
+/* Topographic section divider — an SVG line that draws in on scroll. */
+.topo-divider { display: block; width: 100%; height: 2.2rem; color: var(--color-line); overflow: visible; }
+.topo-divider path { fill: none; stroke: currentColor; stroke-width: 1; }
 
 /* ==========================================================================
    PROJECT DASHBOARD
