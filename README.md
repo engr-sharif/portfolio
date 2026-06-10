@@ -5,8 +5,9 @@ Environmental Engineer (EIT). Static site, GPU-light motion, and a browser admin
 so projects, photos, and text can be updated without touching code.
 
 **Stack:** Astro · React islands · GSAP (ScrollTrigger / SplitText / Flip) ·
-Lenis · Motion · Three.js + React Three Fiber · Tailwind CSS 4 · Sveltia/Decap
-CMS · TypeScript. Output is 100% static (GitHub Pages — no server runtime).
+Lenis · Motion · Three.js + React Three Fiber · MapLibre GL · Tailwind CSS 4 ·
+a custom Studio admin · TypeScript. Output is 100% static (GitHub Pages — the
+Studio's only backend is a small Cloudflare Worker).
 
 ---
 
@@ -122,18 +123,39 @@ Replace **`public/resume/Sharif_Resume.pdf`** with your real PDF (keep the
 filename). Update the "last updated" date under *Site Settings* (`resumeUpdated`
 in `src/content/settings/site.json`). The current file is a placeholder.
 
-## Editing in the browser (`/admin`)
+## Editing in the browser (`/admin` — the Studio)
 
-The CMS (Sveltia, a Decap-compatible drop-in with better media handling) lives at
-`/admin`. It commits changes back to the repo via GitHub. Because GitHub Pages is
-static, GitHub login needs a small OAuth proxy — see
-[`cms-oauth-worker/README.md`](./cms-oauth-worker/README.md).
+`/admin` is a **custom-built admin** ("the Studio") — a React app under
+`src/studio/` that edits content live and commits straight back to the repo
+through a small Cloudflare Worker (`studio-worker/`, password-protected). No
+third-party CMS, no GitHub OAuth dance. It works on desktop and mobile.
 
-For local editing without OAuth (`local_backend: true` is already set):
-```bash
-npx @sveltia/cms-server   # or: npx decap-server
-npm run dev               # open http://localhost:4321/admin/
-```
+What it can do:
+- **Edit any collection** — projects, blog, tools — and the **Site Settings**
+  singleton (name, bio, social links, SEO title/description, social-share image).
+- **Markdown editor** with a formatting toolbar, drag-and-drop images, a
+  **video** button (paste a YouTube/Vimeo link, or upload a short MP4), and a
+  **live preview** toggle (side-by-side on desktop, swaps in on mobile).
+- **Media** — image upload + a media library to reuse existing assets.
+- **Headshot** and **résumé PDF** upload, **reorder / duplicate / search**
+  entries, and an **unsaved-changes guard**.
+
+### Image pipeline (automatic on upload)
+Every uploaded photo is processed in the browser before it's committed
+(`src/studio/image-process.ts`):
+- **HEIC/HEIF → JPEG** so iPhone photos render on the built site.
+- **Downscaled** to ~2400px @ q0.85 with EXIF orientation honoured (Astro then
+  generates responsive sizes from that source).
+- **EXIF GPS + capture date are read first** (re-encoding strips them) and saved
+  onto Field Gallery photos as `lat`/`lng`/`takenAt` — this feeds the map.
+
+### "Where I've worked" map
+`src/components/WorkMap.astro` + `WorkMapIsland.tsx` render a MapLibre map on the
+About page with two toggleable layers: **project sites** (projects carrying
+`lat`/`lng`) and **field photos** (gallery points geotagged on upload).
+Coordinates are **snapped to ~1 km** for client confidentiality, and projects
+stay behind the `published` gate. Add a project to the map by setting its
+location in the Studio (or `lat`/`lng` in frontmatter).
 
 ---
 
@@ -141,21 +163,22 @@ npm run dev               # open http://localhost:4321/admin/
 
 ```
 .github/workflows/deploy.yml   GitHub Pages deploy (official Actions flow)
-cms-oauth-worker/              Cloudflare Worker OAuth proxy for the CMS
+studio-worker/                 Cloudflare Worker backend for the Studio (auth + commits)
 public/
-  admin/                      Sveltia/Decap CMS (index.html + config.yml)
-  resume/Sharif_Resume.pdf    résumé (placeholder — swap in the real one)
+  admin/                      Studio entry (mounts src/studio)
+  resume/Sharif_Resume.pdf    résumé (swap via the Studio)
   og-image.png, robots.txt, favicon.svg, .nojekyll
-scripts/                      dev-only placeholder generators (deletable)
 src/
   assets/covers, assets/gallery   images → optimized via <Image>
-  components/                  Hero, Dashboard, ProjectCard, Showcase, Gallery, About…
-  components/three/HeroScene   R3F WebGL hero
-  content/projects/            one Markdown file per project (CMS-managed)
-  content/settings/            site.json + media.json singletons
-  lib/                         motion, hero, showcase, lightbox, intro, images, projects
-  layouts/BaseLayout.astro
-  pages/index.astro, pages/projects/[slug].astro
+  studio/                      the custom admin: Studio, Editor, Field, MarkdownEditor,
+                               PreviewPane, image-process, schema, api
+  components/                  Hero, Dashboard, ProjectCard, Showcase, Gallery, About,
+                               WorkMap (+ WorkMapIsland), three/HeroScene…
+  content/projects, blog, tools   one Markdown file per entry (Studio-managed)
+  content/settings/            site.json + gallery.json + media.json singletons
+  lib/                         motion, hero, showcase, images, projects, blog, site…
+  layouts/BaseLayout.astro     <head>, SEO/OG/Twitter, JSON-LD, RSS link
+  pages/                       index, about, projects/[slug], blog/[slug], 404, rss.xml
   content.config.ts            content collections schema
 astro.config.mjs
 ```
@@ -188,12 +211,12 @@ These need your own credentials/judgment — they are **not** done in this repo:
    the repo to `engr-sharif.github.io`.)
 2. **GitHub → Settings → Pages → Source = "GitHub Actions".** (The workflow in
    `.github/workflows/deploy.yml` deploys on every push to `main`.)
-3. **CMS auth** — create a GitHub OAuth App and deploy the Cloudflare Worker,
-   setting `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` as Worker secrets, then
-   set `backend.base_url` in `public/admin/config.yml`. Full steps:
-   [`cms-oauth-worker/README.md`](./cms-oauth-worker/README.md). **Never commit
-   the client secret.**
-4. **Résumé** — drop your real PDF at `public/resume/Sharif_Resume.pdf`.
+3. **Studio backend** — deploy the Cloudflare Worker and set its secrets
+   (`STUDIO_PASSWORD`, `STUDIO_JWT_SECRET`, and a GitHub token). Full steps:
+   [`studio-worker/README.md`](./studio-worker/README.md). **Never commit the
+   secrets.**
+4. **Résumé** — upload your PDF in the Studio (Site Settings → Résumé), or drop
+   it at `public/resume/Sharif_Resume.pdf`.
 5. **Confidentiality review** — for every seeded project, confirm each
    site/client detail is cleared for public sharing, then set `published: true`.
    The seeds use neutral, public-level descriptions and are confidentiality-gated.

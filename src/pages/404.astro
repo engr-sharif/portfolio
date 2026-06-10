@@ -1,0 +1,37 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { withBase } from '../lib/path';
+
+const links = [
+  { label: 'Home', href: '/' },
+  { label: 'Projects', href: 'projects/' },
+  { label: 'Writing', href: 'blog/' },
+  { label: 'About', href: 'about/' },
+];
+---
+<BaseLayout title="Page not found — Nawaz Sharif" description="That page couldn’t be found.">
+  <main class="u-container nf" id="main">
+    <p class="nf__code">404</p>
+    <h1 class="nf__title">This sample didn’t come back labeled.</h1>
+    <p class="nf__lead">The page you’re after isn’t here — it may have moved or never existed. Here’s the way back to solid ground.</p>
+    <nav class="nf__links" aria-label="Site sections">
+      {links.map((l) => (
+        <a class="nf__link" href={withBase(l.href)}>{l.label} →</a>
+      ))}
+    </nav>
+  </main>
+</BaseLayout>
+
+<style>
+  .nf { min-height: 64vh; display: flex; flex-direction: column; justify-content: center; padding-block: clamp(3rem, 10vh, 7rem); }
+  .nf__code { font-family: var(--font-mono); color: var(--color-field-bright); letter-spacing: 0.2em; margin: 0 0 1rem; }
+  .nf__title { font-family: var(--font-display); font-size: clamp(1.8rem, 5vw, 3rem); margin: 0 0 1rem; max-width: 18ch; }
+  .nf__lead { color: var(--color-muted); max-width: 48ch; margin: 0 0 2rem; line-height: 1.6; }
+  .nf__links { display: flex; flex-wrap: wrap; gap: 0.8rem; }
+  .nf__link {
+    padding: 0.6rem 1.1rem; border-radius: 999px; text-decoration: none;
+    border: 1px solid var(--color-line); background: var(--color-ink-1); color: var(--color-paper-soft);
+    transition: border-color .2s, color .2s;
+  }
+  .nf__link:hover { border-color: var(--color-field-bright); color: var(--color-paper); }
+</style>

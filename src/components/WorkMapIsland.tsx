@@ -111,11 +111,11 @@ export default function WorkMapIsland({ projects, photos, base = '/' }: Props) {
   return (
     <div className="wm">
       <div className="wm__legend">
-        <button type="button" className={`wm__toggle${showProjects ? ' is-on' : ''}`} onClick={() => setShowProjects((v) => !v)}>
+        <button type="button" aria-pressed={showProjects} className={`wm__toggle${showProjects ? ' is-on' : ''}`} onClick={() => setShowProjects((v) => !v)}>
           <span className="wm__swatch wm__swatch--project" /> Project sites ({projects.length})
         </button>
         {photos.length > 0 && (
-          <button type="button" className={`wm__toggle${showPhotos ? ' is-on' : ''}`} onClick={() => setShowPhotos((v) => !v)}>
+          <button type="button" aria-pressed={showPhotos} className={`wm__toggle${showPhotos ? ' is-on' : ''}`} onClick={() => setShowPhotos((v) => !v)}>
             <span className="wm__swatch wm__swatch--photo" /> Field photos ({photos.length})
           </button>
         )}

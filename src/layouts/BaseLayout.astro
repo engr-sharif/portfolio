@@ -31,7 +31,9 @@ const {
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
-const ogImage = new URL(withBase(image), Astro.site).href;
+// Per-page cover images arrive as already-absolute URLs; site defaults are
+// base-relative (e.g. /og-image.png) and need the base + origin prepended.
+const ogImage = /^https?:\/\//.test(image) ? image : new URL(withBase(image), Astro.site).href;
 
 // Site-wide Person structured data (EEAT / rich-result signal). Built once on
 // the homepage-level layout; absolute URLs so it's valid under /portfolio/.
@@ -76,13 +78,22 @@ const goatcounter = (site as { analytics?: string }).analytics?.trim();
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
 
+    <!-- RSS discovery -->
+    <link rel="alternate" type="application/rss+xml" title={`${site.shortName} — Writing`} href={new URL(withBase('rss.xml'), Astro.site).href} />
+
     <!-- Open Graph -->
     <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content={site.name} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:image" content={ogImage} />
+
+    <!-- Twitter card -->
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
 
     <script type="application/ld+json" set:html={JSON.stringify(personLd)} is:inline />
 
