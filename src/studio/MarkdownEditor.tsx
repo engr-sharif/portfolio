@@ -1,5 +1,6 @@
 import { useRef, useState, type FC } from 'react';
 import { uploadImage } from './api';
+import { processImage } from './image-process';
 
 interface Props {
   value: string;
@@ -89,14 +90,15 @@ export const MarkdownEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/ass
   const insertImage = async (file: File) => {
     setUploading(true);
     try {
+      const { file: out } = await processImage(file); // HEIC→JPEG + downscale
       const base64 = await new Promise<string>((res, rej) => {
-        const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(file);
+        const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(out);
       });
-      const name = slugify(file.name);
+      const name = slugify(out.name);
       const path = `${mediaDir}/${name}`;
       await uploadImage(path, base64, `studio: upload ${name}`);
       const ta = ref.current; if (!ta) return;
-      const md = `\n![${file.name.replace(/\.[^.]+$/, '')}](/${path})\n`;
+      const md = `\n![${out.name.replace(/\.[^.]+$/, '')}](/${path})\n`;
       const { selectionStart: s } = ta;
       const next = value.slice(0, s) + md + value.slice(s);
       onChange(next);
