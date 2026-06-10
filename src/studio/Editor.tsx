@@ -111,6 +111,12 @@ export const Editor: FC<Props> = ({ collection, path, onDone, onPublished }) => 
         </div>
       </div>
 
+      <h1 className="st-page-title">
+        {isFileCollection
+          ? collection.label
+          : (data[collection.labelField] || (path ? collection.label : `New ${collection.label.replace(/s$/, '')}`))}
+      </h1>
+
       {error && <div className="st-error">{error}</div>}
 
       <div className="st-editor__form">

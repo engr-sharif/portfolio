@@ -87,7 +87,10 @@ h1 { font-family: var(--display); }
 .st-btn:disabled { opacity: 0.6; cursor: default; }
 
 /* ---- dashboard ---- */
-.st-dash__head h1 { font-size: 2rem; margin: 0 0 0.4rem; }
+/* one consistent page title across Dashboard / List / Editor */
+.st-page-title { font-size: clamp(1.5rem, 4vw, 2rem); margin: 0 0 0.4rem; line-height: 1.15; }
+.st-editor .st-page-title { margin: 0.2rem 0 1.2rem; }
+.st-dash__head h1 { margin: 0 0 0.4rem; }
 .st-dash__head p { color: var(--muted); margin: 0 0 2rem; }
 .st-dash__quick { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 2rem; }
 .st-dash__new { padding: 0.55rem 1.1rem; border-radius: 999px; border: 1px dashed var(--line); background: none; color: var(--field-bright); transition: border-color .2s var(--ease); }
@@ -100,7 +103,7 @@ h1 { font-family: var(--display); }
 
 /* ---- list ---- */
 .st-list__head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
-.st-list__head h1 { font-size: 1.6rem; margin: 0; }
+.st-list__head h1 { margin: 0; }
 .st-list__items { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; }
 .st-list__item { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.2rem; border: 1px solid var(--line); border-radius: 8px; background: var(--ink-1); color: var(--paper); text-align: left; transition: border-color .2s var(--ease); }
 .st-list__item:hover { border-color: var(--field-bright); }
