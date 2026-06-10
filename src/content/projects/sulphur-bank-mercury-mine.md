@@ -4,6 +4,7 @@ client: Federal Superfund Program
 siteType: Superfund site characterization
 status: active
 role: Field & sampling support
+envirostorQuery: Sulphur Bank Mercury Mine
 startDate: 2025-05
 endDate: 2030-12
 summary: Characterization support at a legacy mercury-mine Superfund site, including grid-based sampling and handheld XRF scanning. Built a field-navigation tool to speed up locating sample points on site.

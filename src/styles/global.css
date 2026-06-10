@@ -1074,3 +1074,30 @@ html.js [data-reveal-stagger] > * {
   h1, h2, h3 { break-after: avoid; }
   img { max-width: 100% !important; }
 }
+
+/* ==========================================================================
+   LIVE REGULATORY STATUS (EnviroStor / DTSC)
+   ========================================================================== */
+.livereg {
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  background: var(--color-ink-1);
+  padding: 1.2rem 1.4rem;
+  position: relative;
+  overflow: hidden;
+}
+.livereg::before {
+  content: '';
+  position: absolute; inset: 0 auto 0 0; width: 2px;
+  background: var(--color-field-bright);
+}
+.livereg__head { display: flex; align-items: center; gap: 0.6em; margin-bottom: 0.9rem; }
+.livereg__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-field-bright); box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-field-bright) 60%, transparent); animation: livereg-pulse 2.2s var(--ease-in-out-quart) infinite; }
+@keyframes livereg-pulse { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-field-bright) 55%, transparent); } 50% { box-shadow: 0 0 0 5px transparent; } }
+.livereg__src { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.08em; color: var(--color-field-bright); text-transform: uppercase; }
+.livereg__loading { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--color-muted); margin: 0; }
+.livereg__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: 0.9rem 1.4rem; margin: 0; }
+.livereg__grid dt { font-family: var(--font-mono); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.1em; color: var(--color-muted); }
+.livereg__grid dd { margin: 0.2rem 0 0; font-size: var(--text-sm); color: var(--color-paper); }
+.livereg.is-loaded { animation: livereg-in 0.5s var(--ease-out-expo); }
+@keyframes livereg-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
