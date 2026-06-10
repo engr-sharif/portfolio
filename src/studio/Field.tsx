@@ -143,6 +143,9 @@ export const Field: FC<Props> = ({ field, value, onChange }) => {
 const TagsField: FC<Props & { label: React.ReactNode }> = ({ field, value, onChange, label }) => {
   const [draft, setDraft] = useState('');
   const [lib, setLib] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState('');
+  const [err, setErr] = useState('');
   const arr: string[] = Array.isArray(value) ? value : [];
   const isImage = field.itemType === 'image';
   const dir = field.mediaDir || 'src/assets/gallery';
@@ -153,6 +156,29 @@ const TagsField: FC<Props & { label: React.ReactNode }> = ({ field, value, onCha
     const n = [...arr]; const t = i + d;
     if (t < 0 || t >= n.length) return;
     [n[i], n[t]] = [n[t], n[i]]; onChange(n);
+  };
+
+  // Upload several images one at a time, committing each as it lands so they
+  // appear progressively and one failure can't lose the whole batch.
+  const uploadMany = async (files: File[]) => {
+    setBusy(true); setErr('');
+    let acc = [...arr];
+    const failed: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      setProgress(`Uploading ${i + 1} of ${files.length}…`);
+      try {
+        acc = [...acc, await uploadFile(files[i], dir)];
+        onChange(acc);
+      } catch (e: any) {
+        failed.push(files[i].name);
+      }
+    }
+    setProgress('');
+    setBusy(false);
+    if (failed.length) {
+      setErr(`Couldn't upload ${failed.length} file(s): ${failed.join(', ')}. ` +
+        `Large phone photos or HEIC format can fail — try smaller JPGs, or add them one at a time.`);
+    }
   };
 
   return (
@@ -179,18 +205,20 @@ const TagsField: FC<Props & { label: React.ReactNode }> = ({ field, value, onCha
         </div>
       )}
       {isImage ? (
-        <div className="sf__image-actions">
-          <label className="sf__btn sf__btn--upload">
-            + Upload
-            <input type="file" accept="image/*" multiple hidden onChange={async (e) => {
-              const files = Array.from(e.target.files || []);
-              let next = [...arr];
-              for (const f of files) next = [...next, await uploadFile(f, dir)];
-              onChange(next);
-            }} />
-          </label>
-          <button type="button" className="sf__btn sf__btn--ghost" onClick={() => setLib(true)}>Choose existing</button>
-        </div>
+        <>
+          <div className="sf__image-actions">
+            <label className={`sf__btn sf__btn--upload${busy ? ' is-busy' : ''}`}>
+              {busy ? (progress || 'Uploading…') : '+ Upload'}
+              <input type="file" accept="image/*" multiple hidden disabled={busy} onChange={async (e) => {
+                const files = Array.from(e.target.files || []);
+                e.target.value = ''; // allow re-selecting the same files later
+                if (files.length) await uploadMany(files);
+              }} />
+            </label>
+            <button type="button" className="sf__btn sf__btn--ghost" disabled={busy} onClick={() => setLib(true)}>Choose existing</button>
+          </div>
+          {err && <p className="sf__hint sf__hint--err">{err}</p>}
+        </>
       ) : (
         <input className="sf__input sf__input--sm" placeholder="Type and press Enter" value={draft}
           onChange={(e) => setDraft(e.target.value)}
