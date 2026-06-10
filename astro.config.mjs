@@ -3,6 +3,7 @@ import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import expressiveCode from 'astro-expressive-code';
+import pagefind from 'astro-pagefind';
 import tailwindcss from '@tailwindcss/vite';
 import { remarkReadingTime } from './src/lib/remark-reading-time.mjs';
 
@@ -29,6 +30,7 @@ export default defineConfig({
     }),
     react(),
     sitemap(),
+    pagefind(),
   ],
   markdown: {
     remarkPlugins: [remarkReadingTime],

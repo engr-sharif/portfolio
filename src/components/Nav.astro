@@ -35,6 +35,11 @@ const isCurrent = (href: string) => {
         data-nav-link
       >{item.label}</a>
     ))}
+    <button type="button" class="nav-search" data-open-search aria-label="Search (press / or Cmd-K)">
+      <span aria-hidden="true">⌕</span>
+      <span class="nav-search__label">Search</span>
+      <kbd>⌘K</kbd>
+    </button>
   </div>
 </nav>
 

@@ -1,0 +1,49 @@
+---
+import Section from './Section.astro';
+import data from '../content/settings/testimonials.json';
+
+interface Item { quote: string; name: string; title?: string; org?: string }
+const items = (data.items ?? []) as Item[];
+---
+{items.length > 0 && (
+  <Section id="recommendations" eyebrow="Recommendations" title="What colleagues say">
+    <div class="quotes" data-reveal-stagger>
+      {items.map((t) => (
+        <figure class="quote">
+          <blockquote class="quote__text">“{t.quote}”</blockquote>
+          <figcaption class="quote__by">
+            <span class="quote__name">{t.name}</span>
+            {(t.title || t.org) && (
+              <span class="quote__role u-mono">{[t.title, t.org].filter(Boolean).join(' · ')}</span>
+            )}
+          </figcaption>
+        </figure>
+      ))}
+    </div>
+  </Section>
+)}
+
+<style>
+  .quotes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: clamp(1.2rem, 3vw, 2rem); }
+  .quote {
+    margin: 0;
+    padding: 1.8rem;
+    border: 1px solid var(--color-line);
+    border-radius: 6px;
+    background: var(--color-ink-1);
+    position: relative;
+  }
+  .quote::before {
+    content: '“';
+    position: absolute;
+    top: 0.2rem; left: 1rem;
+    font-family: var(--font-display);
+    font-size: 3rem;
+    color: color-mix(in srgb, var(--color-field-bright) 30%, transparent);
+    line-height: 1;
+  }
+  .quote__text { margin: 0.8rem 0 1.4rem; color: var(--color-paper-soft); font-size: var(--text-base); line-height: 1.6; }
+  .quote__by { display: flex; flex-direction: column; gap: 0.2rem; }
+  .quote__name { font-family: var(--font-display); font-weight: 500; }
+  .quote__role { font-size: var(--text-xs); color: var(--color-muted); }
+</style>
