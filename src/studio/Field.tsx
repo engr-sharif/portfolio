@@ -2,46 +2,52 @@ import { useState, useEffect, useRef, type FC } from 'react';
 import type { Field as FieldDef } from './schema';
 import { uploadImage, rawImageUrl, rawRepoUrl } from './api';
 import { listImages, type MediaItem } from './studio-lib';
+import { processImage, type ImageMeta } from './image-process';
 
 interface Props {
   field: FieldDef;
   value: any;
   onChange: (v: any) => void;
+  onMeta?: (m: ImageMeta) => void;   // image fields: surface extracted EXIF (GPS/date)
 }
 
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9.]+/g, '-').replace(/(^-|-$)/g, '');
 
-/** Upload an image file to the repo via the Worker; returns the stored path. */
-async function uploadFile(file: File, dir: string): Promise<string> {
+/** Optimise + upload an image to the repo; returns the stored path and any
+ * EXIF metadata (GPS/date) read before re-encoding stripped it. */
+async function uploadFile(file: File, dir: string): Promise<{ path: string; meta: ImageMeta }> {
+  const { file: out, meta } = await processImage(file);
   const base64 = await new Promise<string>((res, rej) => {
     const r = new FileReader();
     r.onload = () => res(String(r.result));
     r.onerror = rej;
-    r.readAsDataURL(file);
+    r.readAsDataURL(out);
   });
-  const name = slugify(file.name);
+  const name = slugify(out.name);
   const path = `${dir}/${name}`;
   await uploadImage(path, base64, `studio: upload ${name}`);
-  return `/${path}`; // stored as /src/assets/... — the basename resolver handles it
+  return { path: `/${path}`, meta }; // stored as /src/assets/... — the basename resolver handles it
 }
 
 /** Upload a non-image asset (PDF, share image) into /public and return the
- * SERVED path (e.g. public/resume/cv.pdf → /resume/cv.pdf). */
+ * SERVED path (e.g. public/resume/cv.pdf → /resume/cv.pdf). Images are
+ * optimised; PDFs pass through untouched. */
 async function uploadPublicFile(file: File, dir: string): Promise<string> {
+  const { file: out } = await processImage(file);
   const base64 = await new Promise<string>((res, rej) => {
     const r = new FileReader();
     r.onload = () => res(String(r.result));
     r.onerror = rej;
-    r.readAsDataURL(file);
+    r.readAsDataURL(out);
   });
-  const name = slugify(file.name);
+  const name = slugify(out.name);
   const path = `${dir}/${name}`;
   await uploadImage(path, base64, `studio: upload ${name}`);
   return '/' + path.replace(/^public\//, ''); // public/og/x.png → /og/x.png
 }
 
-export const Field: FC<Props> = ({ field, value, onChange }) => {
+export const Field: FC<Props> = ({ field, value, onChange, onMeta }) => {
   const id = `f-${field.name}`;
   const label = (
     <label className="sf__label" htmlFor={id}>
@@ -126,7 +132,7 @@ export const Field: FC<Props> = ({ field, value, onChange }) => {
       return <TagsField field={field} value={value} onChange={onChange} label={label} />;
 
     case 'image':
-      return <ImageField field={field} value={value} onChange={onChange} label={label} />;
+      return <ImageField field={field} value={value} onChange={onChange} onMeta={onMeta} label={label} />;
 
     case 'file':
       return <FileField field={field} value={value} onChange={onChange} label={label} />;
@@ -167,7 +173,8 @@ const TagsField: FC<Props & { label: React.ReactNode }> = ({ field, value, onCha
     for (let i = 0; i < files.length; i++) {
       setProgress(`Uploading ${i + 1} of ${files.length}…`);
       try {
-        acc = [...acc, await uploadFile(files[i], dir)];
+        const { path } = await uploadFile(files[i], dir);
+        acc = [...acc, path];
         onChange(acc);
       } catch (e: any) {
         failed.push(files[i].name);
@@ -177,7 +184,7 @@ const TagsField: FC<Props & { label: React.ReactNode }> = ({ field, value, onCha
     setBusy(false);
     if (failed.length) {
       setErr(`Couldn't upload ${failed.length} file(s): ${failed.join(', ')}. ` +
-        `Large phone photos or HEIC format can fail — try smaller JPGs, or add them one at a time.`);
+        `Try again, or add them one at a time — a flaky connection is the usual cause.`);
     }
   };
 
@@ -230,7 +237,7 @@ const TagsField: FC<Props & { label: React.ReactNode }> = ({ field, value, onCha
   );
 };
 
-const ImageField: FC<Props & { label: React.ReactNode }> = ({ field, value, onChange, label }) => {
+const ImageField: FC<Props & { label: React.ReactNode }> = ({ field, value, onChange, onMeta, label }) => {
   const [busy, setBusy] = useState(false);
   const [lib, setLib] = useState(false);
   const dir = field.mediaDir || 'src/assets/covers';
@@ -249,7 +256,8 @@ const ImageField: FC<Props & { label: React.ReactNode }> = ({ field, value, onCh
             <input type="file" accept="image/*" hidden disabled={busy} onChange={async (e) => {
               const f = e.target.files?.[0]; if (!f) return;
               setBusy(true);
-              try { onChange(await uploadFile(f, dir)); } finally { setBusy(false); }
+              try { const { path, meta } = await uploadFile(f, dir); onChange(path); onMeta?.(meta); }
+              finally { setBusy(false); }
             }} />
           </label>
           <button type="button" className="sf__btn sf__btn--ghost" onClick={() => setLib(true)}>Choose existing</button>
@@ -334,6 +342,15 @@ const ListField: FC<Props> = ({ field, value, onChange }) => {
     [n[i], n[t]] = [n[t], n[i]]; onChange(n);
   };
   const blank = () => Object.fromEntries((field.fields || []).map((f) => [f.name, '']));
+  // Geo-aware lists (those with a lat field, e.g. the Field Gallery) auto-fill
+  // an item's coordinates + date from the photo's EXIF on upload.
+  const geoAware = (field.fields || []).some((f) => f.name === 'lat');
+  const applyMeta = (i: number, m: ImageMeta) => {
+    const patch: Record<string, any> = {};
+    if (m.lat != null) { patch.lat = m.lat; patch.lng = m.lng; }
+    if (m.takenAt) patch.takenAt = m.takenAt;
+    if (Object.keys(patch).length) update(i, patch);
+  };
 
   return (
     <div className="sf">
@@ -350,7 +367,8 @@ const ListField: FC<Props> = ({ field, value, onChange }) => {
               </div>
             </div>
             {(field.fields || []).map((sf) => (
-              <Field key={sf.name} field={sf} value={item[sf.name]} onChange={(v) => update(i, { [sf.name]: v })} />
+              <Field key={sf.name} field={sf} value={item[sf.name]} onChange={(v) => update(i, { [sf.name]: v })}
+                onMeta={geoAware && sf.type === 'image' ? (m) => applyMeta(i, m) : undefined} />
             ))}
           </div>
         ))}
