@@ -27,6 +27,10 @@ const group = `project-${project.id}`;
 const cover = getCover(data.coverImage);
 const coverFull = cover ? (await getImage({ src: cover, width: 2400, format: 'webp' })).src : undefined;
 const coverCaption = getCaption(data.coverImage);
+// Per-project social share image (cover cropped to the OG ratio, absolute URL).
+const ogImage = cover
+  ? new URL((await getImage({ src: cover, width: 1200, height: 630, fit: 'cover', format: 'jpeg' })).src, Astro.site).href
+  : '/og-image.png';
 
 // Gallery items with high-res sources + captions (cover joins the same viewer group).
 const galleryItems = await Promise.all(
@@ -41,7 +45,7 @@ const galleryItems = await Promise.all(
     })),
 );
 ---
-<BaseLayout title={`${data.title} — ${data.siteType}`} description={data.summary} ogType="article">
+<BaseLayout title={`${data.title} — ${data.siteType}`} description={data.summary} image={ogImage} ogType="article">
   <article class="detail">
     <div class="u-container">
       <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Projects', href: 'projects/' }, { label: data.title }]} />

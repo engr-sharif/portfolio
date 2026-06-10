@@ -1,6 +1,6 @@
 ---
 import { render } from 'astro:content';
-import { Image } from 'astro:assets';
+import { Image, getImage } from 'astro:assets';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import BlogCard from '../../components/BlogCard.astro';
 import TableOfContents from '../../components/blog/TableOfContents.astro';
@@ -20,7 +20,11 @@ const { Content, headings, remarkPluginFrontmatter } = await render(post);
 const cover = getBlogImage(data.coverImage);
 const related = await getRelated(post);
 const minutesRead = remarkPluginFrontmatter.minutesRead as string | undefined;
-const ogImage = '/og-image.png';
+// Per-post social share image: the cover, cropped to the OG ratio (absolute
+// URL); falls back to the site default.
+const ogImage = cover
+  ? new URL((await getImage({ src: cover, width: 1200, height: 630, fit: 'cover', format: 'jpeg' })).src, Astro.site).href
+  : '/og-image.png';
 
 // JSON-LD Article structured data (absolute, base-aware URLs).
 const url = new URL(withBase(`blog/${post.id}/`), Astro.site).href;
@@ -32,7 +36,7 @@ const jsonLd = {
   datePublished: data.pubDate.toISOString(),
   dateModified: (data.updatedDate ?? data.pubDate).toISOString(),
   author: { '@type': 'Person', name: site.name, url: Astro.site?.href },
-  image: new URL(withBase(ogImage), Astro.site).href,
+  image: /^https?:\/\//.test(ogImage) ? ogImage : new URL(withBase(ogImage), Astro.site).href,
   mainEntityOfPage: url,
   keywords: data.tags.join(', '),
 };
