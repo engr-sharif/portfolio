@@ -1,0 +1,17 @@
+# Cloudflare Worker config for the custom Studio admin API.
+#
+# Deploy:  cd studio-worker && npx wrangler deploy
+#
+# Secrets (NEVER commit — set via CLI):
+#   npx wrangler secret put STUDIO_PASSWORD     # the admin password you log in with
+#   npx wrangler secret put STUDIO_JWT_SECRET   # any long random string
+#   npx wrangler secret put GITHUB_TOKEN        # fine-grained PAT, contents R/W on the repo
+
+name = "engr-sharif-studio"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+[vars]
+GITHUB_REPO = "engr-sharif/portfolio"
+GITHUB_BRANCH = "main"
+ALLOWED_ORIGIN = "https://engr-sharif.github.io"

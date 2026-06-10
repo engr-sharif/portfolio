@@ -29,7 +29,10 @@ export default defineConfig({
       },
     }),
     react(),
-    sitemap(),
+    sitemap({
+      // Keep the private admin out of the public sitemap.
+      filter: (page) => !page.includes('/studio'),
+    }),
     pagefind(),
   ],
   markdown: {
