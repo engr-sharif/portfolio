@@ -7,6 +7,7 @@ import '@fontsource-variable/jetbrains-mono';
 import { ClientRouter } from 'astro:transitions';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+import CommandPalette from '../components/CommandPalette.tsx';
 import { withBase } from '../lib/path';
 import { site } from '../lib/site';
 
@@ -106,6 +107,19 @@ const goatcounter = (site as { analytics?: string }).analytics?.trim();
       <slot />
     </main>
     {showChrome && <Footer />}
+    {showChrome && (
+      <CommandPalette
+        client:idle
+        base={import.meta.env.BASE_URL}
+        nav={[
+          { label: 'Projects', href: withBase('projects/'), hint: 'Environmental project dashboard' },
+          { label: 'Tools', href: withBase('tools/'), hint: 'Software I’ve built' },
+          { label: 'Writing', href: withBase('blog/'), hint: 'Field notes & technical posts' },
+          { label: 'About', href: withBase('about/'), hint: 'Bio, skills, credentials' },
+          { label: 'Contact', href: withBase('#contact'), hint: 'Get in touch' },
+        ]}
+      />
+    )}
 
     <script>
       // Boot global motion (Lenis + GSAP + cursor + reveals). The module

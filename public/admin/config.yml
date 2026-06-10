@@ -295,3 +295,22 @@ collections:
               - { name: title, label: Title, widget: string }
               - { name: org, label: "Organization", widget: string }
               - { name: detail, label: Detail, widget: text, required: false }
+      - name: testimonials
+        label: "Recommendations"
+        file: "src/content/settings/testimonials.json"
+        icon: format_quote
+        fields:
+          - { name: note, label: "Internal note", widget: text, required: false }
+          - name: items
+            label: "Recommendations"
+            label_singular: "Recommendation"
+            widget: list
+            required: false
+            summary: "{{fields.name}}"
+            collapsed: true
+            hint: "Add quotes from supervisors, PMs, or clients — with their permission."
+            fields:
+              - { name: quote, label: Quote, widget: text }
+              - { name: name, label: Name, widget: string }
+              - { name: title, label: "Title / role", widget: string, required: false }
+              - { name: org, label: "Organization", widget: string, required: false }
