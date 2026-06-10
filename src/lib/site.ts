@@ -12,6 +12,8 @@ export interface SiteSettings {
   credential: string;
   role: string;
   heroTitle?: string;
+  /** Headshot image (CMS-managed filename, resolved via lib/images). */
+  avatar?: string;
   bio: string;
   location: string;
   email: string;
@@ -19,6 +21,10 @@ export interface SiteSettings {
   github: string;
   resume: string;
   resumeUpdated: string;
+  /** Editable SEO / social-share overrides ("" = built-in default). */
+  seoTitle?: string;
+  seoDescription?: string;
+  ogImage?: string;
   /** GoatCounter subdomain for privacy-friendly analytics ("" = disabled). */
   analytics?: string;
   /** Web3Forms access key for the contact form ("" = mailto fallback). */

@@ -97,3 +97,10 @@ export function rawImageUrl(stored: string, fallbackDir = 'src/assets'): string 
   if (!path.startsWith('src/')) path = `${fallbackDir}/${path.split('/').pop()}`;
   return `https://raw.githubusercontent.com/engr-sharif/portfolio/main/${path}`;
 }
+
+/** Raw URL for a file at an exact repo path (no folder remapping) — used to
+ * preview public assets like /og/share.png (stored at public/og/share.png). */
+export function rawRepoUrl(repoPath: string): string {
+  const p = repoPath.replace(/^\//, '');
+  return `https://raw.githubusercontent.com/engr-sharif/portfolio/main/${p}`;
+}

@@ -4,7 +4,7 @@
  */
 export type FieldType =
   | 'text' | 'textarea' | 'markdown' | 'number' | 'boolean'
-  | 'select' | 'date' | 'list' | 'image' | 'tags' | 'object';
+  | 'select' | 'date' | 'list' | 'image' | 'tags' | 'object' | 'file';
 
 export interface Field {
   name: string;
@@ -16,7 +16,8 @@ export interface Field {
   default?: unknown;
   fields?: Field[];            // object / list-of-objects
   itemType?: FieldType;        // list of primitives (e.g. tags)
-  mediaDir?: string;           // image upload target
+  mediaDir?: string;           // image / file upload target
+  accept?: string;             // file field: input accept attribute (e.g. 'application/pdf')
 }
 
 export interface Collection {
@@ -132,13 +133,19 @@ export const collections: Collection[] = [
       { name: 'credential', label: 'Credential line', type: 'text' },
       { name: 'heroTitle', label: 'Hero headline (blank = name)', type: 'text' },
       { name: 'role', label: 'Subhead / role', type: 'text' },
+      { name: 'avatar', label: 'Headshot', type: 'image', mediaDir: 'src/assets/avatars', hint: 'A clean, well-lit photo. Shows on your About page. Optional.' },
       { name: 'bio', label: 'Bio', type: 'textarea' },
       { name: 'location', label: 'Location', type: 'text' },
       { name: 'email', label: 'Email', type: 'text' },
       { name: 'linkedin', label: 'LinkedIn URL', type: 'text' },
       { name: 'github', label: 'GitHub URL', type: 'text' },
-      { name: 'resume', label: 'Résumé path', type: 'text' },
+      { name: 'resume', label: 'Résumé (PDF)', type: 'file', mediaDir: 'public/resume', accept: 'application/pdf', hint: 'Upload a new PDF anytime — replaces the “Download PDF” link.' },
       { name: 'resumeUpdated', label: 'Résumé updated (YYYY-MM-DD)', type: 'text' },
+      // --- Search & social sharing ---
+      { name: 'seoTitle', label: 'SEO title (blank = default)', type: 'text', hint: 'Shows in the browser tab and search results.' },
+      { name: 'seoDescription', label: 'SEO description (blank = default)', type: 'textarea', hint: 'The blurb under your title in Google / when shared. ~155 chars.' },
+      { name: 'ogImage', label: 'Social share image', type: 'file', mediaDir: 'public/og', accept: 'image/*', hint: 'The preview image when your link is shared (LinkedIn, etc.). Ideally 1200×630.' },
+      // --- Integrations ---
       { name: 'analytics', label: 'GoatCounter code', type: 'text' },
       { name: 'contactFormKey', label: 'Contact form key (Web3Forms)', type: 'text' },
     ],

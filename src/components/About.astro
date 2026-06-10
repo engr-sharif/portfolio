@@ -1,16 +1,30 @@
 ---
+import { Image } from 'astro:assets';
 import Section from './Section.astro';
 import { site } from '../lib/site';
+import { getImage } from '../lib/images';
 import { withBase } from '../lib/path';
 
 const updated = new Date(site.resumeUpdated).toLocaleDateString('en-US', {
   month: 'long',
   year: 'numeric',
 });
+
+const avatar = getImage(site.avatar);
 ---
 <Section id="about" eyebrow="About">
   <div class="about">
     <div class="about__bio" data-reveal>
+      {avatar && (
+        <Image
+          src={avatar}
+          alt={site.name}
+          class="about__avatar"
+          width={132}
+          height={132}
+          loading="lazy"
+        />
+      )}
       <p class="about__lead">{site.bio}</p>
       <dl class="about__facts">
         <div><dt>Role</dt><dd>{site.credential}</dd></div>
@@ -40,6 +54,11 @@ const updated = new Date(site.resumeUpdated).toLocaleDateString('en-US', {
   .about { display: grid; gap: clamp(2rem, 5vw, 4rem); }
   @media (min-width: 860px) {
     .about { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); align-items: start; }
+  }
+  .about__avatar {
+    width: clamp(96px, 12vw, 132px); height: clamp(96px, 12vw, 132px);
+    border-radius: 50%; object-fit: cover; margin-bottom: 1.6rem;
+    border: 1px solid color-mix(in srgb, var(--color-paper) 16%, transparent);
   }
   .about__lead { font-size: var(--text-xl); line-height: 1.5; max-width: 34ch; font-family: var(--font-display); font-weight: 500; }
   .about__facts {
