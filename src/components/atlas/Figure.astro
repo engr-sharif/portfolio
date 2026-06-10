@@ -1,0 +1,25 @@
+---
+/**
+ * Field-atlas figure frame: presents any image like a report figure —
+ * corner registration marks + a mono caption (FIG. NN — caption).
+ * Pass an Astro <Image> (or any media) into the default slot.
+ */
+interface Props {
+  index?: number | string;
+  caption?: string;
+  class?: string;
+}
+const { index, caption, class: className = '' } = Astro.props;
+const label = index != null ? `FIG. ${String(index).padStart(2, '0')}` : '';
+---
+<figure class={`figure ${className}`}>
+  <span class="figure__corner figure__corner--bl" aria-hidden="true"></span>
+  <span class="figure__corner figure__corner--br" aria-hidden="true"></span>
+  <slot />
+  {caption && (
+    <figcaption class="figure__caption">
+      {label && <b>{label}</b>}
+      <span>{caption}</span>
+    </figcaption>
+  )}
+</figure>

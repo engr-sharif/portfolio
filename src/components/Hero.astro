@@ -1,7 +1,21 @@
 ---
 import { site } from '../lib/site';
 import { withBase } from '../lib/path';
+import { getProjects } from '../lib/projects';
+import { getTools } from '../lib/tools';
 import HeroScene from './three/HeroScene.tsx';
+
+// A rotating "instrument readout" of live facts under the name — turns the
+// subhead area into data, not a slogan. Derived from real content + settings.
+const projects = await getProjects();
+const tools = await getTools();
+const active = projects.filter((p) => p.data.status === 'active');
+const statusLines = [
+  active[0] ? `${active[0].data.title} — active` : null,
+  'EIT → PE anticipated 2027',
+  tools.length > 0 ? `${tools.length} field tools shipped` : null,
+  `${projects.length} projects documented`,
+].filter(Boolean) as string[];
 ---
 <section class="hero" aria-label="Introduction" data-hero>
   <!-- WebGL particle field — the full hero backdrop. Drifts on every device
@@ -15,6 +29,14 @@ import HeroScene from './three/HeroScene.tsx';
     <p class="hero__eyebrow" data-hero-fade>{site.credential} · {site.location.split(',')[0]}</p>
     <h1 class="hero__title" data-hero-title>{site.heroTitle || site.name}</h1>
     <p class="hero__sub" data-hero-fade>{site.role}</p>
+
+    {statusLines.length > 0 && (
+      <div class="hero__status u-mono" data-hero-fade data-status-rotator aria-live="off">
+        <span class="hero__status-key" aria-hidden="true">NOW</span>
+        <span class="hero__status-line" data-status-lines={JSON.stringify(statusLines)}>{statusLines[0]}</span>
+      </div>
+    )}
+
     <div class="hero__cta" data-hero-fade>
       <a href={withBase('#work')} class="btn" data-magnetic="0.4">View the work</a>
       <a href={withBase(site.resume)} class="btn btn--ghost" data-magnetic="0.4" download>Download résumé</a>
@@ -104,6 +126,27 @@ import HeroScene from './three/HeroScene.tsx';
     font-size: var(--text-lg);
     opacity: 0;
   }
+  .hero__status {
+    margin-top: 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-size: var(--text-sm);
+    opacity: 0;
+  }
+  .hero__status-key {
+    color: var(--color-hazard);
+    font-size: var(--text-xs);
+    letter-spacing: 0.16em;
+    border: 1px solid color-mix(in srgb, var(--color-hazard) 45%, transparent);
+    border-radius: 4px;
+    padding: 0.2em 0.55em;
+  }
+  .hero__status-line {
+    color: var(--color-paper-soft);
+    transition: opacity 0.4s var(--ease-out-expo), transform 0.4s var(--ease-out-expo);
+  }
+  .hero__status-line.is-swapping { opacity: 0; transform: translateY(-0.4em); }
   .hero__cta {
     margin-top: 2.6rem;
     display: flex;

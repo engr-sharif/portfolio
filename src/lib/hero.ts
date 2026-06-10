@@ -67,5 +67,38 @@ function revealHero() {
     guardedRun();
   }
 }
+// (single astro:page-load listener registered at the bottom)
 
-document.addEventListener('astro:page-load', revealHero);
+/**
+ * Hero status rotator: cycle the "NOW →" instrument readout through its lines.
+ * Pauses under reduced motion (shows the first line only).
+ */
+function startStatusRotator() {
+  const el = document.querySelector<HTMLElement>('[data-status-lines]');
+  if (!el || el.dataset.rotating) return;
+  el.dataset.rotating = '1';
+
+  let lines: string[] = [];
+  try {
+    lines = JSON.parse(el.dataset.statusLines || '[]');
+  } catch {
+    return;
+  }
+  if (lines.length < 2) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  let i = 0;
+  setInterval(() => {
+    el.classList.add('is-swapping');
+    setTimeout(() => {
+      i = (i + 1) % lines.length;
+      el.textContent = lines[i];
+      el.classList.remove('is-swapping');
+    }, 400);
+  }, 3600);
+}
+
+document.addEventListener('astro:page-load', () => {
+  revealHero();
+  startStatusRotator();
+});
