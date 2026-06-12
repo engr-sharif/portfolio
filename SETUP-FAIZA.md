@@ -4,7 +4,7 @@ This repo was cloned & re-tailored from a sibling portfolio. The **engine, theme
 and content** are already done. What remains is **per-account wiring** that can
 only happen now that this repo and Faiza's accounts exist. Work top to bottom.
 
-Assumed handle: **`faizashaheen`** → site at `https://faizashaheen.github.io/`.
+Assumed handle: **`faizashaheen209`** → site at `https://faizashaheen209.github.io/`.
 If the GitHub username differs, substitute it everywhere below.
 
 ---
@@ -21,11 +21,11 @@ All identity lives in **`src/content/settings/site.json`**. Verify these are Fai
 `name`, `shortName`, `credential` ("Structural Engineer · DWR"), `role`, `bio`,
 `location`, `email`, `linkedin`, `github`, plus the new keys
 `employer` ("California Department of Water Resources"), `domain`
-("faizashaheen.github.io"), `repoOwner` ("faizashaheen"), `repoName`
-("faizashaheen.github.io"), `workerUrl` (fill after step 3).
+("faizashaheen209.github.io"), `repoOwner` ("faizashaheen209"), `repoName`
+("faizashaheen209.github.io"), `workerUrl` (fill after step 3).
 
 ## 2. Confirm base path = "/" (user-pages site)
-- `astro.config.mjs` → `site: 'https://faizashaheen.github.io'`, `base: '/'`.
+- `astro.config.mjs` → `site: 'https://faizashaheen209.github.io'`, `base: '/'`.
   (Already set in the template — just confirm it matches her real username.)
 - Because base is `/`, all `withBase()` calls resolve to root — no `/portfolio/`
   prefix. If any literal `/portfolio/` survives a `grep -rn "/portfolio/" src/`,
@@ -35,16 +35,16 @@ All identity lives in **`src/content/settings/site.json`**. Verify these are Fai
 The Studio won't work until this exists. Full guide: `studio-worker/README.md`.
 ```bash
 cd studio-worker
-# Edit wrangler.toml: name = "faizashaheen-studio",
-#   GITHUB_REPO = "faizashaheen/faizashaheen.github.io",
-#   ALLOWED_ORIGIN = "https://faizashaheen.github.io"
+# Edit wrangler.toml: name = "faizashaheen209-studio",
+#   GITHUB_REPO = "faizashaheen209/faizashaheen209.github.io",
+#   ALLOWED_ORIGIN = "https://faizashaheen209.github.io"
 npx wrangler login
 npx wrangler deploy
 npx wrangler secret put STUDIO_PASSWORD     # her admin password
 npx wrangler secret put STUDIO_JWT_SECRET   # openssl rand -hex 32
 npx wrangler secret put GITHUB_TOKEN        # fine-grained PAT, Contents R/W on HER repo
 ```
-Copy the deployed Worker URL (e.g. `https://faizashaheen-studio.<her>.workers.dev`).
+Copy the deployed Worker URL (e.g. `https://faizashaheen209-studio.<her>.workers.dev`).
 (Optional AI assistant: Cloudflare Dashboard → AI → Workers AI → enable, then redeploy.)
 
 ## 4. Point the Studio at her Worker + repo
@@ -52,7 +52,7 @@ These are the hardcoded references that must become hers:
 - **`src/studio/api.ts`**
   - `getEndpoint()` default → her Worker URL from step 3.
   - `rawImageUrl()` / `rawRepoUrl()` / `lastDeployTime()` → replace the literal
-    `engr-sharif/portfolio` with `faizashaheen/faizashaheen.github.io`.
+    `engr-sharif/portfolio` with `faizashaheen209/faizashaheen209.github.io`.
 - **`src/studio/Studio.tsx`** — the sidebar "View site" link `href="/portfolio/"` → `/`.
 - **`src/studio/MarkdownEditor.tsx`** — the self-hosted video path `\`/portfolio/videos/…\``
   → `/videos/…`.
@@ -76,7 +76,7 @@ These are the hardcoded references that must become hers:
   or geotagged gallery photos.
 
 ## 7. Optional polish (later)
-- Custom domain (e.g. `faizashaheen.com`) → repo Settings → Pages → Custom domain
+- Custom domain (e.g. `faizashaheen209.com`) → repo Settings → Pages → Custom domain
   + a `CNAME` file; update `site` in `astro.config.mjs`.
 - Swap the (removed) environmental live-data widget for a **California reservoir /
   snowpack** panel (CDEC has a free API) — very on-brand for DWR. Not built yet.

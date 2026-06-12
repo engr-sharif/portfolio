@@ -12,8 +12,8 @@ Structural Division**. It was cloned and re-tailored from a sibling project
 - **Stack:** Astro (static) + React islands + GSAP/Lenis/three.js + MapLibre.
   100% static on GitHub Pages; the Studio's only backend is a small Cloudflare
   Worker (`studio-worker/`).
-- **Hosting:** user-pages repo `faizashaheen.github.io` → served at
-  `https://faizashaheen.github.io/` with **base path `/`** (NOT `/portfolio/`).
+- **Hosting:** user-pages repo `faizashaheen209.github.io` → served at
+  `https://faizashaheen209.github.io/` with **base path `/`** (NOT `/portfolio/`).
 - **Admin:** `/studio` — a custom React CMS that commits to this repo via the
   Worker. Editable content lives in `src/content/`.
 
