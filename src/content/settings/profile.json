@@ -4,53 +4,28 @@
       "label": "Engineer-in-Training (EIT)",
       "issuer": "California",
       "status": "Active",
-      "date": "2023"
+      "date": ""
     },
     {
       "label": "Professional Engineer (PE)",
-      "issuer": "California — Civil / Environmental",
+      "issuer": "California — Civil / Structural",
       "status": "In progress",
-      "date": "Anticipated 2027"
+      "date": ""
     }
   ],
-  "certifications": [
-    {
-      "label": "OSHA HAZWOPER 40-Hour",
-      "issuer": "29 CFR 1910.120",
-      "date": "2022",
-      "expires": ""
-    },
-    {
-      "label": "HAZWOPER 8-Hour Refresher",
-      "issuer": "Annual",
-      "date": "2026",
-      "expires": "2027"
-    }
-  ],
+  "certifications": [],
   "timeline": [
     {
-      "date": "2021",
-      "title": "B.S., Environmental Engineering",
+      "date": "",
+      "title": "B.S., Civil / Structural Engineering",
       "org": "University",
-      "detail": "Foundations in water resources, remediation, and environmental chemistry."
+      "detail": "Replace with your education."
     },
     {
-      "date": "2023",
-      "title": "Passed FE · Earned EIT",
-      "org": "California",
-      "detail": "Engineer-in-Training designation; began the path toward PE licensure."
-    },
-    {
-      "date": "2023 — Present",
-      "title": "Environmental Engineer (EIT)",
-      "org": "Jacobs · Sacramento",
-      "detail": "Site characterization, remediation, and construction quality assurance across California."
-    },
-    {
-      "date": "Anticipated 2027",
-      "title": "Professional Engineer (PE)",
-      "org": "California",
-      "detail": "On track for licensure after the required experience."
+      "date": "Present",
+      "title": "Structural Engineer",
+      "org": "California DWR · Structural Division",
+      "detail": "Analysis and design of water infrastructure."
     }
   ]
 }

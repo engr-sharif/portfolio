@@ -7,14 +7,14 @@ import pagefind from 'astro-pagefind';
 import tailwindcss from '@tailwindcss/vite';
 import { remarkReadingTime } from './src/lib/remark-reading-time.mjs';
 
-// DEPLOY TARGET: project site at https://engr-sharif.github.io/portfolio/
-// The repo is named `portfolio`, so Pages serves it under the /portfolio/
-// subpath — hence base: '/portfolio/'. All internal links go through the
+// DEPLOY TARGET: user site at https://faizashaheen.github.io/
+// The repo is named `faizashaheen.github.io` (a user-pages repo), so Pages
+// serves it at the domain root — hence base: '/'. All internal links go through the
 // withBase() helper (src/lib/path.ts) so they resolve correctly under the base.
 // --------------------------------------------------------------------------
 export default defineConfig({
-  site: 'https://engr-sharif.github.io',
-  base: '/portfolio/',
+  site: 'https://faizashaheen.github.io',
+  base: '/',
   output: 'static',
   // Match GitHub Pages directory serving + our withBase('/x/') links, and keep
   // canonical/sitemap URLs consistent (avoids duplicate-URL SEO signals).

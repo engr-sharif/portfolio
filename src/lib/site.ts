@@ -21,6 +21,13 @@ export interface SiteSettings {
   github: string;
   resume: string;
   resumeUpdated: string;
+  /** Employer / organization (used in structured data). */
+  employer?: string;
+  /** Deployment identity — keep in sync with astro.config + the Studio Worker. */
+  domain?: string;
+  repoOwner?: string;
+  repoName?: string;
+  workerUrl?: string;
   /** Editable SEO / social-share overrides ("" = built-in default). */
   seoTitle?: string;
   seoDescription?: string;

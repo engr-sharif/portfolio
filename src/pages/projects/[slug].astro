@@ -5,7 +5,6 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import TableOfContents from '../../components/blog/TableOfContents.astro';
 import StatusBadge from '../../components/atlas/StatusBadge.astro';
 import Breadcrumb from '../../components/atlas/Breadcrumb.astro';
-import LiveRegulatoryStatus from '../../components/LiveRegulatoryStatus.tsx';
 import { getCover, getGalleryImage } from '../../lib/images';
 import { getCaption } from '../../lib/captions';
 import { withBase } from '../../lib/path';
@@ -62,11 +61,6 @@ const galleryItems = await Promise.all(
         <ul class="card__tags" style="margin-top:1.4rem;display:flex;flex-wrap:wrap;gap:0.4rem;list-style:none;padding:0;">
           {data.techniques.map((t) => <li class="chip">{t}</li>)}
         </ul>
-        {data.envirostorQuery && (
-          <div style="margin-top:1.8rem;max-width:42rem;">
-            <LiveRegulatoryStatus query={data.envirostorQuery} client:visible />
-          </div>
-        )}
       </header>
     </div>
 

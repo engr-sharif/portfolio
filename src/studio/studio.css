@@ -8,7 +8,7 @@
 :root {
   --ink-0: #0b0d0c; --ink-1: #121613; --ink-2: #1a201c; --line: #262b27;
   --paper: #f4f3ee; --paper-soft: #d6d8d1; --muted: #8a918a;
-  --field: #2f6f4e; --field-bright: #57c08a; --hazard: #e0a93b; --danger: #e2685f;
+  --field: #2f5d8f; --field-bright: #6aa8e0; --hazard: #e0a93b; --danger: #e2685f;
   --sans: 'Inter Variable', system-ui, sans-serif;
   --display: 'Space Grotesk Variable', sans-serif;
   --mono: 'JetBrains Mono Variable', ui-monospace, monospace;

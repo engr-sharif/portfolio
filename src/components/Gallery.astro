@@ -16,7 +16,9 @@ import galleryData from '../content/settings/gallery.json';
  * Video: GitHub is a poor video host (100 MB/file limit, no CDN). Videos are
  * external embeds (YouTube/Vimeo) configured in media.json.
  */
-const curated = (galleryData.photos ?? [])
+// JSON arrays may be empty (fresh template) → annotate so TS doesn't infer never[].
+type Photo = { image: string; alt?: string; caption?: string };
+const curated = ((galleryData.photos ?? []) as Photo[])
   .map((p) => ({ img: getGalleryImage(p.image), alt: p.alt || 'Field photo', caption: p.caption || getCaption(p.image) }))
   .filter((p) => p.img);
 
@@ -33,7 +35,8 @@ const images = await Promise.all(
   })),
 );
 
-const videos = (media.videos ?? []).filter((v) => v.id || v.url);
+type Video = { provider: string; id: string; url: string; title?: string; poster?: string };
+const videos = ((media.videos ?? []) as Video[]).filter((v) => v.id || v.url);
 
 function videoHref(v: { provider: string; id: string; url: string }) {
   if (v.url) return v.url;
@@ -75,7 +78,7 @@ function videoHref(v: { provider: string; id: string; url: string }) {
         const poster = v.poster ? getGalleryImage(v.poster) : undefined;
         return (
           <a class="gallery-video__card" href={videoHref(v)} target="_blank" rel="noopener" aria-label={`Watch: ${v.title}`}>
-            {poster && <Image src={poster} alt={v.title} widths={[400, 800]} sizes="20rem" loading="lazy" />}
+            {poster && <Image src={poster} alt={v.title ?? ''} widths={[400, 800]} sizes="20rem" loading="lazy" />}
             <span class="gallery-video__play">
               <span aria-hidden="true">▶</span>
               {v.title}

@@ -6,25 +6,26 @@
    accent that quietly nods to environmental work without being literal.
    ========================================================================== */
 @theme {
+  /* ===== BLUEPRINT theme (structural) — slate base, steel-blue accent ===== */
   /* ---- Surface elevation system (ink-0 deepest → ink-2 raised) ---- */
-  --color-ink: #0b0d0c;          /* page base, deepest */
-  --color-ink-0: #0b0d0c;
-  --color-ink-1: #121613;        /* raised surface (cards) */
-  --color-ink-2: #1a201c;        /* higher surface (hover/insets) */
-  --color-ink-soft: #121613;     /* legacy alias → ink-1 */
-  --color-line: #262b27;         /* hairlines / frames */
+  --color-ink: #0a0d11;          /* page base, deepest (slate-blue tint) */
+  --color-ink-0: #0a0d11;
+  --color-ink-1: #11151b;        /* raised surface (cards) */
+  --color-ink-2: #19202a;        /* higher surface (hover/insets) */
+  --color-ink-soft: #11151b;     /* legacy alias → ink-1 */
+  --color-line: #283038;         /* hairlines / frames (drafting line) */
 
   /* ---- Paper (foreground) ---- */
-  --color-paper: #f4f3ee;        /* warm off-white */
-  --color-paper-soft: #d6d8d1;   /* secondary text (raised for AA) */
-  --color-muted: #8a918a;        /* tertiary text (raised from #6b716c for AA) */
+  --color-paper: #eef1f5;        /* cool off-white */
+  --color-paper-soft: #ccd3dc;   /* secondary text */
+  --color-muted: #889099;        /* tertiary text (AA on ink) */
 
-  /* ---- Accent: field green ---- */
-  --color-field: #2f6f4e;
-  --color-field-bright: #57c08a; /* brightened for contrast on ink */
-  --color-field-dim: #1d4632;
+  /* ---- Accent: blueprint steel blue (var names kept from the sibling theme) ---- */
+  --color-field: #2f5d8f;
+  --color-field-bright: #6aa8e0; /* brightened for contrast on ink */
+  --color-field-dim: #1b3552;
 
-  /* ---- Signal: hazard amber, reserved for "active" status only ---- */
+  /* ---- Signal: amber, reserved for "active" status only ---- */
   --color-hazard: #e0a93b;
   --color-hazard-dim: #6b5320;
 
@@ -1078,30 +1079,3 @@ html.js [data-reveal-stagger] > * {
   h1, h2, h3 { break-after: avoid; }
   img { max-width: 100% !important; }
 }
-
-/* ==========================================================================
-   LIVE REGULATORY STATUS (EnviroStor / DTSC)
-   ========================================================================== */
-.livereg {
-  border: 1px solid var(--color-line);
-  border-radius: 6px;
-  background: var(--color-ink-1);
-  padding: 1.2rem 1.4rem;
-  position: relative;
-  overflow: hidden;
-}
-.livereg::before {
-  content: '';
-  position: absolute; inset: 0 auto 0 0; width: 2px;
-  background: var(--color-field-bright);
-}
-.livereg__head { display: flex; align-items: center; gap: 0.6em; margin-bottom: 0.9rem; }
-.livereg__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-field-bright); box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-field-bright) 60%, transparent); animation: livereg-pulse 2.2s var(--ease-in-out-quart) infinite; }
-@keyframes livereg-pulse { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-field-bright) 55%, transparent); } 50% { box-shadow: 0 0 0 5px transparent; } }
-.livereg__src { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.08em; color: var(--color-field-bright); text-transform: uppercase; }
-.livereg__loading { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--color-muted); margin: 0; }
-.livereg__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: 0.9rem 1.4rem; margin: 0; }
-.livereg__grid dt { font-family: var(--font-mono); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.1em; color: var(--color-muted); }
-.livereg__grid dd { margin: 0.2rem 0 0; font-size: var(--text-sm); color: var(--color-paper); }
-.livereg.is-loaded { animation: livereg-in 0.5s var(--ease-out-expo); }
-@keyframes livereg-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }

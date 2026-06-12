@@ -63,7 +63,6 @@ export const collections: Collection[] = [
       { name: 'coverAlt', label: 'Cover alt text', type: 'text' },
       { name: 'gallery', label: 'Gallery images', type: 'tags', itemType: 'image', mediaDir: 'src/assets/covers' },
       { name: 'externalLink', label: 'External link', type: 'text' },
-      { name: 'envirostorQuery', label: 'Live status — EnviroStor site name', type: 'text', hint: 'e.g. "Sulphur Bank Mercury Mine" → live regulatory badge. Blank for none.' },
       { name: 'location', label: 'Map location label', type: 'text', hint: 'e.g. "Bakersfield, CA". Shown on the “Where I’ve worked” map.' },
       { name: 'lat', label: 'Latitude', type: 'number', hint: 'Approximate, city-level. Leave 0 to keep this project off the map.' },
       { name: 'lng', label: 'Longitude', type: 'number' },

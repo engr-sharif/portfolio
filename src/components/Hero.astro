@@ -12,7 +12,7 @@ const tools = await getTools();
 const active = projects.filter((p) => p.data.status === 'active');
 const statusLines = [
   active[0] ? `${active[0].data.title} — active` : null,
-  'EIT → PE anticipated 2027',
+  'PE track',
   tools.length > 0 ? `${tools.length} field tools shipped` : null,
   `${projects.length} projects documented`,
 ].filter(Boolean) as string[];

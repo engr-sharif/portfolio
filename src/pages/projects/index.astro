@@ -13,15 +13,15 @@ const statusCounts = projects.reduce<Record<string, number>>((acc, p) => {
 }, {});
 ---
 <BaseLayout
-  title="Projects — Nawaz Sharif"
-  description="Environmental projects: site characterization, remediation, PFAS, landfill CQA, and groundwater/landfill-gas monitoring across California."
+  title="Projects — Faiza Shaheen"
+  description="Structural engineering projects across California water infrastructure — analysis, design, and evaluation of dams, levees, and pumping plants."
 >
   <main class="u-container">
     <PageHeader
       eyebrow="Project dashboard"
-      title="Environmental projects"
+      title="Projects"
       count={`${projects.length} documented`}
-      intro="A live record of characterization, remediation, and quality-assurance work. Filter by status or technique. All entries use public, high-level descriptions."
+      intro="A record of structural analysis, design, and evaluation work. Filter by status or technique. All entries use public, high-level descriptions."
       crumbs={[{ label: 'Home', href: '/' }, { label: 'Projects' }]}
     />
 

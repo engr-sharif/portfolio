@@ -49,17 +49,13 @@ const projects = defineCollection({
     externalLink: z.string().url().optional(),
     featured: z.boolean().default(false),
     order: z.number().default(0),
-    // Live regulatory data: a site name to look up in California's EnviroStor
-    // (DTSC) public dataset, rendering an official status badge fetched live in
-    // the browser. e.g. "Sulphur Bank Mercury Mine". Empty = no live badge.
-    envirostorQuery: z.string().optional(),
     // Approximate, publicly-shareable location for the "Where I've worked" map.
     // Coordinates are city/area-level (snapped further at render for privacy);
     // leave blank to keep a project off the map. `location` is a display label.
     location: z.string().optional(),
     lat: z.number().optional(),
     lng: z.number().optional(),
-    // Confidentiality gate: a project only renders publicly when Nawaz has
+    // Confidentiality gate: a project only renders publicly when the owner has
     // confirmed every site/client detail is cleared for public sharing.
     published: z.boolean().default(false),
   }),
