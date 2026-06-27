@@ -21,8 +21,12 @@ const statusLines = [
   <!-- WebGL particle field — the full hero backdrop. Drifts on every device
        (density scales down on phones), freezes to a still pattern under
        reduced motion. -->
+  <!-- The .hero CSS gradient below is the instant static "poster" (zero bytes,
+       paints immediately). The heavy WebGL field is deferred to browser idle
+       (requestIdleCallback) so it never competes with first paint / LCP, then
+       eases in over the poster. Reduced-motion still freezes it to a still frame. -->
   <div class="hero__canvas-wrap" data-hero-parallax="bg">
-    <HeroScene client:visible />
+    <HeroScene client:idle />
   </div>
 
   <div class="hero__inner u-container" data-hero-parallax="content">
@@ -80,6 +84,12 @@ const statusLines = [
     width: 100% !important;
     height: 100% !important;
   }
+  /* The WebGL field hydrates at idle (after first paint); ease it in over the
+     static gradient poster so it doesn't pop. Scoped styles don't reach the
+     React-rendered node, so target it globally. */
+  :global(.hero-canvas) { animation: hero-canvas-in 1.5s var(--ease-out-expo, ease) both; }
+  @keyframes hero-canvas-in { from { opacity: 0; } to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { :global(.hero-canvas) { animation: none; } }
   /* The content column owns the vertical centering and full width — no flex on
      .hero (which let the title shrink into a narrow column on mobile). */
   .hero__inner {
