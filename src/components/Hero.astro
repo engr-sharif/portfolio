@@ -38,9 +38,13 @@ const statusLines = [
     )}
 
     <div class="hero__cta" data-hero-fade>
-      <a href={withBase('#work')} class="btn" data-magnetic="0.4">View the work</a>
-      <a href={withBase(site.resume)} class="btn btn--ghost" data-magnetic="0.4" download>Download résumé</a>
+      <a href={withBase(site.resume)} class="btn" data-magnetic="0.4" download>Download résumé</a>
+      <a href={withBase('#work')} class="btn btn--ghost" data-magnetic="0.4">View the work</a>
     </div>
+
+    <p class="hero__avail u-mono" data-hero-fade>
+      <span class="hero__avail-dot" aria-hidden="true"></span>Open to remediation roles across California
+    </p>
   </div>
 
   <div class="hero__scroll" data-hero-fade aria-hidden="true">
@@ -154,6 +158,26 @@ const statusLines = [
     gap: 1rem;
     opacity: 0;
   }
+  .hero__avail {
+    margin-top: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: var(--color-field-bright);
+    font-size: var(--text-sm);
+    opacity: 0;
+  }
+  .hero__avail-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: currentColor; flex: none;
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-field-bright) 60%, transparent);
+    animation: avail-pulse 2.4s var(--ease-in-out-quart, ease-in-out) infinite;
+  }
+  @keyframes avail-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-field-bright) 55%, transparent); }
+    50% { box-shadow: 0 0 0 5px transparent; }
+  }
+  @media (prefers-reduced-motion: reduce) { .hero__avail-dot { animation: none; } }
   .hero__scroll {
     position: absolute;
     bottom: 2rem;

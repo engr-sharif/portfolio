@@ -25,7 +25,7 @@ const stats = [
     <ul class="stats" data-reveal-stagger>
       {stats.map((s) => (
         <li class="stat">
-          <span class="stat__value" data-count={s.value} data-suffix={s.suffix}>0{s.suffix}</span>
+          <span class="stat__value" data-count={s.value} data-suffix={s.suffix}>{s.value}{s.suffix}</span>
           <span class="stat__label">{s.label}</span>
         </li>
       ))}

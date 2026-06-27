@@ -23,8 +23,8 @@ export interface Props {
 // fall back to the baked-in copy when those fields are left blank. Per-page
 // props still override everything.
 const {
-  title = site.seoTitle?.trim() || 'Mohammad “Nawaz” Sharif — Environmental Engineer, EIT',
-  description = site.seoDescription?.trim() || 'Environmental Engineer (EIT) at Jacobs — environmental characterization & remediation. Project dashboard, field work, and resume.',
+  title = site.seoTitle?.trim() || `${site.name} — ${site.credential}`,
+  description = site.seoDescription?.trim() || site.bio,
   image = site.ogImage?.trim() || '/og-image.png',
   showChrome = true,
   ogType = 'website',
@@ -41,9 +41,11 @@ const personLd = {
   '@context': 'https://schema.org',
   '@type': 'Person',
   name: site.name,
-  jobTitle: 'Environmental Engineer, EIT',
+  jobTitle: site.credential,
+  description: site.bio,
+  image: ogImage,
   worksFor: { '@type': 'Organization', name: 'Jacobs' },
-  address: { '@type': 'PostalAddress', addressLocality: site.location },
+  address: { '@type': 'PostalAddress', addressLocality: site.location, addressRegion: 'CA', addressCountry: 'US' },
   url: Astro.site?.href,
   email: `mailto:${site.email}`,
   sameAs: [site.linkedin, site.github].filter(Boolean),
@@ -88,12 +90,16 @@ const goatcounter = (site as { analytics?: string }).analytics?.trim();
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={`${site.name} — ${site.role}`} />
 
     <!-- Twitter card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImage} />
+    <meta name="twitter:image:alt" content={`${site.name} — ${site.role}`} />
 
     <script type="application/ld+json" set:html={JSON.stringify(personLd)} is:inline />
 
@@ -110,7 +116,7 @@ const goatcounter = (site as { analytics?: string }).analytics?.trim();
   <body>
     {showChrome && (
       <div id="intro" aria-hidden="true">
-        <div class="intro__mask"><span class="intro__label">Nawaz Sharif</span></div>
+        <div class="intro__mask"><span class="intro__label">{site.name}</span></div>
         <div class="intro__bar"></div>
       </div>
     )}
