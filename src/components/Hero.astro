@@ -21,8 +21,12 @@ const statusLines = [
   <!-- WebGL particle field — the full hero backdrop. Drifts on every device
        (density scales down on phones), freezes to a still pattern under
        reduced motion. -->
+  <!-- The .hero CSS gradient below is the instant static "poster" (zero bytes,
+       paints immediately). The heavy WebGL field is deferred to browser idle
+       (requestIdleCallback) so it never competes with first paint / LCP, then
+       eases in over the poster. Reduced-motion still freezes it to a still frame. -->
   <div class="hero__canvas-wrap" data-hero-parallax="bg">
-    <HeroScene client:visible />
+    <HeroScene client:idle />
   </div>
 
   <div class="hero__inner u-container" data-hero-parallax="content">
@@ -38,9 +42,13 @@ const statusLines = [
     )}
 
     <div class="hero__cta" data-hero-fade>
-      <a href={withBase('#work')} class="btn" data-magnetic="0.4">View the work</a>
-      <a href={withBase(site.resume)} class="btn btn--ghost" data-magnetic="0.4" download>Download résumé</a>
+      <a href={withBase(site.resume)} class="btn" data-magnetic="0.4" download>Download résumé</a>
+      <a href={withBase('#work')} class="btn btn--ghost" data-magnetic="0.4">View the work</a>
     </div>
+
+    <p class="hero__avail u-mono" data-hero-fade>
+      <span class="hero__avail-dot" aria-hidden="true"></span>Open to remediation roles across California
+    </p>
   </div>
 
   <div class="hero__scroll" data-hero-fade aria-hidden="true">
@@ -76,6 +84,12 @@ const statusLines = [
     width: 100% !important;
     height: 100% !important;
   }
+  /* The WebGL field hydrates at idle (after first paint); ease it in over the
+     static gradient poster so it doesn't pop. Scoped styles don't reach the
+     React-rendered node, so target it globally. */
+  :global(.hero-canvas) { animation: hero-canvas-in 1.5s var(--ease-out-expo, ease) both; }
+  @keyframes hero-canvas-in { from { opacity: 0; } to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { :global(.hero-canvas) { animation: none; } }
   /* The content column owns the vertical centering and full width — no flex on
      .hero (which let the title shrink into a narrow column on mobile). */
   .hero__inner {
@@ -154,6 +168,26 @@ const statusLines = [
     gap: 1rem;
     opacity: 0;
   }
+  .hero__avail {
+    margin-top: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: var(--color-field-bright);
+    font-size: var(--text-sm);
+    opacity: 0;
+  }
+  .hero__avail-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: currentColor; flex: none;
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-field-bright) 60%, transparent);
+    animation: avail-pulse 2.4s var(--ease-in-out-quart, ease-in-out) infinite;
+  }
+  @keyframes avail-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-field-bright) 55%, transparent); }
+    50% { box-shadow: 0 0 0 5px transparent; }
+  }
+  @media (prefers-reduced-motion: reduce) { .hero__avail-dot { animation: none; } }
   .hero__scroll {
     position: absolute;
     bottom: 2rem;
