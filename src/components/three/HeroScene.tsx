@@ -81,7 +81,7 @@ const Terrain: FC<{ reduced: boolean; cols: number; rows: number }> = ({ reduced
     () => ({
       uTime: { value: 0 },
       uReduced: { value: reduced ? 1 : 0 },
-      uColorLow: { value: new THREE.Color('#2f6f4e') },
+      uColorLow: { value: new THREE.Color('#3f8f66') },
       uColorHigh: { value: new THREE.Color('#7fe3ad') },
       uPointer: { value: new THREE.Vector2(999, 999) },
       uRipple: { value: 0 },
