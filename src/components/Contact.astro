@@ -6,6 +6,11 @@ import { site } from '../lib/site';
 // degrades to a plain mailto: so the page is never broken.
 const formKey = (site.contactFormKey ?? '').trim();
 const hasForm = formKey.length > 0;
+
+// Optional Cloudflare Turnstile (privacy-friendly captcha). When a site key is
+// set, Web3Forms verifies the token server-side. Empty = honeypot-only.
+const turnstileKey = (site.turnstileSiteKey ?? '').trim();
+const hasTurnstile = turnstileKey.length > 0;
 ---
 <Section id="contact" eyebrow="Get in touch" title="Let's talk">
   <div class="contact">
@@ -52,6 +57,10 @@ const hasForm = formKey.length > 0;
         <textarea name="message" rows="5" required placeholder="How can I help?"></textarea>
       </label>
 
+      {hasTurnstile && (
+        <div class="cf-turnstile" data-sitekey={turnstileKey} data-theme="dark"></div>
+      )}
+
       <div class="contact__actions">
         <button type="submit" class="btn" data-magnetic="0.3" data-contact-submit>Send message</button>
         <a href={`mailto:${site.email}`} class="contact__or link-underline">or email me directly</a>
@@ -62,7 +71,11 @@ const hasForm = formKey.length > 0;
   </div>
 </Section>
 
-<script is:inline define:vars={{ hasForm, email: site.email }}>
+{hasTurnstile && (
+  <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+)}
+
+<script is:inline define:vars={{ hasForm, hasTurnstile, email: site.email }}>
   // Progressive enhancement: AJAX submit to Web3Forms with inline status.
   // If no access key is configured, redirect to a prefilled mailto instead.
   document.addEventListener('astro:page-load', () => {
@@ -90,6 +103,12 @@ const hasForm = formKey.length > 0;
         statusEl.classList.toggle('is-err', ok === false);
       };
 
+      // Require the Turnstile token before sending (Web3Forms verifies it).
+      if (hasTurnstile && !data.get('cf-turnstile-response')) {
+        setStatus('Please complete the spam check above and try again.', false);
+        return;
+      }
+
       btn.disabled = true;
       const original = btn.textContent;
       btn.textContent = 'Sending…';
@@ -104,6 +123,7 @@ const hasForm = formKey.length > 0;
         const json = await res.json();
         if (res.ok && json.success) {
           form.reset();
+          if (hasTurnstile && window.turnstile) window.turnstile.reset();
           setStatus("Thanks — your message is on its way. I'll be in touch soon.", true);
         } else {
           setStatus(json.message || 'Something went wrong. Please email me directly.', false);
