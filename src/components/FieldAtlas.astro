@@ -1,48 +1,74 @@
 ---
 /**
- * Field Atlas — the homepage's navigational centrepiece. Every published
- * project site on a California map, with a synced list beside it: hover a row
- * and its pin lights up; hover a pin and the row does. The map is the index of
- * the work, not a decoration.
+ * Field Atlas — the index of the work. The list sits on the left; the right
+ * half of the viewport is deliberately empty so the Living Atlas (the WebGL
+ * California behind the page) reads as the map: as this section scrolls in,
+ * the camera swings to a plan view with the state on the right, and hovering a
+ * row lights its node on the terrain.
  */
 import Section from './Section.astro';
-import WorkMapIsland from './WorkMapIsland.tsx';
 import { getAtlasPoints } from '../lib/atlas';
 import { getProjects } from '../lib/projects';
 import { withBase } from '../lib/path';
 
-const { projects, photos } = await getAtlasPoints();
+const { projects } = await getAtlasPoints();
 const total = (await getProjects()).length;
-const base = import.meta.env.BASE_URL;
+const pad = (n: number) => String(n).padStart(2, '0');
 ---
 {projects.length > 0 && (
   <Section id="atlas" eyebrow="Field Atlas" title="Where the work is">
-    <p class="atlas__intro">
-      {projects.length} of {total} documented sites carry a public location — site characterization,
-      remediation and compliance monitoring across California. Pins are approximate by design.
-    </p>
-    <WorkMapIsland client:visible variant="atlas" projects={projects} photos={photos} base={base} />
-    <p class="atlas__more">
-      <a href={withBase('projects/')} class="btn btn--ghost" data-magnetic="0.3">All {total} projects →</a>
-    </p>
+    <div class="atlas">
+      <div class="atlas__col">
+        <p class="atlas__intro">
+          {projects.length} of {total} documented sites carry a public location. Hover a site to find it
+          on the terrain — positions are approximate by design.
+        </p>
+        <ol class="atlas__list" aria-label="Project sites">
+          {projects.map((p, i) => (
+            <li class="atlas__row" data-atlas-slug={p.slug}>
+              <a href={withBase(`projects/${p.slug}/`)} class="atlas__link">
+                <span class="atlas__index u-mono">{pad(i + 1)}</span>
+                <span class="atlas__main">
+                  <span class="atlas__title">{p.title}</span>
+                  <span class="atlas__meta u-mono">{p.location || 'California'}{p.siteType ? ` · ${p.siteType}` : ''}</span>
+                </span>
+                <span class="atlas__side">
+                  <span class={`status status--${p.status || 'complete'}`}>{p.status || 'complete'}</span>
+                  <span class="atlas__dates u-mono">{p.dates}</span>
+                </span>
+                <span class="atlas__arrow" aria-hidden="true">→</span>
+              </a>
+            </li>
+          ))}
+        </ol>
+        <p class="atlas__more">
+          <a href={withBase('projects/')} class="btn btn--ghost" data-magnetic="0.3">All {total} projects →</a>
+        </p>
+      </div>
+      <div class="atlas__stage" aria-hidden="true">
+        <div class="atlas__legend u-mono">
+          <span><i class="atlas__dot atlas__dot--active"></i> active</span>
+          <span><i class="atlas__dot"></i> complete</span>
+          <span class="atlas__legend-note">real terrain · SRTM</span>
+        </div>
+      </div>
+    </div>
   </Section>
 )}
 
-<style is:global>
-  .atlas__intro { color: var(--color-muted); max-width: 56ch; margin: -2rem 0 2rem; font-size: var(--text-sm); }
-  .atlas__more { margin-top: 2rem; }
+<script>
+  import '../lib/atlas-list';
+</script>
 
-  .wm--atlas {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 1.5rem;
-    margin-top: 0;
-  }
+<style>
+  .atlas { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2rem; min-height: 70vh; }
   @media (min-width: 900px) {
-    .wm--atlas { grid-template-columns: minmax(20rem, 28rem) minmax(0, 1fr); align-items: start; gap: 2.5rem; }
-    .wm--atlas .wm__canvas { height: clamp(420px, 60vh, 640px); }
+    .atlas { grid-template-columns: minmax(20rem, 30rem) minmax(0, 1fr); gap: 3rem; align-items: start; }
+    .atlas__col { position: sticky; top: 6rem; }
+    .atlas__stage { min-height: 76vh; }
   }
-
+  .atlas__intro { color: var(--color-muted); max-width: 40ch; margin: -1.5rem 0 1.6rem; font-size: var(--text-sm); }
+  .atlas__more { margin-top: 1.6rem; }
   .atlas__list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--color-line); }
   .atlas__row { border-bottom: 1px solid var(--color-line); }
   .atlas__link {
@@ -51,11 +77,13 @@ const base = import.meta.env.BASE_URL;
     align-items: center;
     gap: 0.9rem;
     padding: 0.95rem 0.5rem 0.95rem 0;
+    border-radius: 8px;
     transition: background-color var(--dur-fast) var(--ease-out-expo), padding-left var(--dur-fast) var(--ease-out-expo);
   }
-  .atlas__row.is-active .atlas__link,
-  .atlas__link:hover,
-  .atlas__link:focus-visible { background: color-mix(in srgb, var(--color-field-bright) 8%, transparent); padding-left: 0.5rem; }
+  .atlas__link:hover, .atlas__link:focus-visible {
+    background: color-mix(in srgb, var(--color-field-bright) 9%, transparent);
+    padding-left: 0.6rem;
+  }
   .atlas__index { color: var(--color-field-bright); font-size: var(--text-xs); }
   .atlas__main { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
   .atlas__title { font-family: var(--font-display); font-weight: 600; font-size: var(--text-base); line-height: 1.2; }
@@ -63,17 +91,20 @@ const base = import.meta.env.BASE_URL;
   .atlas__side { display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem; }
   .atlas__dates { color: var(--color-muted); font-size: var(--text-xs); white-space: nowrap; }
   .atlas__arrow { color: var(--color-muted); transition: transform var(--dur-fast) var(--ease-out-expo), color var(--dur-fast) var(--ease-out-expo); }
-  .atlas__row.is-active .atlas__arrow, .atlas__link:hover .atlas__arrow { transform: translateX(4px); color: var(--color-field-bright); }
+  .atlas__link:hover .atlas__arrow { transform: translateX(4px); color: var(--color-field-bright); }
   @media (max-width: 560px) {
     .atlas__link { grid-template-columns: 2rem minmax(0, 1fr) 1.2rem; }
     .atlas__side { display: none; }
   }
-
-  /* active pin: grows and gains a halo */
-  .wm-pin--project { transition: transform var(--dur-fast) var(--ease-out-expo), box-shadow var(--dur-fast) var(--ease-out-expo); }
-  .wm-pin--project.is-active {
-    transform: scale(1.35);
-    box-shadow: 0 0 0 6px color-mix(in srgb, var(--pin, var(--color-field-bright)) 35%, transparent), 0 2px 10px rgba(0,0,0,.5);
-    z-index: 5;
+  /* the empty stage: only a legend, pinned to its bottom edge */
+  .atlas__stage { position: relative; display: none; }
+  @media (min-width: 900px) { .atlas__stage { display: block; } }
+  .atlas__legend {
+    position: absolute; right: 0; bottom: 0;
+    display: flex; gap: 1.2rem; align-items: center;
+    font-size: var(--text-xs); letter-spacing: 0.08em; color: var(--color-muted);
   }
+  .atlas__dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--color-field-bright); margin-right: 0.4rem; vertical-align: middle; }
+  .atlas__dot--active { background: var(--color-hazard); }
+  .atlas__legend-note { color: var(--color-muted); opacity: 0.7; }
 </style>

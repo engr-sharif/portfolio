@@ -5,14 +5,18 @@ import { getProjects } from '../lib/projects';
 import { getTools } from '../lib/tools';
 import { profile } from '../lib/profile';
 import { resumeReady } from '../lib/resume';
-import HeroScene from './three/HeroScene.tsx';
+import meta from '../data/ca-terrain.json';
 
-// A rotating "instrument readout" of live facts under the name — turns the
-// subhead area into data, not a slogan. Every line is derived from real
-// content + settings (nothing hardcoded), so it stays true as the site evolves.
+/**
+ * Arrival. The Living Atlas (a fixed WebGL California, mounted in BaseLayout)
+ * IS the hero — this section is transparent and stays out of its way: the
+ * name and the readouts sit low-left, the state fills the rest of the frame,
+ * and an instrument HUD in the corner reports what the camera is looking at.
+ */
 const projects = await getProjects();
 const tools = await getTools();
 const active = projects.filter((p) => p.data.status === 'active');
+const located = projects.filter((p) => p.data.lat && p.data.lng);
 
 // Licensure line from profile.json: "<current credential> → <in-progress one>".
 const held = profile.credentials.find((c) => /active|held|licensed/i.test(c.status));
@@ -30,19 +34,10 @@ const statusLines = [
   tools.length > 0 ? `${tools.length} field tool${tools.length === 1 ? '' : 's'} shipped` : null,
   `${projects.length} project${projects.length === 1 ? '' : 's'} documented`,
 ].filter(Boolean) as string[];
+
+const pad = (n: number) => String(n).padStart(2, '0');
 ---
 <section class="hero" aria-label="Introduction" data-hero>
-  <!-- WebGL particle field — the full hero backdrop. Drifts on every device
-       (density scales down on phones), freezes to a still pattern under
-       reduced motion. -->
-  <!-- The .hero CSS gradient below is the instant static "poster" (zero bytes,
-       paints immediately). The heavy WebGL field is deferred to browser idle
-       (requestIdleCallback) so it never competes with first paint / LCP, then
-       eases in over the poster. Reduced-motion still freezes it to a still frame. -->
-  <div class="hero__canvas-wrap" data-hero-parallax="bg">
-    <HeroScene client:idle />
-  </div>
-
   <div class="hero__inner u-container" data-hero-parallax="content">
     <p class="hero__eyebrow" data-hero-fade>{site.credential} · {site.location.split(',')[0]}</p>
     <h1 class="hero__title" data-hero-title>{site.heroTitle || site.name}</h1>
@@ -59,11 +54,11 @@ const statusLines = [
       {resumeReady ? (
         <>
           <a href={withBase(site.resume)} class="btn" data-magnetic="0.4" download>Download résumé</a>
-          <a href={withBase('#work')} class="btn btn--ghost" data-magnetic="0.4">View the work</a>
+          <a href={withBase('#atlas')} class="btn btn--ghost" data-magnetic="0.4">Explore the atlas</a>
         </>
       ) : (
         <>
-          <a href={withBase('#work')} class="btn" data-magnetic="0.4">View the work</a>
+          <a href={withBase('#atlas')} class="btn" data-magnetic="0.4">Explore the atlas</a>
           <a href={withBase('#contact')} class="btn btn--ghost" data-magnetic="0.4">Request résumé</a>
         </>
       )}
@@ -74,57 +69,30 @@ const statusLines = [
     </p>
   </div>
 
-  <div class="hero__scroll" data-hero-fade aria-hidden="true">
-    <span>Scroll</span>
-    <span class="hero__scroll-line"></span>
-  </div>
+  <!-- Instrument HUD: what the camera is looking at, live. -->
+  <aside class="hud u-mono" data-hero-fade aria-label="Atlas readout">
+    <div class="hud__row"><span class="hud__k">TARGET</span><span class="hud__v"><span data-hud-lat>37.00° N</span> <span data-hud-lng>120.00° W</span></span></div>
+    <div class="hud__row"><span class="hud__k">SITES</span><span class="hud__v">{pad(located.length)} mapped · {pad(active.length)} active</span></div>
+    <div class="hud__row"><span class="hud__k">RELIEF</span><span class="hud__v">0 – {meta.metersMax.toLocaleString()} m · SRTM</span></div>
+    <div class="hud__row hud__row--scroll"><span class="hud__k">SCROLL</span><span class="hud__v"><span class="hud__bar" aria-hidden="true"></span></span></div>
+  </aside>
 </section>
 
 <style>
   .hero {
     position: relative;
     min-height: 100svh;
-    overflow: hidden;
-    /* Backdrop behind the particle canvas (and the visible field between
-       points): a dark-green wash, not pure black. */
-    background:
-      radial-gradient(130% 90% at 78% -10%, color-mix(in srgb, var(--color-field-dim) 80%, transparent), transparent 62%),
-      radial-gradient(80% 75% at 26% 46%, color-mix(in srgb, var(--color-field-dim) 40%, transparent), transparent 72%),
-      radial-gradient(100% 80% at 12% 112%, color-mix(in srgb, var(--color-field) 38%, transparent), transparent 58%),
-      var(--color-ink);
+    /* transparent by design — the Living Atlas shows through */
+    display: grid;
+    align-items: end;
+    padding-bottom: clamp(3rem, 9vh, 6.5rem);
+    padding-top: 6rem;
   }
-  .hero__canvas-wrap {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-  }
-  .hero-canvas {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-  }
-  .hero-canvas :global(canvas) {
-    width: 100% !important;
-    height: 100% !important;
-  }
-  /* The WebGL field hydrates at idle (after first paint); ease it in over the
-     static gradient poster so it doesn't pop. Scoped styles don't reach the
-     React-rendered node, so target it globally. */
-  :global(.hero-canvas) { animation: hero-canvas-in 1.5s var(--ease-out-expo, ease) both; }
-  @keyframes hero-canvas-in { from { opacity: 0; } to { opacity: 1; } }
-  @media (prefers-reduced-motion: reduce) { :global(.hero-canvas) { animation: none; } }
-  /* The content column owns the vertical centering and full width — no flex on
-     .hero (which let the title shrink into a narrow column on mobile). */
   .hero__inner {
     position: relative;
     z-index: 2;
     width: min(100% - 2.5rem, 80rem);
-    min-height: 100svh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding-top: 6rem;
-    padding-bottom: 5rem;
+    max-width: 100%;
   }
   .hero__eyebrow {
     display: inline-flex;
@@ -134,7 +102,7 @@ const statusLines = [
     letter-spacing: 0.24em;
     text-transform: uppercase;
     font-size: var(--text-sm);
-    margin-bottom: 1.4rem;
+    margin-bottom: 1.2rem;
     opacity: 0;
   }
   .hero__eyebrow::before {
@@ -145,26 +113,28 @@ const statusLines = [
     opacity: 0.7;
   }
   .hero__title {
-    font-size: var(--text-hero);
+    font-size: clamp(2.6rem, 1rem + 6.2vw, 6.4rem);
+    letter-spacing: -0.035em;
+    line-height: 0.96;
     opacity: 0; /* revealed by SplitText (or instantly under reduced-motion) */
-    max-width: 15ch;
-    /* Last-resort break only (no hyphens) so a long word never overflows on
-       very narrow phones — it wraps cleanly instead. */
+    max-width: 12ch;
     overflow-wrap: break-word;
     text-wrap: balance;
+    /* the name reads over the moving field without a slab behind it */
+    text-shadow: 0 2px 24px color-mix(in srgb, var(--color-ink) 70%, transparent);
   }
   @media (max-width: 520px) {
     .hero__title { max-width: 100%; }
   }
   .hero__sub {
-    margin-top: 1.8rem;
+    margin-top: 1.4rem;
     max-width: 42ch;
     color: var(--color-paper-soft);
     font-size: var(--text-lg);
     opacity: 0;
   }
   .hero__status {
-    margin-top: 1.5rem;
+    margin-top: 1.3rem;
     display: inline-flex;
     align-items: center;
     gap: 0.8rem;
@@ -185,14 +155,14 @@ const statusLines = [
   }
   .hero__status-line.is-swapping { opacity: 0; transform: translateY(-0.4em); }
   .hero__cta {
-    margin-top: 2.6rem;
+    margin-top: 2.2rem;
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
     opacity: 0;
   }
   .hero__avail {
-    margin-top: 1.3rem;
+    margin-top: 1.2rem;
     display: flex;
     align-items: center;
     gap: 0.55rem;
@@ -211,38 +181,45 @@ const statusLines = [
     50% { box-shadow: 0 0 0 5px transparent; }
   }
   @media (prefers-reduced-motion: reduce) { .hero__avail-dot { animation: none; } }
-  .hero__scroll {
+
+  /* ---- HUD: bottom-right instrument readout ---- */
+  .hud {
     position: absolute;
-    bottom: 2rem;
-    left: 50%;
-    transform: translateX(-50%);
+    right: clamp(1.25rem, 4vw, 3rem);
+    bottom: clamp(3rem, 9vh, 6.5rem);
     z-index: 2;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.6rem;
-    color: var(--color-muted);
+    display: grid;
+    gap: 0.45rem;
+    padding: 0.9rem 1.1rem;
+    border-radius: 10px;
+    border: 1px solid color-mix(in srgb, var(--color-line) 70%, transparent);
+    background: color-mix(in srgb, var(--color-ink) 62%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     font-size: var(--text-xs);
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-muted);
     opacity: 0;
+    text-align: right;
   }
-  .hero__scroll-line {
-    width: 1px;
-    height: 3rem;
-    background: linear-gradient(var(--color-field-bright), transparent);
-    animation: scrollPulse 2.2s var(--ease-in-out-quart) infinite;
+  .hud__row { display: grid; grid-template-columns: 4.5rem auto; gap: 1rem; align-items: center; }
+  .hud__k { color: var(--color-field-bright); text-align: left; }
+  .hud__v { color: var(--color-paper-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .hud__bar { display: inline-block; width: 6rem; height: 1px; background: var(--color-line); position: relative; vertical-align: middle; }
+  .hud__bar::after {
+    content: ''; position: absolute; inset: -1px auto -1px 0; width: 100%;
+    background: var(--color-field-bright); transform-origin: left; transform: scaleX(0);
+    animation: hud-scroll linear both; animation-timeline: scroll(root); animation-range: 0 100vh;
   }
-  @keyframes scrollPulse {
-    0%, 100% { transform: scaleY(0.4); transform-origin: top; opacity: 0.4; }
-    50% { transform: scaleY(1); transform-origin: top; opacity: 1; }
-  }
+  @keyframes hud-scroll { to { transform: scaleX(1); } }
+  @media (max-width: 900px) { .hud { display: none; } }
+
   /* SplitText mask wrappers */
   .hero__title :global(.split-line-inner) { display: block; }
 </style>
 
 <script>
-  // Headline reveal + status rotator. The scroll parallax is pure CSS now
-  // (see SCROLL-DRIVEN REVEALS in global.css: [data-hero-parallax]).
+  // Headline reveal + status rotator + HUD readouts.
   import '../lib/hero';
+  import '../lib/hud';
 </script>

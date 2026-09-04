@@ -13,13 +13,6 @@ interface Props {
   projects: ProjectPoint[];
   photos: PhotoPoint[];
   base?: string;
-  /**
-   * 'atlas' — the homepage Field Atlas: the map plus a synced list of sites
-   *           (hover/focus a row → the pin lights up and the map eases to it;
-   *           hover a pin → the row lights up).
-   * 'compact' — the map alone (About page).
-   */
-  variant?: 'atlas' | 'compact';
 }
 
 const esc = (s = '') =>
@@ -39,7 +32,7 @@ const STYLE: Record<string, string> = {
 };
 const themeNow = () => (document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
 
-export default function WorkMapIsland({ projects, photos, base = '/', variant = 'compact' }: Props) {
+export default function WorkMapIsland({ projects, photos, base = '/' }: Props) {
   const elRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markers = useRef<{ project: Map<string, any>; photo: any[] }>({ project: new Map(), photo: [] });
@@ -47,8 +40,6 @@ export default function WorkMapIsland({ projects, photos, base = '/', variant = 
   const [failed, setFailed] = useState<string>('');
   const [showProjects, setShowProjects] = useState(true);
   const [showPhotos, setShowPhotos] = useState(true);
-  const [active, setActive] = useState<string | null>(null);
-  const isAtlas = variant === 'atlas';
 
   useEffect(() => {
     let cancelled = false;
@@ -107,10 +98,6 @@ export default function WorkMapIsland({ projects, photos, base = '/', variant = 
           el.className = 'wm-pin wm-pin--project';
           el.style.setProperty('--pin', STATUS_VAR[p.status || ''] || STATUS_VAR.complete);
           el.dataset.slug = p.slug;
-          if (isAtlas) {
-            el.addEventListener('pointerenter', () => setActive(p.slug));
-            el.addEventListener('pointerleave', () => setActive(null));
-          }
           const m = new maplibregl.Marker({ element: el })
             .setLngLat([p.lng, p.lat])
             .setPopup(popup(
@@ -142,7 +129,7 @@ export default function WorkMapIsland({ projects, photos, base = '/', variant = 
         if (all.length) {
           const b = new maplibregl.LngLatBounds();
           all.forEach((p) => b.extend([p.lng, p.lat]));
-          map.fitBounds(b, { padding: isAtlas ? 60 : 70, maxZoom: 8.5, duration: 0 });
+          map.fitBounds(b, { padding: 70, maxZoom: 8.5, duration: 0 });
         }
         setReady(true);
       });
@@ -166,17 +153,6 @@ export default function WorkMapIsland({ projects, photos, base = '/', variant = 
     markers.current.photo.forEach((m) => { m.getElement().style.display = showPhotos ? '' : 'none'; });
   }, [showPhotos, ready]);
 
-  // Atlas sync: highlight the active pin and ease the map toward it.
-  useEffect(() => {
-    if (!isAtlas || !ready) return;
-    markers.current.project.forEach((m, slug) => m.getElement().classList.toggle('is-active', slug === active));
-    const map = mapRef.current;
-    const m = active ? markers.current.project.get(active) : null;
-    if (map && m && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      map.easeTo({ center: m.getLngLat(), duration: 600, essential: false });
-    }
-  }, [active, ready, isAtlas]);
-
   const legend = (
     <div className="wm__legend">
       <button type="button" aria-pressed={showProjects} className={`wm__toggle${showProjects ? ' is-on' : ''}`} onClick={() => setShowProjects((v) => !v)}>
@@ -198,7 +174,7 @@ export default function WorkMapIsland({ projects, photos, base = '/', variant = 
         <div className="wm__fallback" role="status">
           <p className="wm__fallback-title">Map unavailable</p>
           <p className="wm__fallback-msg">{failed}</p>
-          {!isAtlas && projects.length > 0 && (
+          {projects.length > 0 && (
             <ul className="wm__fallback-list">
               {projects.map((p) => (
                 <li key={p.slug}>
@@ -214,48 +190,10 @@ export default function WorkMapIsland({ projects, photos, base = '/', variant = 
     </div>
   );
 
-  if (!isAtlas) {
-    return (
-      <div className="wm">
-        {legend}
-        {stage}
-      </div>
-    );
-  }
-
   return (
-    <div className="wm wm--atlas">
-      <ol className="atlas__list" aria-label="Project sites">
-        {projects.map((p, i) => (
-          <li key={p.slug} className={`atlas__row${active === p.slug ? ' is-active' : ''}`}>
-            <a
-              href={`${base}projects/${p.slug}/`}
-              className="atlas__link"
-              onPointerEnter={() => setActive(p.slug)}
-              onPointerLeave={() => setActive(null)}
-              onFocus={() => setActive(p.slug)}
-              onBlur={() => setActive(null)}
-            >
-              <span className="atlas__index u-mono">{String(i + 1).padStart(2, '0')}</span>
-              <span className="atlas__main">
-                <span className="atlas__title">{p.title}</span>
-                <span className="atlas__meta u-mono">
-                  {p.location || 'California'}{p.siteType ? ` · ${p.siteType}` : ''}
-                </span>
-              </span>
-              <span className="atlas__side">
-                <span className={`status status--${p.status || 'complete'}`}>{p.status || 'complete'}</span>
-                {p.dates && <span className="atlas__dates u-mono">{p.dates}</span>}
-              </span>
-              <span className="atlas__arrow" aria-hidden="true">→</span>
-            </a>
-          </li>
-        ))}
-      </ol>
-      <div className="atlas__map">
-        {legend}
-        {stage}
-      </div>
+    <div className="wm">
+      {legend}
+      {stage}
     </div>
   );
 }

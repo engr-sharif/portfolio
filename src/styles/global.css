@@ -56,6 +56,8 @@
   /* ---- WebGL hero point colours (read by HeroScene at runtime) ---- */
   --hero-low: #3f8f66;
   --hero-high: #7fe3ad;
+  --hero-sea: #2a5b6e;
+  --hero-contour: #d6f5e3;
   --hero-ripple: 1;
 
   /* Motion timing tokens (shared by CSS + JS choreography) */
@@ -94,6 +96,8 @@ html[data-theme="light"] {
 
   --hero-low: #2a6a48;
   --hero-high: #52b283;
+  --hero-sea: #8fb6c4;
+  --hero-contour: #0f4a2e;
   --hero-ripple: -1;
 }
 
@@ -200,6 +204,43 @@ a {
 }
 
 /* ==========================================================================
+   LIVING ATLAS LAYER + GLASS PLATES
+   The WebGL California (TerrainField) is one fixed layer behind every page.
+   Sections that need quiet legibility sit on a translucent plate over it.
+   ========================================================================== */
+.atlas-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  /* poster: paints instantly under the canvas, so the page is never flat black
+     while the scene boots at idle */
+  background:
+    radial-gradient(120% 80% at 82% 30%, color-mix(in srgb, var(--color-field-dim) 55%, transparent), transparent 60%),
+    radial-gradient(90% 70% at 10% 100%, color-mix(in srgb, var(--color-field) 22%, transparent), transparent 60%);
+  transition: opacity 0.4s linear;
+}
+.atlas-layer canvas { display: block; width: 100% !important; height: 100% !important; }
+@media print { .atlas-layer { display: none !important; } }
+
+.section.plate > .u-container {
+  background: color-mix(in srgb, var(--color-ink) 74%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-line) 80%, transparent);
+  border-radius: 20px;
+  padding: clamp(1.6rem, 4vw, 3.5rem);
+  width: min(100% - 1.25rem, 82rem);
+}
+@media (hover: hover) and (min-width: 768px) {
+  .section.plate > .u-container {
+    backdrop-filter: blur(14px) saturate(1.15);
+    -webkit-backdrop-filter: blur(14px) saturate(1.15);
+    background: color-mix(in srgb, var(--color-ink) 62%, transparent);
+  }
+}
+/* page content sits above the layer (nav/recruiter bar are fixed with their own z-index) */
+main, .site-footer { position: relative; z-index: 1; }
+
+/* ==========================================================================
    SCROLL-DRIVEN REVEALS
    Declarative, zero-JS-on-the-hot-path reveals. Two tiers:
 
@@ -293,11 +334,6 @@ a {
      Pointer devices only — heavy scroll effects feel wrong on touch. */
   @media (hover: hover) and (pointer: fine) {
     html.js [data-hero] { view-timeline-name: --hero; }
-    html.js [data-hero-parallax="bg"] {
-      animation: hero-bg linear both;
-      animation-timeline: --hero;
-      animation-range: exit 0% exit 100%;
-    }
     html.js [data-hero-parallax="content"] {
       animation: hero-content linear both;
       animation-timeline: --hero;
@@ -305,7 +341,6 @@ a {
     }
   }
 }
-@keyframes hero-bg      { to { transform: translateY(14%);  opacity: 0.55; } }
 @keyframes hero-content { to { transform: translateY(-26%); opacity: 0; } }
 
 /* ---- Tier 2: IntersectionObserver fallback (motion.ts) ---- */
@@ -1222,7 +1257,7 @@ html:not(.js) #intro { display: none !important; }
    PRINT — clean "Save as PDF" of project case studies & about
    ========================================================================== */
 @media print {
-  .site-nav, .site-footer, .hero-canvas, .u-grain, .cursor, .cursor-ring,
+  .site-nav, .site-footer, .atlas-layer, .u-grain, .cursor, .cursor-ring,
   #intro, #page-wipe, .nav-search, .cmdk, .hero__scroll, [data-topo],
   .detail__back, .detail__aside, #read-progress { display: none !important; }
   :root { color-scheme: light; }

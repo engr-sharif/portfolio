@@ -17,7 +17,7 @@ const featured = await getFeatured();
 const rows = (featured.length >= 2 ? featured : all).slice(0, 3);
 ---
 {rows.length > 0 && (
-  <Section id="work" eyebrow="Case studies" title="Selected work, read like a report">
+  <Section id="work" eyebrow="Case studies" title="Selected work, read like a report" plate>
     <div class="cases">
       {rows.map((project, i) => {
         const { data } = project;
