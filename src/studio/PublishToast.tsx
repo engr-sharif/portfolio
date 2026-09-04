@@ -11,7 +11,7 @@ import { deployStatus, type DeployState } from './api';
  */
 type Phase = 'hidden' | 'building' | 'live' | 'failed' | 'unsure';
 const MAX_WAIT_MS = 4 * 60 * 1000;
-const SITE_URL = '/portfolio/';
+const SITE_URL = import.meta.env.BASE_URL; // the site's base path, whatever host it's on
 
 export const PublishToast: FC<{ trigger: number }> = ({ trigger }) => {
   const [phase, setPhase] = useState<Phase>('hidden');

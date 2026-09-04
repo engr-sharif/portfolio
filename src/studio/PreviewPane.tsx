@@ -56,8 +56,9 @@ function render(body: string): string {
 
   doc.querySelectorAll('video, source').forEach((el) => {
     const s = el.getAttribute('src') || '';
-    if (s.startsWith('/portfolio/')) el.setAttribute('src', rawRepoUrl('public/' + s.replace('/portfolio/', '')));
-    else if (s.startsWith('/videos/')) el.setAttribute('src', rawRepoUrl('public' + s));
+    // "/videos/x.mp4" under any base path → the file in public/videos on GitHub
+    const i = s.indexOf('/videos/');
+    if (i >= 0 && !/^https?:/.test(s)) el.setAttribute('src', rawRepoUrl('public' + s.slice(i)));
   });
 
   doc.querySelectorAll('a[href]').forEach((a) => {

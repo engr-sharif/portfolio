@@ -7,14 +7,18 @@ import pagefind from 'astro-pagefind';
 import tailwindcss from '@tailwindcss/vite';
 import { remarkReadingTime } from './src/lib/remark-reading-time.mjs';
 
-// DEPLOY TARGET: project site at https://engr-sharif.github.io/portfolio/
-// The repo is named `portfolio`, so Pages serves it under the /portfolio/
-// subpath — hence base: '/portfolio/'. All internal links go through the
-// withBase() helper (src/lib/path.ts) so they resolve correctly under the base.
+// DEPLOY TARGET — configurable per host, defaults to GitHub Pages:
+//   GitHub Pages (project site)  SITE_URL=https://engr-sharif.github.io  BASE_PATH=/portfolio/
+//   Cloudflare Pages / custom    SITE_URL=https://<project>.pages.dev     BASE_PATH=/
+// Every internal link goes through withBase() (src/lib/path.ts) and every
+// absolute URL through Astro.site, so switching host is a two-variable change.
 // --------------------------------------------------------------------------
+const SITE_URL = process.env.SITE_URL || 'https://engr-sharif.github.io';
+const BASE_PATH = process.env.BASE_PATH || '/portfolio/';
+
 export default defineConfig({
-  site: 'https://engr-sharif.github.io',
-  base: '/portfolio/',
+  site: SITE_URL,
+  base: BASE_PATH,
   output: 'static',
   // Match GitHub Pages directory serving + our withBase('/x/') links, and keep
   // canonical/sitemap URLs consistent (avoids duplicate-URL SEO signals).

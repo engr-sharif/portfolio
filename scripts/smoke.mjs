@@ -19,7 +19,7 @@ import { existsSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 
-const BASE = '/portfolio/';
+const BASE = process.env.BASE_PATH || '/portfolio/';
 const PORT = Number(process.env.SMOKE_PORT || 4321);
 // SMOKE_NO_SDA=1 disables scroll-driven animations in Chromium to exercise the
 // IntersectionObserver fallback path (Tier 2 in global.css).
@@ -120,7 +120,7 @@ for (const route of routes) {
     const og = await page.getAttribute('meta[property="og:image"]', 'content');
     if (!og) problems.push('no og:image');
     else {
-      const local = og.replace('https://engr-sharif.github.io', ORIGIN);
+      const local = og.replace(/^https?:\/\/[^/]+/, ORIGIN);
       const r = await page.request.get(local).catch(() => null);
       if (!r || !r.ok()) problems.push(`og:image not served: ${og}`);
     }
