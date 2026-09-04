@@ -53,6 +53,7 @@ const fragmentShader = /* glsl */ `
   precision mediump float;
   uniform vec3 uColorLow;
   uniform vec3 uColorHigh;
+  uniform float uRippleSign;
   varying float vElevation;
   varying float vRipple;
 
@@ -62,8 +63,9 @@ const fragmentShader = /* glsl */ `
     if (d > 0.5) discard;
     float a = smoothstep(0.5, 0.08, d);
     vec3 c = mix(uColorLow, uColorHigh, smoothstep(-1.2, 1.3, vElevation));
-    // points caught in the ripple flash brighter
-    c += vec3(0.35, 0.6, 0.45) * abs(vRipple) * 1.4;
+    // points caught in the ripple flash — brighter on the dark Field theme,
+    // deeper on the light Lab theme (sign comes from the CSS token)
+    c += uRippleSign * vec3(0.35, 0.6, 0.45) * abs(vRipple) * 1.4;
     gl_FragColor = vec4(c, a);
   }
 `;
@@ -83,11 +85,30 @@ const Terrain: FC<{ reduced: boolean; cols: number; rows: number }> = ({ reduced
       uReduced: { value: reduced ? 1 : 0 },
       uColorLow: { value: new THREE.Color('#3f8f66') },
       uColorHigh: { value: new THREE.Color('#7fe3ad') },
+      uRippleSign: { value: 1 },
       uPointer: { value: new THREE.Vector2(999, 999) },
       uRipple: { value: 0 },
     }),
     [reduced],
   );
+
+  // Point colours come from the design tokens (--hero-low / --hero-high /
+  // --hero-ripple in global.css) so the Field/Lab theme switch recolours the
+  // WebGL field along with everything else.
+  useEffect(() => {
+    const apply = () => {
+      const cs = getComputedStyle(document.documentElement);
+      const low = cs.getPropertyValue('--hero-low').trim();
+      const high = cs.getPropertyValue('--hero-high').trim();
+      const sign = parseFloat(cs.getPropertyValue('--hero-ripple')) || 1;
+      if (low) uniforms.uColorLow.value.set(low);
+      if (high) uniforms.uColorHigh.value.set(high);
+      uniforms.uRippleSign.value = sign;
+    };
+    apply();
+    window.addEventListener('themechange', apply);
+    return () => window.removeEventListener('themechange', apply);
+  }, [uniforms]);
 
   // Pointer in plane space (the plane spans ~26×18 before scale).
   const planePointer = useRef(new THREE.Vector2(999, 999));

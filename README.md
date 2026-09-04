@@ -6,7 +6,7 @@ so projects, photos, and text can be updated without touching code.
 
 **Stack:** Astro · React islands · CSS scroll-driven animations (with an
 IntersectionObserver fallback) · GSAP for the signature moments (SplitText hero,
-Flip lightbox, pinned showcase) · Three.js + React Three Fiber · MapLibre GL ·
+Flip lightbox, count-up stats) · Three.js + React Three Fiber · MapLibre GL ·
 Tailwind CSS 4 · satori-generated share cards · a strict Content-Security-Policy
 on every page · a custom Studio admin · TypeScript. Output is 100% static
 (GitHub Pages — the Studio's only backend is a small Cloudflare Worker).
@@ -178,11 +178,11 @@ src/
   assets/covers, assets/gallery   images → optimized via <Image>
   studio/                      the custom admin: Studio, Editor, Field, MarkdownEditor,
                                PreviewPane, image-process, schema, api
-  components/                  Hero, Dashboard, ProjectCard, Showcase, Gallery, About,
+  components/                  Hero, FieldAtlas, CaseStudies, ProjectCard, Gallery, About, RecruiterBar,
                                WorkMap (+ WorkMapIsland), three/HeroScene…
   content/projects, blog, tools   one Markdown file per entry (Studio-managed)
   content/settings/            site.json + gallery.json + media.json singletons
-  lib/                         motion, hero, showcase, images, projects, blog, site…
+  lib/                         motion, hero, theme, atlas, og, images, projects, blog, site…
   layouts/BaseLayout.astro     <head>, SEO/OG/Twitter, JSON-LD, RSS link
   pages/                       index, about, projects/[slug], blog/[slug], 404, rss.xml
   content.config.ts            content collections schema
@@ -190,6 +190,21 @@ astro.config.mjs
 ```
 
 ## Design & motion notes
+
+- **Two themes.** *Field* (dark, default) and *Lab* (light) are one token set
+  each in `global.css`; the toggle lives in the nav (`src/lib/theme.ts`), the
+  choice persists in localStorage and follows the OS until you pick, and a
+  hashed inline script applies it before first paint. The WebGL hero and the
+  MapLibre basemap recolour with the theme.
+- **Field Atlas.** The homepage's `FieldAtlas.astro` puts every published site
+  with a location on a synced map + list (hover a row, the pin lights up).
+  Data prep is shared with the About-page map in `src/lib/atlas.ts`.
+- **Case studies.** Projects carry optional `problem` / `approach` / `outcome`
+  fields (editable in the Studio). When present they render as a brief on the
+  homepage rows (`CaseStudies.astro`) and at the top of the project page.
+- **Recruiter bar.** `RecruiterBar.astro` slides in after the first viewport
+  (CSS scroll-driven) with résumé / LinkedIn / email; dismiss hides it for the
+  session.
 
 - Tokens (color/type/easing) live in `src/styles/global.css` under `@theme`.
 - Scrolling is native. Reveals, the hero parallax, the career-timeline fill,
@@ -199,8 +214,8 @@ astro.config.mjs
   Browsers without support get the same motion as CSS transitions toggled by a
   tiny IntersectionObserver in `src/lib/motion.ts` (which also owns the custom
   cursor and magnetic buttons). GSAP stays where it earns its place: the hero
-  headline (`src/lib/hero.ts`), the pinned showcase (`src/lib/showcase.ts`), the
-  count-up stats and the lightbox (`src/lib/lightbox.ts`).
+  headline (`src/lib/hero.ts`), the count-up stats and the lightbox
+  (`src/lib/lightbox.ts`).
 - **Share cards** (`og:image`) are rendered at build time by satori + sharp from
   `src/lib/og.ts` — one branded card per page, with the cover photo when there
   is one. `src/pages/og/[...slug].png.ts` lists the routes; BaseLayout picks the

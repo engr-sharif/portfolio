@@ -1,0 +1,112 @@
+---
+/**
+ * Recruiter fast-path. A slim bar that slides in once the visitor has scrolled
+ * past the first viewport — name, availability, and the three things a hiring
+ * manager actually wants: résumé, LinkedIn, email. Dismissible for the session.
+ *
+ * Motion is a CSS scroll-driven animation (scroll(root) timeline); motion.ts
+ * toggles `.is-shown` for browsers without scroll timelines.
+ */
+import { site } from '../lib/site';
+import { withBase } from '../lib/path';
+import { resumeReady } from '../lib/resume';
+---
+<aside class="rbar" data-recruiter-bar aria-label="Quick contact" hidden>
+  <div class="rbar__inner u-container">
+    <div class="rbar__who">
+      <span class="rbar__dot" aria-hidden="true"></span>
+      <span class="rbar__name">{site.name}</span>
+      <span class="rbar__role">{site.credential} · open to roles in California</span>
+    </div>
+    <div class="rbar__actions">
+      {resumeReady ? (
+        <a href={withBase(site.resume)} class="rbar__btn rbar__btn--primary" download>Résumé <span aria-hidden="true">↓</span></a>
+      ) : (
+        <a href={withBase('#contact')} class="rbar__btn rbar__btn--primary">Request résumé</a>
+      )}
+      <a href={site.linkedin} class="rbar__btn" target="_blank" rel="noopener">LinkedIn</a>
+      <a href={`mailto:${site.email}`} class="rbar__btn">Email</a>
+      <button type="button" class="rbar__close" data-recruiter-dismiss aria-label="Dismiss quick contact bar">✕</button>
+    </div>
+  </div>
+</aside>
+
+<script>
+  import '../lib/recruiter-bar';
+</script>
+
+<style>
+  .rbar {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 90;
+    transform: translateY(110%);
+    background: color-mix(in srgb, var(--color-ink-1) 88%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-top: 1px solid var(--color-line);
+    box-shadow: 0 -12px 40px color-mix(in srgb, var(--color-ink) 45%, transparent);
+    pointer-events: none;
+  }
+  .rbar[hidden] { display: none; }
+  .rbar__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.2rem;
+    padding: 0.7rem 0;
+    pointer-events: auto;
+  }
+  .rbar__who { display: flex; align-items: center; gap: 0.7rem; min-width: 0; }
+  .rbar__dot {
+    width: 8px; height: 8px; border-radius: 50%; flex: none;
+    background: var(--color-field-bright);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-field-bright) 25%, transparent);
+  }
+  .rbar__name { font-family: var(--font-display); font-weight: 600; white-space: nowrap; }
+  .rbar__role { color: var(--color-muted); font-size: var(--text-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rbar__actions { display: flex; align-items: center; gap: 0.5rem; flex: none; }
+  .rbar__btn {
+    display: inline-flex; align-items: center; gap: 0.4em;
+    padding: 0.5em 0.95em; border-radius: 999px;
+    border: 1px solid var(--color-line);
+    font-size: var(--text-sm); color: var(--color-paper);
+    transition: border-color var(--dur-fast) var(--ease-out-expo), background-color var(--dur-fast) var(--ease-out-expo), color var(--dur-fast) var(--ease-out-expo);
+  }
+  .rbar__btn:hover { border-color: var(--color-field-bright); }
+  .rbar__btn--primary { background: var(--color-field-bright); color: var(--color-ink); border-color: var(--color-field-bright); }
+  .rbar__btn--primary:hover { background: var(--color-paper); border-color: var(--color-paper); }
+  .rbar__close {
+    width: 36px; height: 36px; border-radius: 50%; border: 0; background: none;
+    color: var(--color-muted); cursor: pointer; font-size: 0.9rem;
+  }
+  .rbar__close:hover { color: var(--color-paper); background: var(--color-ink-2); }
+
+  /* Slide in as the visitor scrolls past the first viewport; slide out again
+     near the top. Scrubbed by the root scroll timeline — no JS. */
+  @supports (animation-timeline: scroll()) {
+    .rbar {
+      animation: rbar-in linear both;
+      animation-timeline: scroll(root);
+      animation-range: 70vh 105vh;
+    }
+  }
+  @supports not (animation-timeline: scroll()) {
+    .rbar { transition: transform 0.5s var(--ease-out-expo); }
+    .rbar.is-shown { transform: none; }
+  }
+  @keyframes rbar-in { to { transform: none; } }
+
+  @media (max-width: 720px) {
+    .rbar__role { display: none; }
+    .rbar__btn:not(.rbar__btn--primary) { padding: 0.5em 0.7em; }
+  }
+  @media (max-width: 480px) {
+    .rbar__name { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .rbar { animation: none !important; transition: none !important; }
+    .rbar.is-shown, .rbar.is-static { transform: none; }
+  }
+  @media print { .rbar { display: none !important; } }
+</style>

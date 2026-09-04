@@ -49,6 +49,15 @@
   --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
+  /* ---- Danger (form errors, failed states) ---- */
+  --color-danger: #e2685f;
+  /* ---- Text on a field-green fill (buttons, active chips) ---- */
+  --color-on-field: #f4f3ee;
+  /* ---- WebGL hero point colours (read by HeroScene at runtime) ---- */
+  --hero-low: #3f8f66;
+  --hero-high: #7fe3ad;
+  --hero-ripple: 1;
+
   /* Motion timing tokens (shared by CSS + JS choreography) */
   --dur-fast: 0.3s;
   --dur-base: 0.6s;
@@ -56,11 +65,43 @@
 }
 
 /* ==========================================================================
+   THEMES — Field (dark, default) / Lab (light)
+   Every colour on the site is a token, so the light theme is one block of
+   overrides. Applied via data-theme on <html>: a hashed inline script in
+   BaseLayout sets it before first paint (saved choice, else the OS), and
+   src/lib/theme.ts owns the toggle. Contrast: all text pairs ≥ 4.5:1.
+   ========================================================================== */
+html[data-theme="light"] {
+  --color-ink: #f4f3ee;          /* paper becomes the ground */
+  --color-ink-0: #f4f3ee;
+  --color-ink-1: #ffffff;        /* raised surface (cards) */
+  --color-ink-2: #e9ebe4;
+  --color-ink-soft: #ffffff;
+  --color-line: #d8dbd3;
+
+  --color-paper: #101412;        /* ink becomes the foreground */
+  --color-paper-soft: #33403a;
+  --color-muted: #5f6a63;
+
+  --color-field: #2f6f4e;
+  --color-field-bright: #1f7a4d; /* deeper green: 5.3:1 on the paper ground */
+  --color-field-dim: #d3e8db;    /* tint, not shade — washes stay light */
+
+  --color-hazard: #9a6a0a;
+  --color-hazard-dim: #f2e3bf;
+  --color-danger: #b3402f;
+  --color-on-field: #ffffff;
+
+  --hero-low: #2a6a48;
+  --hero-high: #52b283;
+  --hero-ripple: -1;
+}
+
+/* ==========================================================================
    BASE
    ========================================================================== */
-:root {
-  color-scheme: dark;
-}
+:root { color-scheme: dark; }
+html[data-theme="light"] { color-scheme: light; }
 
 html {
   /* Native smooth scrolling for in-page anchors (the reduced-motion block
@@ -354,7 +395,7 @@ a {
   font-size: var(--text-sm);
   letter-spacing: 0.01em;
   background: var(--color-field);
-  color: var(--color-paper);
+  color: var(--color-on-field);
   transition: background-color 0.3s var(--ease-out-expo), transform 0.3s var(--ease-out-expo);
 }
 .btn:hover { background: var(--color-field-bright); color: var(--color-ink); }
@@ -416,6 +457,36 @@ a {
 .site-nav__links .is-current::after { transform: scaleX(1); transform-origin: left; }
 .site-nav__brand { font-family: var(--font-display); font-weight: 600; font-size: var(--text-base); position: relative; z-index: 2; }
 .site-nav__links { display: flex; gap: clamp(0.9rem, 2vw, 2rem); font-size: var(--text-sm); }
+
+/* Field / Lab theme toggle — a small disc that reads as moon (Field) or sun (Lab). */
+.theme-toggle {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.35rem 0.7rem 0.35rem 0.5rem; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-paper) 16%, transparent);
+  background: transparent; color: var(--color-paper-soft);
+  font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.08em; text-transform: uppercase;
+  cursor: pointer; pointer-events: auto;
+  transition: border-color var(--dur-fast) var(--ease-out-expo), color var(--dur-fast) var(--ease-out-expo);
+}
+.theme-toggle:hover { border-color: var(--color-field-bright); color: var(--color-paper); }
+.theme-toggle__icon {
+  width: 14px; height: 14px; border-radius: 50%; flex: none; position: relative;
+  /* moon: a disc with a bite taken out via inset shadow */
+  box-shadow: inset -5px -3px 0 0 var(--color-field-bright);
+  transition: box-shadow var(--dur-base) var(--ease-out-expo), background-color var(--dur-base) var(--ease-out-expo), transform var(--dur-base) var(--ease-out-expo);
+}
+html[data-theme="light"] .theme-toggle__icon {
+  /* sun: filled disc with a soft ray ring */
+  background: var(--color-hazard);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-hazard) 30%, transparent);
+  transform: rotate(180deg);
+}
+.theme-toggle__lab { display: none; }
+html[data-theme="light"] .theme-toggle__field { display: none; }
+html[data-theme="light"] .theme-toggle__lab { display: inline; }
+@media (max-width: 767px) {
+  .theme-toggle { font-size: var(--text-sm); padding: 0.6rem 1.1rem 0.6rem 0.9rem; }
+}
 
 /* Hamburger toggle — hidden on desktop, shown below the breakpoint. */
 .nav-toggle {
@@ -644,61 +715,6 @@ a {
   gap: clamp(1.2rem, 2.5vw, 2rem);
 }
 .is-filtered-out { display: none !important; }
-
-/* ==========================================================================
-   PINNED HORIZONTAL SHOWCASE
-   ========================================================================== */
-.showcase { position: relative; }
-.showcase__track {
-  display: flex;
-  gap: clamp(1.5rem, 4vw, 3rem);
-  width: max-content;
-  padding-inline: clamp(1.25rem, 4vw, 3rem);
-  will-change: transform;
-}
-.showcase__panel {
-  position: relative;
-  width: min(80vw, 46rem);
-  height: 70vh;
-  border-radius: 6px;
-  overflow: hidden;
-  flex-shrink: 0;
-  border: 1px solid var(--color-line);
-}
-.showcase__panel img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.9s var(--ease-out-expo);
-}
-.showcase__panel:hover img { transform: scale(1.04); }
-.showcase__overlay {
-  position: absolute;
-  inset: auto 0 0 0;
-  padding: clamp(1.5rem, 4vw, 3rem);
-  background: linear-gradient(transparent, color-mix(in srgb, var(--color-ink) 94%, transparent));
-}
-.showcase__top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.7rem; }
-.showcase__index { color: var(--color-field-bright); font-size: var(--text-sm); }
-.showcase__name { font-size: var(--text-xl); margin-top: 0.2rem; }
-.showcase__type { color: var(--color-paper-soft); font-size: var(--text-sm); margin-top: 0.4rem; }
-.showcase__tags { list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0; margin-top: 1rem; }
-/* On touch / no-JS the track simply scrolls horizontally — no pin/jank.
-   Override width:max-content → a viewport-width scroll area so it never forces
-   the page itself to scroll sideways. */
-@media (max-width: 800px) {
-  .showcase__track {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 1rem;
-  }
-  .showcase__panel { scroll-snap-align: center; width: 86vw; height: 58vh; }
-}
 
 /* ==========================================================================
    GALLERY (masonry via CSS columns) + LIGHTBOX
@@ -965,7 +981,7 @@ a {
 .cred-item__label { font-family: var(--font-display); font-weight: 500; }
 .cred-item__sub { color: var(--color-muted); font-size: var(--text-sm); }
 .cred-item__status { font-size: var(--text-xs); white-space: nowrap; color: var(--color-field-bright); text-align: right; }
-.cred-item__status--progress { color: #d7c47a; }
+.cred-item__status--progress { color: var(--color-hazard); }
 
 .skill-matrix { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: clamp(1.2rem, 3vw, 2rem); }
 .skill-group__name { font-size: var(--text-sm); color: var(--color-field-bright); text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 1rem; }
@@ -1037,7 +1053,7 @@ a {
 .contact__or { color: var(--color-muted); font-size: var(--text-sm); }
 .contact__status { font-size: var(--text-sm); min-height: 1.2em; margin: 0; }
 .contact__status.is-ok { color: var(--color-field-bright); }
-.contact__status.is-err { color: #e2895f; }
+.contact__status.is-err { color: var(--color-danger); }
 
 .timeline { position: relative; max-width: 46rem; }
 .timeline__track { position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: color-mix(in srgb, var(--color-paper) 12%, transparent); }

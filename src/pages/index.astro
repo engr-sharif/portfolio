@@ -1,8 +1,8 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Hero from '../components/Hero.astro';
-import Showcase from '../components/Showcase.astro';
-import Dashboard from '../components/Dashboard.astro';
+import FieldAtlas from '../components/FieldAtlas.astro';
+import CaseStudies from '../components/CaseStudies.astro';
 import Stats from '../components/Stats.astro';
 import Tools from '../components/Tools.astro';
 import Gallery from '../components/Gallery.astro';
@@ -15,11 +15,11 @@ import TopoDivider from '../components/atlas/TopoDivider.astro';
   {/* Act 1 — arrival */}
   <Hero />
 
-  {/* Act 2 — the flagship work, told cinematically */}
-  <Showcase />
+  {/* Act 2 — the atlas: every site on the map, the index of the work */}
+  <FieldAtlas />
 
-  {/* Act 3 — the proof: selected projects + the numbers */}
-  <Dashboard />
+  {/* Act 3 — the proof: case studies read like a report, then the numbers */}
+  <CaseStudies />
   <Stats />
 
   <div class="u-container"><TopoDivider /></div>

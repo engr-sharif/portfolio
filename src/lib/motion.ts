@@ -10,7 +10,7 @@
  *  - A 2 KB IntersectionObserver fallback for browsers without
  *    `animation-timeline: view()` — it only toggles classes; the motion itself
  *    is still CSS.
- *  - View Transition hygiene: kill stale ScrollTriggers (showcase, counters)
+ *  - View Transition hygiene: kill stale ScrollTriggers (count-up stats)
  *    before a swap; move focus to <main> after one.
  *
  * Full prefers-reduced-motion + touch-device fallbacks throughout.
