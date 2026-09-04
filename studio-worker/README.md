@@ -69,6 +69,14 @@ since this revision the Worker refuses cross-origin requests without it.
 - **Edits:** the studio reads/writes content files via the Worker, which uses
   your `GITHUB_TOKEN` to commit. Every save is a real Git commit → the site
   rebuilds and is live in ~90 seconds.
+- **Atomic commits:** `POST /api/commit` writes/deletes several files as ONE
+  commit through the Git Data API (blobs → tree → commit → fast-forward ref).
+  Used for reordering a collection: one rebuild, never half-applied. Each file
+  may carry the sha it was loaded at; a mismatch (or a racing push) is a 409
+  and nothing is written.
+- **History:** `GET /api/history?path=…` lists the commits that touched a file
+  (or the whole site); `GET /api/file?path=…&ref=<sha>` reads a past version.
+  Powers the Studio's History drawer and Restore.
 - **Deploy status:** `GET /api/deploy-status?since=<ms>` reads the Actions run
   for the deploy branch so the Studio can say *Live* / *Build failed* honestly
   (falls back to an unauthenticated read — the repo is public — when the PAT
