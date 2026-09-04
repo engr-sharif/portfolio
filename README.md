@@ -4,10 +4,12 @@ Personal portfolio + live project dashboard for **Mohammad "Nawaz" Sharif**,
 Environmental Engineer (EIT). Static site, GPU-light motion, and a browser admin
 so projects, photos, and text can be updated without touching code.
 
-**Stack:** Astro · React islands · GSAP (ScrollTrigger / SplitText / Flip) ·
-Lenis · Motion · Three.js + React Three Fiber · MapLibre GL · Tailwind CSS 4 ·
-a custom Studio admin · TypeScript. Output is 100% static (GitHub Pages — the
-Studio's only backend is a small Cloudflare Worker).
+**Stack:** Astro · React islands · CSS scroll-driven animations (with an
+IntersectionObserver fallback) · GSAP for the signature moments (SplitText hero,
+Flip lightbox, pinned showcase) · Three.js + React Three Fiber · MapLibre GL ·
+Tailwind CSS 4 · satori-generated share cards · a strict Content-Security-Policy
+on every page · a custom Studio admin · TypeScript. Output is 100% static
+(GitHub Pages — the Studio's only backend is a small Cloudflare Worker).
 
 ---
 
@@ -167,10 +169,11 @@ location in the Studio (or `lat`/`lng` in frontmatter).
 .github/workflows/deploy.yml   GitHub Pages deploy (official Actions flow, main only)
 .github/workflows/ci.yml       PR checks: unit tests (vitest) · astro check · build
 tests/                         unit tests (frontmatter round-trip, schemas, date range)
+scripts/smoke.mjs              headless-Chromium smoke test (CSP, console, reveals, OG)
 studio-worker/                 Cloudflare Worker backend for the Studio (auth + commits)
 public/
   resume/Sharif_Resume.pdf    résumé (swap via the Studio)
-  og-image.png, robots.txt, favicon.svg, .nojekyll
+  og-image.png (manual share-image override), robots.txt, favicon.svg, .nojekyll
 src/
   assets/covers, assets/gallery   images → optimized via <Image>
   studio/                      the custom admin: Studio, Editor, Field, MarkdownEditor,
@@ -189,9 +192,26 @@ astro.config.mjs
 ## Design & motion notes
 
 - Tokens (color/type/easing) live in `src/styles/global.css` under `@theme`.
-- Global motion (Lenis smooth scroll, custom cursor, magnetic buttons, scroll
-  reveals) is in `src/lib/motion.ts`; the hero reveal in `src/lib/hero.ts`; the
-  pinned showcase in `src/lib/showcase.ts`; lightbox in `src/lib/lightbox.ts`.
+- Scrolling is native. Reveals, the hero parallax, the career-timeline fill,
+  the topo line-draw and the reading-progress bar are **CSS scroll-driven
+  animations** (`animation-timeline: view()`) declared in `global.css` under
+  SCROLL-DRIVEN REVEALS — no scroll listeners, no smooth-scroll library.
+  Browsers without support get the same motion as CSS transitions toggled by a
+  tiny IntersectionObserver in `src/lib/motion.ts` (which also owns the custom
+  cursor and magnetic buttons). GSAP stays where it earns its place: the hero
+  headline (`src/lib/hero.ts`), the pinned showcase (`src/lib/showcase.ts`), the
+  count-up stats and the lightbox (`src/lib/lightbox.ts`).
+- **Share cards** (`og:image`) are rendered at build time by satori + sharp from
+  `src/lib/og.ts` — one branded card per page, with the cover photo when there
+  is one. `src/pages/og/[...slug].png.ts` lists the routes; BaseLayout picks the
+  matching card automatically. Setting a custom image in Site Settings overrides
+  all of them.
+- **Content-Security-Policy** is on for every page (`security.csp` in
+  `astro.config.mjs`). Astro hashes its own inline scripts; the only inline
+  script we write (the `js` class gate) is hashed in BaseLayout, and third-party
+  origins are added per page with `Astro.csp.insertDirective`. `npm run smoke`
+  builds nothing but drives every page type in headless Chromium and fails on
+  any CSP violation, console error, or reveal left invisible.
 - **Every animation respects `prefers-reduced-motion`** and degrades on touch
   (no hover-only dead-ends; no scroll-jacking on phones). The WebGL hero pauses
   off-screen and freezes under reduced-motion.

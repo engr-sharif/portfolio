@@ -4,6 +4,7 @@ import '../styles/global.css';
 import '@fontsource-variable/inter';
 import '@fontsource-variable/space-grotesk';
 import '@fontsource-variable/jetbrains-mono';
+import { createHash } from 'node:crypto';
 import { ClientRouter } from 'astro:transitions';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
@@ -14,9 +15,33 @@ import { site } from '../lib/site';
 export interface Props {
   title?: string;
   description?: string;
+  /** Social image: base-relative ("/og/home.png") or absolute. Defaults to the
+   *  build-time card for this route (src/pages/og/) unless Site Settings sets
+   *  a custom share image. */
   image?: string;
   showChrome?: boolean;
   ogType?: string;
+}
+
+/**
+ * Pick the generated share card for the current route:
+ *   /              → og/home.png
+ *   /about/        → og/about.png            /projects/ → og/projects.png …
+ *   /projects/x/   → og/projects/x.png       /blog/x/   → og/blog/x.png
+ *   /blog/tags/x/  → og/blog.png             anything else → og/home.png
+ */
+function ogFor(pathname: string): string {
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+  const path = pathname.startsWith(base) ? pathname.slice(base.length) : pathname;
+  const parts = path.split('/').filter(Boolean);
+  if (parts.length === 0) return '/og/home.png';
+  const [section, slug, ...rest] = parts;
+  if (['about', 'projects', 'tools', 'blog'].includes(section)) {
+    if (!slug) return `/og/${section}.png`;
+    if (section !== 'about' && rest.length === 0) return `/og/${section}/${slug}.png`;
+    return `/og/${section}.png`;
+  }
+  return '/og/home.png';
 }
 
 // Site-wide SEO/share defaults are editable in the Studio (Site Settings);
@@ -25,14 +50,14 @@ export interface Props {
 const {
   title = site.seoTitle?.trim() || `${site.name} — ${site.credential}`,
   description = site.seoDescription?.trim() || site.bio,
-  image = site.ogImage?.trim() || '/og-image.png',
+  image = site.ogImage?.trim() || ogFor(Astro.url.pathname),
   showChrome = true,
   ogType = 'website',
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
-// Per-page cover images arrive as already-absolute URLs; site defaults are
-// base-relative (e.g. /og-image.png) and need the base + origin prepended.
+// Per-page images may arrive absolute; base-relative ones (e.g. /og/home.png)
+// need the base + origin prepended.
 const ogImage = /^https?:\/\//.test(image) ? image : new URL(withBase(image), Astro.site).href;
 
 // Site-wide Person structured data (EEAT / rich-result signal). Built once on
@@ -61,16 +86,47 @@ const personLd = {
 // Optional privacy-friendly analytics: set site.analytics to your GoatCounter
 // subdomain (e.g. "engr-sharif") to enable. Empty → no script, no tracking.
 const goatcounter = (site as { analytics?: string }).analytics?.trim();
+
+/* ------------------------------------------------------------------- CSP --
+ * The baseline policy lives in astro.config.mjs; here we add what the PUBLIC
+ * site needs and nothing more:
+ *  - the one inline script we keep (the `js` class gate must run before first
+ *    paint, so it can't be a module) — allowed by SHA-256 hash;
+ *  - `style-src-attr 'unsafe-inline'` for the handful of static style=""
+ *    attributes (view-transition-name, decorative opacities). Scripts can't
+ *    inject styles this way, so the exposure is nil;
+ *  - third-party origins: CARTO basemap tiles (map), EnviroStor/ArcGIS (live
+ *    regulatory badge), Web3Forms (contact), YouTube/Vimeo (embeds), and
+ *    GoatCounter only when analytics is switched on.
+ */
+const JS_GATE = "document.documentElement.classList.add('js');";
+const jsGateHash = `sha256-${createHash('sha256').update(JS_GATE).digest('base64')}` as const;
+// Astro's directive type only lists the directives its config validates;
+// style-src-attr is a real CSP3 directive the runtime passes through untouched.
+type Directive = Parameters<NonNullable<typeof Astro.csp>['insertDirective']>[0];
+const directive = (d: string) => Astro.csp?.insertDirective(d as Directive);
+if (Astro.csp) {
+  Astro.csp.insertScriptHash(jsGateHash);
+  directive("style-src-attr 'unsafe-inline'");
+  directive(
+    "connect-src 'self' https://*.basemaps.cartocdn.com https://basemaps.cartocdn.com https://services3.arcgis.com https://api.web3forms.com" +
+      (goatcounter ? ' https://*.goatcounter.com' : ''),
+  );
+  directive("img-src 'self' data: blob: https://*.basemaps.cartocdn.com" + (goatcounter ? ' https://*.goatcounter.com' : ''));
+  directive('frame-src https://www.youtube-nocookie.com https://player.vimeo.com');
+  directive("form-action 'self' https://api.web3forms.com");
+  if (goatcounter) Astro.csp.insertScriptResource('https://gc.zgo.at');
+}
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-goatcounter={goatcounter || undefined}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <!-- Mark JS as available before first paint so reveal elements can start
-         hidden without a flash (html.js gate in global.css). -->
-    <script is:inline>document.documentElement.classList.add('js');</script>
+         hidden without a flash (html.js gate in global.css). Hashed for CSP. -->
+    <script is:inline set:html={JS_GATE} />
     <link rel="icon" href={withBase('favicon.svg')} type="image/svg+xml" />
     <meta name="generator" content={Astro.generator} />
     <meta name="author" content={site.name} />
@@ -104,14 +160,6 @@ const goatcounter = (site as { analytics?: string }).analytics?.trim();
     <script type="application/ld+json" set:html={JSON.stringify(personLd)} is:inline />
 
     <ClientRouter />
-    <noscript><style>#intro { display: none !important; }</style></noscript>
-    {goatcounter && (
-      <script
-        is:inline
-        data-goatcounter={`https://${goatcounter}.goatcounter.com/count`}
-        async
-        src="//gc.zgo.at/count.js"></script>
-    )}
   </head>
   <body>
     {showChrome && (
@@ -142,21 +190,13 @@ const goatcounter = (site as { analytics?: string }).analytics?.trim();
     )}
 
     <script>
-      // Boot global motion (Lenis + GSAP + cursor + reveals). The module
-      // self-registers astro:page-load, but we also call it once for the
-      // very first load in case the event already fired.
+      // Boot global motion (cursor, magnetic, reveal fallback) + the intro.
+      // The module self-registers astro:page-load, but we also call it once
+      // for the very first load in case the event already fired.
       import { bootMotion } from '../lib/motion';
       import '../lib/intro';
       bootMotion();
     </script>
-    {goatcounter && (
-      <script is:inline>
-        // Count client-side (View Transition) navigations too.
-        document.addEventListener('astro:after-swap', () => {
-          // @ts-ignore
-          window.goatcounter?.count?.({ path: location.pathname });
-        });
-      </script>
-    )}
+    {goatcounter && <script>import '../lib/analytics';</script>}
   </body>
 </html>

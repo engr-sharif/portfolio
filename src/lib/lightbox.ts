@@ -12,7 +12,7 @@
  * Each trigger carries: data-gallery (group id), data-caption, data-full (a
  * high-res source for crisp zoom) and contains the thumbnail <img>.
  * Fully accessible (dialog, focus trap, inert background, focus return) and
- * reduced-motion aware (no Flip, instant swaps). Pauses Lenis while open.
+ * reduced-motion aware (no Flip, instant swaps). Locks page scroll while open.
  */
 import { gsap } from 'gsap';
 import { Flip } from 'gsap/Flip';
@@ -192,7 +192,6 @@ function open(triggerEl: HTMLElement) {
   ov.classList.add('is-open');
   ov.classList.toggle('is-single', group.length < 2);
   document.documentElement.style.overflow = 'hidden';
-  window.__lenis?.stop?.();
   document.getElementById('main')?.setAttribute('inert', '');
   document.querySelector('.site-nav')?.setAttribute('inert', '');
   document.querySelector('.site-footer')?.setAttribute('inert', '');
@@ -225,7 +224,6 @@ function close() {
   if (!overlay.classList.contains('is-open')) return; // already closed (idempotent)
   overlay.classList.remove('is-open', 'is-zoomed');
   document.documentElement.style.overflow = '';
-  window.__lenis?.start?.();
   document.getElementById('main')?.removeAttribute('inert');
   document.querySelector('.site-nav')?.removeAttribute('inert');
   document.querySelector('.site-footer')?.removeAttribute('inert');

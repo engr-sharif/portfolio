@@ -1,8 +1,8 @@
 /**
  * Mobile navigation toggle. Below the nav breakpoint the links collapse into a
  * full-screen overlay opened by the hamburger. Accessible: aria-expanded,
- * Escape to close, closes on link tap / resize to desktop, locks scroll (and
- * pauses Lenis) while open.
+ * Escape to close, closes on link tap / resize to desktop, locks scroll while
+ * open.
  *
  * Lifecycle: the nav element is re-rendered on every View Transition, so the
  * per-element handlers rebind on astro:page-load. The document/matchMedia
@@ -25,11 +25,9 @@ function setOpen(open: boolean) {
   if (open) {
     main?.setAttribute('inert', '');
     footer?.setAttribute('inert', '');
-    window.__lenis?.stop?.();
   } else {
     main?.removeAttribute('inert');
     footer?.removeAttribute('inert');
-    window.__lenis?.start?.();
   }
 }
 

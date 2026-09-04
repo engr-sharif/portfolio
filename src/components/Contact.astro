@@ -28,6 +28,8 @@ const hasForm = formKey.length > 0;
       data-reveal
       data-reveal-delay="0.1"
       data-contact-form
+      data-has-form={String(hasForm)}
+      data-email={site.email}
       method="POST"
       action="https://api.web3forms.com/submit"
     >
@@ -62,58 +64,6 @@ const hasForm = formKey.length > 0;
   </div>
 </Section>
 
-<script is:inline define:vars={{ hasForm, email: site.email }}>
-  // Progressive enhancement: AJAX submit to Web3Forms with inline status.
-  // If no access key is configured, redirect to a prefilled mailto instead.
-  document.addEventListener('astro:page-load', () => {
-    const form = document.querySelector('[data-contact-form]');
-    if (!form || form.dataset.bound) return;
-    form.dataset.bound = '1';
-    const statusEl = form.querySelector('[data-contact-status]');
-    const btn = form.querySelector('[data-contact-submit]');
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const data = new FormData(form);
-
-      // No backend key → fall back to mailto with the message prefilled.
-      if (!hasForm) {
-        const subj = encodeURIComponent(`Portfolio inquiry from ${data.get('name') || ''}`);
-        const body = encodeURIComponent(`${data.get('message') || ''}\n\n— ${data.get('name') || ''} (${data.get('email') || ''})`);
-        window.location.href = `mailto:${email}?subject=${subj}&body=${body}`;
-        return;
-      }
-
-      const setStatus = (msg, ok) => {
-        statusEl.textContent = msg;
-        statusEl.classList.toggle('is-ok', !!ok);
-        statusEl.classList.toggle('is-err', ok === false);
-      };
-
-      btn.disabled = true;
-      const original = btn.textContent;
-      btn.textContent = 'Sending…';
-      setStatus('', null);
-
-      try {
-        const res = await fetch('https://api.web3forms.com/submit', {
-          method: 'POST',
-          headers: { Accept: 'application/json' },
-          body: data,
-        });
-        const json = await res.json();
-        if (res.ok && json.success) {
-          form.reset();
-          setStatus("Thanks — your message is on its way. I'll be in touch soon.", true);
-        } else {
-          setStatus(json.message || 'Something went wrong. Please email me directly.', false);
-        }
-      } catch {
-        setStatus('Network error. Please email me directly.', false);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = original;
-      }
-    });
-  });
+<script>
+  import '../lib/contact';
 </script>

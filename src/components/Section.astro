@@ -10,10 +10,10 @@ const { id, eyebrow, title, class: className = '' } = Astro.props;
 <section id={id} class={`section ${className}`}>
   <div class="u-container">
     {(eyebrow || title) && (
-      <header style="margin-bottom:clamp(2rem,5vw,4rem);max-width:48ch;">
+      <header class="section__head">
         {eyebrow && <p class="section__eyebrow" data-reveal>{eyebrow}</p>}
         {title && (
-          <h2 data-reveal data-reveal-delay="0.05" style="font-size:var(--text-2xl);margin-top:1rem;">
+          <h2 class="section__title" data-reveal data-reveal-delay="0.05">
             {title}
           </h2>
         )}
@@ -22,3 +22,8 @@ const { id, eyebrow, title, class: className = '' } = Astro.props;
     <slot />
   </div>
 </section>
+
+<style>
+  .section__head { margin-bottom: clamp(2rem, 5vw, 4rem); max-width: 48ch; }
+  .section__title { font-size: var(--text-2xl); margin-top: 1rem; }
+</style>

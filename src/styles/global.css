@@ -63,24 +63,14 @@
 }
 
 html {
-  /* Lenis drives smooth scroll; keep native off to avoid double-scrolling. */
-  scroll-behavior: auto;
+  /* Native smooth scrolling for in-page anchors (the reduced-motion block
+     below switches it off). scroll-padding keeps targets clear of the fixed
+     nav — no JS offset maths. */
+  scroll-behavior: smooth;
+  scroll-padding-top: 5.5rem;
   /* Stop iOS from auto-inflating text in landscape. */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-}
-
-html.lenis,
-html.lenis body {
-  height: auto;
-}
-
-.lenis.lenis-smooth {
-  scroll-behavior: auto !important;
-}
-
-.lenis.lenis-stopped {
-  overflow: hidden;
 }
 
 body {
@@ -91,7 +81,9 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  overflow-x: hidden;
+  /* `clip`, not `hidden`: hidden would make <body> a scroll container, which
+     breaks scroll-driven animations that expect the viewport as their scroller. */
+  overflow-x: clip;
 }
 
 ::selection {
@@ -166,13 +158,146 @@ a {
   display: block;
 }
 
-/* Reveal flash fix: only hide the initial state when JS is present (html.js is
-   set by an inline head script BEFORE first paint). Without JS the content is
-   visible — no FOUC, no stranded hidden content. will-change is applied only
-   for the brief moment GSAP is animating (see motion.ts), never left on. */
-html.js [data-reveal],
-html.js [data-reveal-stagger] > * {
-  opacity: 0;
+/* ==========================================================================
+   SCROLL-DRIVEN REVEALS
+   Declarative, zero-JS-on-the-hot-path reveals. Two tiers:
+
+   Tier 1 — native scroll-driven animations (animation-timeline: view()).
+     The browser scrubs each element's entrance over the first ~35% of its
+     trip into the viewport, on the compositor, with no scroll listener and
+     no layout reads. Elements already in view at load are past their range
+     and simply render — no flash, no "stuck at opacity 0".
+
+   Tier 2 — @supports not: a 2 KB IntersectionObserver in motion.ts toggles
+     .is-inview and the same motion plays as a CSS transition.
+
+   Both tiers are gated on html.js (set by an inline head script before first
+   paint) so content is always visible without JavaScript, and both collapse
+   to "just show it" under prefers-reduced-motion.
+
+   fill-mode is `backwards`, not `both`: once the range completes the
+   animation releases the element, so component hover transforms (card lift,
+   magnetic buttons) keep working instead of being pinned by a finished
+   animation's final keyframe.
+   ========================================================================== */
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(2.2rem); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes reveal-figure {
+  from { clip-path: inset(0 100% 0 0); opacity: 0.4; }
+  to   { clip-path: inset(0 0 0 0);    opacity: 1; }
+}
+@keyframes draw-path {
+  from { stroke-dashoffset: 1; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes grow-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* ---- Tier 1: native ---- */
+@supports (animation-timeline: view()) {
+  html.js [data-reveal],
+  html.js [data-reveal-stagger] > * {
+    animation: reveal-up var(--ease-out-expo) backwards;
+    animation-timeline: view();
+    animation-range: entry 5% entry 38%;
+  }
+  /* explicit delays (data-reveal-delay) → later range starts */
+  html.js [data-reveal][data-reveal-delay="0.05"] { animation-range: entry 10% entry 43%; }
+  html.js [data-reveal][data-reveal-delay="0.1"]  { animation-range: entry 15% entry 48%; }
+  html.js [data-reveal][data-reveal-delay="0.15"] { animation-range: entry 20% entry 53%; }
+  html.js [data-reveal][data-reveal-delay="0.2"]  { animation-range: entry 25% entry 58%; }
+  /* staggered groups → each child starts a little later */
+  html.js [data-reveal-stagger] > :nth-child(2)  { animation-range: entry 10% entry 43%; }
+  html.js [data-reveal-stagger] > :nth-child(3)  { animation-range: entry 15% entry 48%; }
+  html.js [data-reveal-stagger] > :nth-child(4)  { animation-range: entry 20% entry 53%; }
+  html.js [data-reveal-stagger] > :nth-child(5)  { animation-range: entry 25% entry 58%; }
+  html.js [data-reveal-stagger] > :nth-child(n+6) { animation-range: entry 30% entry 63%; }
+
+  /* figures develop like a print — a left-to-right scanline wipe */
+  html.js [data-figure] {
+    animation: reveal-figure var(--ease-out-expo) backwards;
+    animation-timeline: view();
+    animation-range: entry 10% entry 70%;
+  }
+
+  /* topo contour lines draw themselves (paths carry pathLength="1") */
+  html.js [data-topo] { view-timeline-name: --topo; }
+  html.js [data-topo] [data-draw] {
+    stroke-dasharray: 1;
+    animation: draw-path ease-out both;
+    animation-timeline: --topo;
+    animation-range: entry 0% entry 100%;
+  }
+
+  /* career timeline: the accent line fills as the list scrolls through */
+  html.js [data-timeline] { view-timeline-name: --career; }
+  html.js [data-timeline-progress] {
+    animation: grow-y linear both;
+    animation-timeline: --career;
+    animation-range: entry 25% exit 20%;
+  }
+
+  /* reading progress: scrubbed by the article's own view timeline */
+  html.js #main { timeline-scope: --post; }
+  html.js [data-post-body] { view-timeline-name: --post; }
+  html.js #read-progress {
+    animation: grow-x linear both;
+    animation-timeline: --post;
+    animation-range: contain 0% contain 100%;
+  }
+
+  /* hero parallax: backdrop sinks, content lifts + fades as the hero exits.
+     Pointer devices only — heavy scroll effects feel wrong on touch. */
+  @media (hover: hover) and (pointer: fine) {
+    html.js [data-hero] { view-timeline-name: --hero; }
+    html.js [data-hero-parallax="bg"] {
+      animation: hero-bg linear both;
+      animation-timeline: --hero;
+      animation-range: exit 0% exit 100%;
+    }
+    html.js [data-hero-parallax="content"] {
+      animation: hero-content linear both;
+      animation-timeline: --hero;
+      animation-range: exit 0% exit 100%;
+    }
+  }
+}
+@keyframes hero-bg      { to { transform: translateY(14%);  opacity: 0.55; } }
+@keyframes hero-content { to { transform: translateY(-26%); opacity: 0; } }
+
+/* ---- Tier 2: IntersectionObserver fallback (motion.ts) ---- */
+@supports not (animation-timeline: view()) {
+  html.js [data-reveal]:not(.is-inview),
+  html.js [data-reveal-stagger]:not(.is-inview) > * {
+    opacity: 0;
+    transform: translateY(2.2rem);
+  }
+  /* the reveal transition lives only until the element has settled, so
+     component transitions (hover lifts) take over afterwards */
+  html.js [data-reveal]:not(.is-settled),
+  html.js [data-reveal-stagger]:not(.is-settled) > * {
+    transition: opacity 0.85s var(--ease-out-expo), transform 0.85s var(--ease-out-expo);
+  }
+  html.js [data-reveal][data-reveal-delay="0.05"]:not(.is-settled) { transition-delay: 0.05s; }
+  html.js [data-reveal][data-reveal-delay="0.1"]:not(.is-settled)  { transition-delay: 0.1s; }
+  html.js [data-reveal][data-reveal-delay="0.15"]:not(.is-settled) { transition-delay: 0.15s; }
+  html.js [data-reveal][data-reveal-delay="0.2"]:not(.is-settled)  { transition-delay: 0.2s; }
+  html.js [data-reveal-stagger]:not(.is-settled) > :nth-child(2)  { transition-delay: 0.07s; }
+  html.js [data-reveal-stagger]:not(.is-settled) > :nth-child(3)  { transition-delay: 0.14s; }
+  html.js [data-reveal-stagger]:not(.is-settled) > :nth-child(4)  { transition-delay: 0.21s; }
+  html.js [data-reveal-stagger]:not(.is-settled) > :nth-child(5)  { transition-delay: 0.28s; }
+  html.js [data-reveal-stagger]:not(.is-settled) > :nth-child(n+6) { transition-delay: 0.35s; }
+
+  html.js [data-figure]:not(.is-inview) { clip-path: inset(0 100% 0 0); opacity: 0.4; }
+  html.js [data-figure]:not(.is-settled) { transition: clip-path 1s var(--ease-out-expo), opacity 1s var(--ease-out-expo); }
+
+  html.js [data-topo] [data-draw] { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 1.4s ease-out; }
+  html.js [data-topo].is-inview [data-draw] { stroke-dashoffset: 0; }
+
+  /* no scrubbing available → show the finished state */
+  html.js [data-timeline-progress] { transform: scaleY(1); }
 }
 
 /* ==========================================================================
@@ -977,7 +1102,9 @@ html.js [data-reveal-stagger] > * {
 @media (prefers-reduced-motion: reduce) {
   #intro { display: none !important; }
 }
-.no-js #intro { display: none !important; }
+/* No JS (the head gate never ran) → no intro at all; CSP forbids the old
+   <noscript><style> trick, and this is simpler anyway. */
+html:not(.js) #intro { display: none !important; }
 /* Pure-CSS failsafe: if the motion bundle never loads (blocked CDN, chunk
    error), the splash still gets out of the way. The JS path removes the node
    well before this fires, so it's invisible in normal use. */
@@ -999,13 +1126,21 @@ html.js [data-reveal-stagger] > * {
     scroll-behavior: auto !important;
   }
 
-  /* Make sure JS-hidden content is visible even if scripts are skipped. */
+  /* Reveals, wipes and scroll-scrubbed effects collapse to their final state. */
   [data-reveal],
   [data-reveal-stagger] > *,
+  [data-figure],
+  [data-hero-parallax],
   .split-line > * {
     opacity: 1 !important;
     transform: none !important;
+    clip-path: none !important;
+    animation: none !important;
   }
+  [data-topo] [data-draw] { stroke-dashoffset: 0 !important; animation: none !important; }
+  [data-timeline-progress] { transform: scaleY(1) !important; animation: none !important; }
+  /* orientation, not decoration — the reading bar keeps working */
+  #read-progress { animation-duration: auto !important; }
 }
 
 /* ==========================================================================

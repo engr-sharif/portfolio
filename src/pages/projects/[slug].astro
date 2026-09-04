@@ -28,10 +28,8 @@ const group = `project-${project.id}`;
 const cover = getCover(data.coverImage);
 const coverFull = cover ? (await getImage({ src: cover, width: 2400, format: 'webp' })).src : undefined;
 const coverCaption = getCaption(data.coverImage);
-// Per-project social share image (cover cropped to the OG ratio, absolute URL).
-const ogImage = cover
-  ? new URL((await getImage({ src: cover, width: 1200, height: 630, fit: 'cover', format: 'jpeg' })).src, Astro.site).href
-  : '/og-image.png';
+// Social share image: the build-time card for this project (src/pages/og/).
+const ogImage = `/og/projects/${project.id}.png`;
 
 // Gallery items with high-res sources + captions (cover joins the same viewer group).
 const galleryItems = await Promise.all(
