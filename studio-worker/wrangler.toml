@@ -14,6 +14,8 @@ compatibility_date = "2024-11-01"
 [vars]
 GITHUB_REPO = "engr-sharif/portfolio"
 GITHUB_BRANCH = "main"
+# REQUIRED — CORS fails closed without it. Comma-separate to allow several
+# origins, e.g. "https://engr-sharif.github.io,http://localhost:4321" for dev.
 ALLOWED_ORIGIN = "https://engr-sharif.github.io"
 # Optional model overrides for the AI assistant. Defaults: Llama 3.3 70B for
 # text (best writing quality on Workers AI) and LLaVA for vision. Drop the text

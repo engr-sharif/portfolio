@@ -1,0 +1,44 @@
+name: CI
+
+# Every pull request gets the same checks a deploy would run, plus the unit
+# tests — so a broken build or a data-loss regression is caught before merge
+# instead of on main.
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Type & template check
+        run: npm run check
+
+      - name: Build
+        run: npm run build
+
+      - name: Guard — no admin leftovers
+        run: |
+          test ! -e public/admin || (echo "public/admin must not exist" && exit 1)
+          test ! -e cms-oauth-worker || (echo "cms-oauth-worker must not exist" && exit 1)

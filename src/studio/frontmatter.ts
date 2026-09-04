@@ -1,120 +1,84 @@
 /**
- * Minimal YAML-frontmatter (+ markdown body) parser/serializer for the studio.
- * Handles the field shapes our content actually uses: strings, numbers,
- * booleans, dates, string lists, and lists of flat objects. Not a general YAML
- * engine — just enough, predictable, and round-trip-stable.
+ * Frontmatter (+ markdown body) parser/serializer for the Studio.
+ *
+ * Backed by the `yaml` library (YAML 1.2 core schema) so it round-trips every
+ * shape the content collections use — multiline strings, strings that look
+ * like numbers ("07430"), nested lists of objects — without data loss. The
+ * previous hand-rolled parser truncated multiline values and coerced numeric
+ * strings; this one is a real YAML engine with a stable, predictable output.
+ *
+ * The `---` fence handling is kept deliberately simple: a document is a YAML
+ * block between two `---` lines followed by the markdown body.
  */
+import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
 export interface Doc { data: Record<string, any>; body: string }
 
+const FENCE = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*\r?\n?([\s\S]*)$/;
+
 /* --------------------------------------------------------------- parsing */
 export function parse(raw: string): Doc {
-  const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
+  const m = raw.match(FENCE);
   if (!m) return { data: {}, body: raw };
-  return { data: parseYaml(m[1]), body: m[2] ?? '' };
+  let data: unknown;
+  try {
+    data = parseYaml(m[1]);
+  } catch (e: any) {
+    throw new Error(`This file's frontmatter isn't valid YAML: ${e?.message || e}`);
+  }
+  if (data == null) data = {};
+  if (typeof data !== 'object' || Array.isArray(data)) {
+    throw new Error('This file\'s frontmatter must be a YAML mapping (key: value lines).');
+  }
+  return { data: normalize(data as Record<string, any>), body: m[2] ?? '' };
 }
 
-function parseYaml(src: string): Record<string, any> {
-  const lines = src.split(/\r?\n/);
+/** Dates are kept as strings (core schema never yields Date objects), but be
+ * defensive in case a value arrives as a Date from elsewhere. */
+function normalize(data: Record<string, any>): Record<string, any> {
   const out: Record<string, any> = {};
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i];
-    if (!line.trim()) { i++; continue; }
-    const kv = line.match(/^([A-Za-z0-9_]+):\s*(.*)$/);
-    if (!kv) { i++; continue; }
-    const key = kv[1];
-    const val = kv[2];
-    if (val === '' ) {
-      // could be a block list (lines starting with "  - ")
-      const items: any[] = [];
-      let j = i + 1;
-      // list of objects: "  - name: x"
-      if (lines[j] && /^\s*-\s/.test(lines[j])) {
-        while (j < lines.length && /^\s*-\s/.test(lines[j])) {
-          // object item?
-          const first = lines[j].replace(/^\s*-\s*/, '');
-          const om = first.match(/^([A-Za-z0-9_]+):\s*(.*)$/);
-          if (om) {
-            const obj: Record<string, any> = {};
-            obj[om[1]] = scalar(om[2]);
-            j++;
-            while (j < lines.length && /^\s{2,}[A-Za-z0-9_]+:/.test(lines[j]) && !/^\s*-\s/.test(lines[j])) {
-              const im = lines[j].match(/^\s+([A-Za-z0-9_]+):\s*(.*)$/);
-              if (im) obj[im[1]] = scalar(im[2]);
-              j++;
-            }
-            items.push(obj);
-          } else {
-            items.push(scalar(first));
-            j++;
-          }
-        }
-        out[key] = items;
-        i = j;
-        continue;
-      }
-      out[key] = '';
-      i++;
-      continue;
-    }
-    out[key] = scalar(val);
-    i++;
-  }
+  for (const [k, v] of Object.entries(data)) out[k] = v instanceof Date ? v.toISOString().slice(0, 10) : v;
   return out;
-}
-
-function scalar(v: string): any {
-  v = v.trim();
-  if (v === '') return '';
-  if (v === 'true') return true;
-  if (v === 'false') return false;
-  if (/^-?\d+(\.\d+)?$/.test(v)) return Number(v);
-  // strip surrounding quotes
-  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) return v.slice(1, -1);
-  // inline list [a, b]
-  if (v.startsWith('[') && v.endsWith(']')) {
-    return v.slice(1, -1).split(',').map((s) => scalar(s)).filter((s) => s !== '');
-  }
-  return v;
 }
 
 /* ------------------------------------------------------------ serializing */
 export function stringify(doc: Doc): string {
-  const yaml = toYaml(doc.data);
-  const body = doc.body ?? '';
-  return `---\n${yaml}---\n${body.startsWith('\n') ? body.slice(1) : body}`;
+  const data = stripEmpty(doc.data);
+  const yaml = Object.keys(data).length ? stringifyYaml(data, { lineWidth: 0 }) : '';
+  const body = (doc.body ?? '').replace(/^\r?\n/, '');
+  return `---\n${yaml}---\n${body}`;
 }
 
-function toYaml(data: Record<string, any>): string {
-  let out = '';
-  for (const [k, v] of Object.entries(data)) {
+/** Drop keys whose value is undefined/null so we never write `key: null`. Empty
+ * strings are preserved for callers that rely on them; use cleanForSchema()
+ * before validation to strip those too. */
+function stripEmpty(data: Record<string, any>): Record<string, any> {
+  const out: Record<string, any> = {};
+  for (const [k, v] of Object.entries(data ?? {})) {
     if (v === undefined || v === null) continue;
-    if (Array.isArray(v)) {
-      if (v.length === 0) { out += `${k}: []\n`; continue; }
-      if (typeof v[0] === 'object') {
-        out += `${k}:\n`;
-        for (const item of v) {
-          const keys = Object.keys(item);
-          out += `  - ${keys[0]}: ${fmt(item[keys[0]])}\n`;
-          for (const ik of keys.slice(1)) out += `    ${ik}: ${fmt(item[ik])}\n`;
-        }
-      } else {
-        out += `${k}:\n`;
-        for (const item of v) out += `  - ${fmt(item)}\n`;
-      }
-    } else {
-      out += `${k}: ${fmt(v)}\n`;
-    }
+    out[k] = v;
   }
   return out;
 }
 
-function fmt(v: any): string {
-  if (typeof v === 'boolean' || typeof v === 'number') return String(v);
-  const s = String(v ?? '');
-  if (s === '') return "''";
-  // quote if it has yaml-significant chars
-  if (/[:#\[\]{}",&*!|>%@`]/.test(s) || /^\s|\s$/.test(s)) return JSON.stringify(s);
-  return s;
+/**
+ * Prepare form data for validation + saving: remove blank optional values
+ * ("" / null / undefined) and blank list items so optional schema fields
+ * (e.g. `externalLink: z.string().url().optional()`) don't fail on an empty
+ * input the author never touched. Booleans and numbers (including 0/false)
+ * are always kept.
+ */
+export function cleanForSchema(data: Record<string, any>): Record<string, any> {
+  const out: Record<string, any> = {};
+  for (const [k, v] of Object.entries(data ?? {})) {
+    if (v === undefined || v === null) continue;
+    if (typeof v === 'string' && v.trim() === '') continue;
+    if (Array.isArray(v)) {
+      const items = v.filter((it) => !(it === undefined || it === null || (typeof it === 'string' && it.trim() === '')));
+      out[k] = items;
+      continue;
+    }
+    out[k] = v;
+  }
+  return out;
 }

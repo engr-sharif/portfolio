@@ -41,7 +41,7 @@ const href = withBase(`projects/${project.id}/`);
 
     <div class="card__body">
       <h3 class="card__title">{data.title}</h3>
-      <p class="card__meta u-mono">{data.client} · {dateRange(data.startDate, data.endDate)}</p>
+      <p class="card__meta u-mono">{data.client} · {dateRange(data.startDate, data.endDate, data.status)}</p>
       <p class="card__summary">{data.summary}</p>
       <ul class="card__tags">
         {data.techniques.slice(0, 4).map((t) => <li class="chip">{t}</li>)}

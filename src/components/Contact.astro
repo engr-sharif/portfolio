@@ -2,7 +2,7 @@
 import Section from './Section.astro';
 import { site } from '../lib/site';
 
-// Web3Forms access key (set in /admin → Site Settings). When empty, the form
+// Web3Forms access key (set in /studio → Site Settings). When empty, the form
 // degrades to a plain mailto: so the page is never broken.
 const formKey = (site.contactFormKey ?? '').trim();
 const hasForm = formKey.length > 0;

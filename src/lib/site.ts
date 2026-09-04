@@ -1,6 +1,6 @@
 /**
  * Site-wide settings (the "About / Settings" singleton).
- * Editable via the CMS at /admin → Site Settings, which writes to
+ * Editable via the Studio at /studio → Site Settings, which writes to
  * src/content/settings/site.json. We read that JSON here with a typed
  * fallback so the site always renders even before the CMS is wired up.
  */

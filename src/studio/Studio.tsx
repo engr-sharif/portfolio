@@ -1,7 +1,8 @@
-import { useEffect, useState, type FC } from 'react';
+import { useCallback, useEffect, useRef, useState, type FC } from 'react';
 import { collections, getCollection, type Collection } from './schema';
-import { isLoggedIn, login, logout, listEntries, getStats, saveOrder, duplicateEntry, type CollStat } from './studio-lib';
+import { isLoggedIn, login, logout, listEntries, getStats, saveOrder, duplicateEntry, uniqueEntryPath, type CollStat, type EntryRow } from './studio-lib';
 import { writeFile } from './api';
+import { stringify } from './frontmatter';
 import { Editor } from './Editor';
 import { PublishToast } from './PublishToast';
 
@@ -10,31 +11,58 @@ type View =
   | { name: 'list'; collectionId: string }
   | { name: 'edit'; collectionId: string; path: string | null };
 
+const SITE_URL = '/portfolio/';
+
 const Studio: FC = () => {
   const [authed, setAuthed] = useState(isLoggedIn());
+  const [expired, setExpired] = useState(false);   // session lapsed mid-work → overlay, keep editor mounted
   const [view, setView] = useState<View>({ name: 'dashboard' });
   const [publishedAt, setPublishedAt] = useState(0); // bump to trigger the toast
   const [menuOpen, setMenuOpen] = useState(false);    // mobile drawer
+  const dirty = useRef(false);                        // the open editor's unsaved state
+
+  // A 401 anywhere in the app lands here. We do NOT tear the UI down — the
+  // author re-authenticates in place and their unsaved edits survive.
+  useEffect(() => {
+    const onExpired = () => setExpired(true);
+    window.addEventListener('studio:unauthorized', onExpired);
+    return () => window.removeEventListener('studio:unauthorized', onExpired);
+  }, []);
+
+  const onDirtyChange = useCallback((d: boolean) => { dirty.current = d; }, []);
+
+  /** Every navigation funnels through here so unsaved work is never lost silently. */
+  const go = (v: View) => {
+    if (dirty.current && !confirm('You have unsaved changes. Discard them and leave?')) return;
+    dirty.current = false;
+    setView(v); setMenuOpen(false);
+  };
+  const onPublished = () => setPublishedAt(Date.now());
+  const onLogout = () => {
+    const msg = dirty.current
+      ? 'You have unsaved changes. Sign out and discard them?'
+      : 'Sign out of the Studio?';
+    if (!confirm(msg)) return;
+    dirty.current = false;
+    logout(); setAuthed(false); setView({ name: 'dashboard' });
+  };
 
   if (!authed) return <Login onAuthed={() => setAuthed(true)} />;
-
-  const go = (v: View) => { setView(v); setMenuOpen(false); };
-  const onPublished = () => setPublishedAt(Date.now());
 
   return (
     <div className={`st${menuOpen ? ' st--menu-open' : ''}`}>
       {/* Mobile top bar */}
       <header className="st-topbar">
-        <button className="st-topbar__menu" aria-label="Menu" onClick={() => setMenuOpen((o) => !o)}>
+        <button className="st-topbar__menu" aria-label="Menu" aria-expanded={menuOpen} onClick={() => setMenuOpen((o) => !o)}>
           <span /><span /><span />
         </button>
         <span className="st-topbar__brand"><span className="st-side__mark">◆</span> Studio</span>
       </header>
 
       <Sidebar
-        active={view.name === 'list' || view.name === 'edit' ? (view as any).collectionId : ''}
+        active={view.name === 'list' || view.name === 'edit' ? view.collectionId : ''}
         onNav={(id) => go(id ? { name: 'list', collectionId: id } : { name: 'dashboard' })}
-        onLogout={() => { if (confirm('Sign out of the Studio?')) { logout(); setAuthed(false); } }}
+        onLogout={onLogout}
       />
       {menuOpen && <div className="st-scrim" onClick={() => setMenuOpen(false)} />}
 
@@ -45,6 +73,7 @@ const Studio: FC = () => {
             collection={getCollection(view.collectionId)!}
             onNew={() => go({ name: 'edit', collectionId: view.collectionId, path: null })}
             onOpen={(path) => go({ name: 'edit', collectionId: view.collectionId, path })}
+            onPublished={onPublished}
           />
         )}
         {view.name === 'edit' && (
@@ -52,17 +81,26 @@ const Studio: FC = () => {
             collection={getCollection(view.collectionId)!}
             path={view.path}
             onPublished={onPublished}
-            onDone={() => go(getCollection(view.collectionId)!.kind === 'file' ? { name: 'dashboard' } : { name: 'list', collectionId: view.collectionId })}
+            onDirtyChange={onDirtyChange}
+            onDone={() => { dirty.current = false; setView(getCollection(view.collectionId)!.kind === 'file' ? { name: 'dashboard' } : { name: 'list', collectionId: view.collectionId }); }}
           />
         )}
       </main>
       <PublishToast trigger={publishedAt} />
+
+      {expired && (
+        <Login
+          overlay
+          onAuthed={() => setExpired(false)}
+          onCancel={() => { setExpired(false); setAuthed(false); }}
+        />
+      )}
     </div>
   );
 };
 
 /* ------------------------------------------------------------------- Login */
-const Login: FC<{ onAuthed: () => void }> = ({ onAuthed }) => {
+const Login: FC<{ onAuthed: () => void; overlay?: boolean; onCancel?: () => void }> = ({ onAuthed, overlay, onCancel }) => {
   const [pw, setPw] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
@@ -75,17 +113,22 @@ const Login: FC<{ onAuthed: () => void }> = ({ onAuthed }) => {
   };
 
   return (
-    <div className="st-login">
+    <div className={`st-login${overlay ? ' st-login--overlay' : ''}`} role={overlay ? 'dialog' : undefined} aria-modal={overlay || undefined} aria-label={overlay ? 'Session expired' : undefined}>
       <form className="st-login__card" onSubmit={submit}>
         <div className="st-login__brand">
           <span className="st-login__mark">◆</span>
           <span>Studio</span>
         </div>
-        <p className="st-login__sub">Sign in to edit your site.</p>
+        <p className="st-login__sub">
+          {overlay ? 'Your session expired. Sign in to continue — your unsaved work is still here.' : 'Sign in to edit your site.'}
+        </p>
         <input type="password" className="st-login__input" placeholder="Password" value={pw}
-          autoFocus onChange={(e) => setPw(e.target.value)} />
-        {err && <p className="st-login__err">{err}</p>}
+          autoFocus autoComplete="current-password" onChange={(e) => setPw(e.target.value)} />
+        {err && <p className="st-login__err" role="alert">{err}</p>}
         <button className="st-btn st-btn--primary st-login__btn" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
+        {overlay && onCancel && (
+          <button type="button" className="st-btn st-btn--ghost st-login__btn" onClick={onCancel}>Sign out instead</button>
+        )}
       </form>
     </div>
   );
@@ -97,16 +140,16 @@ const Sidebar: FC<{ active: string; onNav: (id: string) => void; onLogout: () =>
     <button className="st-side__brand" onClick={() => onNav('')}>
       <span className="st-side__mark">◆</span> Studio
     </button>
-    <nav className="st-side__nav">
+    <nav className="st-side__nav" aria-label="Collections">
       <button className={`st-side__link${active === '' ? ' is-active' : ''}`} onClick={() => onNav('')}>Dashboard</button>
       {collections.map((c) => (
-        <button key={c.id} className={`st-side__link${active === c.id ? ' is-active' : ''}`} onClick={() => onNav(c.id)}>
+        <button key={c.id} className={`st-side__link${active === c.id ? ' is-active' : ''}`} onClick={() => onNav(c.id)} aria-current={active === c.id ? 'page' : undefined}>
           {c.label}
         </button>
       ))}
     </nav>
     <div className="st-side__foot">
-      <a className="st-side__link" href="/portfolio/" target="_blank" rel="noopener">View site ↗</a>
+      <a className="st-side__link" href={SITE_URL} target="_blank" rel="noopener">View site ↗</a>
       <button className="st-side__link" onClick={onLogout}>Sign out</button>
     </div>
   </aside>
@@ -116,9 +159,10 @@ const Sidebar: FC<{ active: string; onNav: (id: string) => void; onLogout: () =>
 const Dashboard: FC<{ onOpen: (id: string) => void; onNew: (id: string) => void }> = ({ onOpen, onNew }) => {
   const folders = collections.filter((c) => c.kind === 'folder');
   const [stats, setStats] = useState<CollStat[]>([]);
+  const [statsErr, setStatsErr] = useState('');
   const statOf = (id: string) => stats.find((s) => s.id === id);
 
-  useEffect(() => { getStats().then(setStats).catch(() => {}); }, []);
+  useEffect(() => { getStats().then(setStats).catch((e) => setStatsErr(e?.message || '')); }, []);
 
   return (
     <div className="st-dash">
@@ -132,6 +176,8 @@ const Dashboard: FC<{ onOpen: (id: string) => void; onNew: (id: string) => void 
           <button key={c.id} className="st-dash__new" onClick={() => onNew(c.id)}>+ New {c.label.replace(/s$/, '')}</button>
         ))}
       </div>
+
+      {statsErr && <div className="st-error" role="alert">{statsErr}</div>}
 
       <div className="st-dash__grid">
         {collections.map((c) => {
@@ -156,9 +202,8 @@ const Dashboard: FC<{ onOpen: (id: string) => void; onNew: (id: string) => void 
 };
 
 /* ----------------------------------------------------------- CollectionList */
-type Row = { path: string; label: string; status?: string };
-const CollectionList: FC<{ collection: Collection; onNew: () => void; onOpen: (path: string) => void }> = ({ collection, onNew, onOpen }) => {
-  const [entries, setEntries] = useState<Row[]>([]);
+const CollectionList: FC<{ collection: Collection; onNew: () => void; onOpen: (path: string) => void; onPublished: () => void }> = ({ collection, onNew, onOpen, onPublished }) => {
+  const [entries, setEntries] = useState<EntryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [q, setQ] = useState('');
@@ -177,33 +222,38 @@ const CollectionList: FC<{ collection: Collection; onNew: () => void; onOpen: (p
   useEffect(() => {
     if (collection.kind === 'file') { onOpen(collection.file!); return; }
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [collection.id]);
 
   if (collection.kind === 'file') return null;
 
+  // Reordering always works on the full, unfiltered list: a search filter
+  // would make row indexes disagree with the entries being moved.
+  const startReorder = () => { setQ(''); setReordering(true); };
   const move = (i: number, d: number) => {
     const t = i + d; if (t < 0 || t >= entries.length) return;
     const n = [...entries]; [n[i], n[t]] = [n[t], n[i]]; setEntries(n);
   };
   const persistOrder = async () => {
-    setSavingOrder(true);
-    try { await saveOrder(entries.map((e) => e.path)); setReordering(false); }
+    setSavingOrder(true); setError('');
+    try { await saveOrder(entries.map((e) => e.path)); setReordering(false); onPublished(); }
     catch (e: any) { setError(e.message); }
     finally { setSavingOrder(false); }
   };
   const duplicate = async (path: string, label: string) => {
     if (!confirm(`Duplicate “${label}” as a new draft?`)) return;
+    setError('');
     try {
       const doc = await duplicateEntry(path, collection.labelField);
       const base = slugifyLabel(String(doc.data[collection.labelField] || 'copy'));
-      const newPath = `${collection.dir}/${base}.md`;
-      const { stringify } = await import('./frontmatter');
+      const newPath = await uniqueEntryPath(collection.dir!, base);
       await writeFile(newPath, stringify(doc), `studio: duplicate ${doc.data[collection.labelField] || ''}`);
+      onPublished();
       await load();
     } catch (e: any) { setError(e.message); }
   };
 
-  const filtered = q.trim()
+  const filtered = q.trim() && !reordering
     ? entries.filter((e) => e.label.toLowerCase().includes(q.toLowerCase()))
     : entries;
 
@@ -215,17 +265,17 @@ const CollectionList: FC<{ collection: Collection; onNew: () => void; onOpen: (p
           {canReorder && entries.length > 1 && (
             reordering
               ? <button className="st-btn st-btn--primary" onClick={persistOrder} disabled={savingOrder}>{savingOrder ? 'Saving…' : 'Done reordering'}</button>
-              : <button className="st-btn" onClick={() => setReordering(true)}>Reorder</button>
+              : <button className="st-btn" onClick={startReorder}>Reorder</button>
           )}
           <button className="st-btn st-btn--primary" onClick={onNew}>+ New {collection.label.replace(/s$/, '')}</button>
         </div>
       </header>
 
       {entries.length > 4 && !reordering && (
-        <input className="sf__input st-list__search" placeholder={`Search ${collection.label.toLowerCase()}…`} value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className="sf__input st-list__search" type="search" placeholder={`Search ${collection.label.toLowerCase()}…`} aria-label={`Search ${collection.label}`} value={q} onChange={(e) => setQ(e.target.value)} />
       )}
 
-      {error && <div className="st-error">{error}</div>}
+      {error && <div className="st-error" role="alert">{error}</div>}
       {loading ? <div className="st-loading">Loading…</div> : (
         <ul className="st-list__items">
           {filtered.length === 0 && <li className="st-list__empty">{q ? 'No matches.' : 'No entries yet. Create your first one.'}</li>}
@@ -235,17 +285,21 @@ const CollectionList: FC<{ collection: Collection; onNew: () => void; onOpen: (p
                 <div className="st-list__item st-list__item--reorder">
                   <span className="st-list__label">{e.label}</span>
                   <span className="st-list__reorder">
-                    <button onClick={() => move(i, -1)} aria-label="Up">↑</button>
-                    <button onClick={() => move(i, 1)} aria-label="Down">↓</button>
+                    <button onClick={() => move(i, -1)} aria-label={`Move ${e.label} up`} disabled={i === 0}>↑</button>
+                    <button onClick={() => move(i, 1)} aria-label={`Move ${e.label} down`} disabled={i === entries.length - 1}>↓</button>
                   </span>
                 </div>
               ) : (
                 <>
                   <button className="st-list__item" onClick={() => onOpen(e.path)}>
                     <span className="st-list__label">{e.label}</span>
-                    {e.status && <span className={`st-list__status st-list__status--${e.status}`}>{e.status}</span>}
+                    {e.status && (
+                      <span className={`st-list__status st-list__status--${e.status}`} title={e.broken ? 'This file’s frontmatter can’t be read — open it to see the error.' : undefined}>
+                        {e.broken ? 'needs repair' : e.status}
+                      </span>
+                    )}
                   </button>
-                  <button className="st-list__dup" title="Duplicate as draft" aria-label={`Duplicate ${e.label}`} onClick={() => duplicate(e.path, e.label)}>⧉</button>
+                  {!e.broken && <button className="st-list__dup" title="Duplicate as draft" aria-label={`Duplicate ${e.label}`} onClick={() => duplicate(e.path, e.label)}>⧉</button>}
                 </>
               )}
             </li>

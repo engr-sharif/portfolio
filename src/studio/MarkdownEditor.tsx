@@ -132,21 +132,23 @@ export const MarkdownEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/ass
     } finally { setUploading(false); }
   };
 
+  const [uploadErr, setUploadErr] = useState('');
   const insertImage = async (file: File) => {
-    setUploading(true);
+    setUploading(true); setUploadErr('');
     try {
       const { file: out } = await processImage(file); // HEIC→JPEG + downscale
       const base64 = await new Promise<string>((res, rej) => {
-        const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(out);
+        const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(new Error('Could not read that file.')); r.readAsDataURL(out);
       });
       const name = slugify(out.name);
       const path = `${mediaDir}/${name}`;
       await uploadImage(path, base64, `studio: upload ${name}`);
-      const ta = ref.current; if (!ta) return;
+      const ta = ref.current;
+      const at = ta ? ta.selectionStart : value.length;
       const md = `\n![${out.name.replace(/\.[^.]+$/, '')}](/${path})\n`;
-      const { selectionStart: s } = ta;
-      const next = value.slice(0, s) + md + value.slice(s);
-      onChange(next);
+      onChange(value.slice(0, at) + md + value.slice(at));
+    } catch (e: any) {
+      setUploadErr(e?.message || 'Image upload failed. Check your connection and try again.');
     } finally { setUploading(false); }
   };
 
@@ -172,13 +174,16 @@ export const MarkdownEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/ass
         ))}
         <label className="md__btn md__btn--img" title="Insert image">
           {uploading ? '…' : '🖼'}
-          <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) insertImage(f); }} />
+          <input type="file" accept="image/*,.heic,.heif" hidden disabled={uploading}
+            onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) insertImage(f); }} />
         </label>
         <button type="button" className="md__btn" title="Insert video"
           onMouseDown={(e) => { e.preventDefault(); setVideoOpen((o) => !o); setVideoErr(''); }}>▶</button>
         <button type="button" className={`md__btn md__btn--ai${aiOpen ? ' is-on' : ''}`} title="AI assist"
           onMouseDown={(e) => { e.preventDefault(); setAiOpen((o) => !o); setAiErr(''); setAiResult(''); }}>✨</button>
       </div>
+
+      {uploadErr && <p className="md__ai-err" role="alert">{uploadErr} <button type="button" className="md__dismiss" onClick={() => setUploadErr('')}>dismiss</button></p>}
 
       {aiOpen && (
         <div className="md__ai">
@@ -238,7 +243,7 @@ export const MarkdownEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/ass
         placeholder="Markdown — use the toolbar or type directly…"
         onDrop={(e) => {
           const f = e.dataTransfer.files?.[0];
-          if (f && f.type.startsWith('image/')) { e.preventDefault(); insertImage(f); }
+          if (f && (f.type.startsWith('image/') || /\.(heic|heif)$/i.test(f.name))) { e.preventDefault(); insertImage(f); }
         }}
       />
     </div>

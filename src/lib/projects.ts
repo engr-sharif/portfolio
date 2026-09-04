@@ -35,12 +35,4 @@ export const statusLabel: Record<string, string> = {
   proposed: 'Proposed',
 };
 
-export function dateRange(start: string, end?: string): string {
-  const fmt = (s: string) => {
-    const [y, m] = s.split('-');
-    if (!m) return y;
-    const d = new Date(Number(y), Number(m) - 1);
-    return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-  };
-  return `${fmt(start)} — ${end ? fmt(end) : 'Present'}`;
-}
+export { dateRange } from './date-range';

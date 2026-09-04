@@ -1,6 +1,6 @@
 /**
  * Profile data (credentials, certifications, tools, timeline) — the
- * "Credentials / Career" singleton, editable via the CMS at /admin.
+ * "Credentials / Career" singleton, editable via the Studio at /studio.
  * Typed with a fallback so the site always renders.
  */
 import profileJson from '../content/settings/profile.json';

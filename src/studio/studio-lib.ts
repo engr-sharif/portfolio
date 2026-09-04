@@ -3,7 +3,7 @@
  * a thin transport layer).
  */
 import { login as apiLogin, clearToken, isLoggedIn as apiIsLoggedIn, listDir, readFile, writeFile, rawImageUrl } from './api';
-import { parse } from './frontmatter';
+import { parse, stringify } from './frontmatter';
 import { collections, type Collection } from './schema';
 
 export const login = apiLogin;
@@ -29,9 +29,11 @@ export async function getStats(): Promise<CollStat[]> {
   );
 }
 
-export interface EntryRow { path: string; label: string; status?: string }
+export interface EntryRow { path: string; label: string; status?: string; broken?: boolean }
 
-/** List entries of a folder collection with their label + status, newest first. */
+/** List entries of a folder collection with their label + status, newest first.
+ * An entry whose frontmatter can't be parsed is still listed (flagged
+ * `broken`) so it can be opened and repaired rather than silently vanishing. */
 export async function listEntries(collection: Collection): Promise<EntryRow[]> {
   const files = (await listDir(collection.dir!)).filter((f) => f.type === 'file' && /\.mdx?$/.test(f.name));
   const rows = await Promise.all(
@@ -42,16 +44,16 @@ export async function listEntries(collection: Collection): Promise<EntryRow[]> {
         let status: string | undefined;
         if (collection.statusField === 'published') status = data.published ? 'live' : 'draft';
         else if (collection.statusField === 'draft') status = data.draft ? 'draft' : 'live';
-        return { path: f.path, label: String(data[collection.labelField] || f.name), status, order: Number(data.order ?? 0), date: String(data.pubDate ?? '') };
+        return { path: f.path, label: String(data[collection.labelField] || f.name), status, order: Number(data.order ?? 0), date: String(data.pubDate ?? ''), broken: false };
       } catch {
-        return { path: f.path, label: f.name, order: 0, date: '' };
+        return { path: f.path, label: f.name, status: 'broken', order: 0, date: '', broken: true };
       }
     }),
   );
   // Sort: projects/tools by order; blog by date desc.
   if (collection.id === 'blog') rows.sort((a, b) => (b.date > a.date ? 1 : -1));
   else rows.sort((a, b) => a.order - b.order);
-  return rows.map(({ path, label, status }) => ({ path, label, status }));
+  return rows.map(({ path, label, status, broken }) => ({ path, label, status, broken }));
 }
 
 export interface MediaItem { path: string; name: string; url: string }
@@ -70,17 +72,23 @@ export async function listImages(dir: string): Promise<MediaItem[]> {
 }
 
 /** Persist a new order for a folder collection by writing each entry's `order`
- * field to match its position. Sequential commits (small N). */
+ * field to match its position. Sequential commits (small N); reports partial
+ * failure so the author knows which items didn't move. */
 export async function saveOrder(paths: string[]): Promise<void> {
+  const failed: string[] = [];
   for (let i = 0; i < paths.length; i++) {
-    const { content, sha } = await readFile(paths[i]);
-    if (content == null) continue;
-    const doc = parse(content);
-    if (doc.data.order === i) continue; // no change
-    doc.data.order = i;
-    const { stringify } = await import('./frontmatter');
-    await writeFile(paths[i], stringify(doc), `studio: reorder (${i})`, sha);
+    try {
+      const { content, sha } = await readFile(paths[i]);
+      if (content == null) continue;
+      const doc = parse(content);
+      if (doc.data.order === i) continue; // no change
+      doc.data.order = i;
+      await writeFile(paths[i], stringify(doc), `studio: reorder (${i})`, sha);
+    } catch {
+      failed.push(paths[i].split('/').pop() || paths[i]);
+    }
   }
+  if (failed.length) throw new Error(`Saved most of the order, but these didn't update: ${failed.join(', ')}. Reload and try again.`);
 }
 
 /** Duplicate an entry: read it, append " copy" to the label, return the new
@@ -95,14 +103,30 @@ export async function duplicateEntry(path: string, labelField: string) {
   return doc;
 }
 
+/** Find a free path for a new entry: `<dir>/<slug>.md`, then `-2`, `-3`, …
+ * so a second "Field Notes" post never silently overwrites the first. */
+export async function uniqueEntryPath(dir: string, slug: string): Promise<string> {
+  const base = slug || 'untitled';
+  for (let n = 1; n < 50; n++) {
+    const candidate = `${dir}/${base}${n === 1 ? '' : `-${n}`}.md`;
+    const { sha } = await readFile(candidate);
+    if (!sha) return candidate;
+  }
+  return `${dir}/${base}-${Date.now()}.md`;
+}
+
+export const AI_GUIDE_PATH = 'src/content/settings/ai.json';
+
 /** The AI writing guide (from settings/ai.json). Empty string means "use the
- * Worker's built-in default guide". Cached for the session. */
+ * Worker's built-in default guide". Cached until the guide is saved. */
 let _aiGuide: string | undefined;
 export async function aiGuide(): Promise<string> {
   if (_aiGuide !== undefined) return _aiGuide;
   try {
-    const f = await readFile('src/content/settings/ai.json');
+    const f = await readFile(AI_GUIDE_PATH);
     _aiGuide = f.content ? (JSON.parse(f.content).guide || '') : '';
   } catch { _aiGuide = ''; }
   return _aiGuide ?? '';
 }
+/** Call after saving ai.json so the next assist uses the new guide. */
+export const invalidateAiGuide = () => { _aiGuide = undefined; };

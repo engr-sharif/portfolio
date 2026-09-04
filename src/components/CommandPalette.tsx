@@ -2,7 +2,9 @@
  * Command palette (⌘K / Ctrl-K). Quick-nav + full-text Pagefind search in one
  * dialog. Pagefind's bundle is loaded lazily on first open (never on page load),
  * so it costs nothing until used. Fully keyboard-driven, focus-trapped, and
- * accessible. The base path is injected by the host (for /portfolio/ subpath).
+ * accessible: focus is captured on open, Tab cycles inside the panel, the page
+ * behind is made inert, and focus returns to whatever opened it on close.
+ * The base path is injected by the host (for /portfolio/ subpath).
  */
 import { useEffect, useRef, useState, useCallback, type FC } from 'react';
 
@@ -18,12 +20,17 @@ interface Result {
   excerpt: string;
 }
 
+const FOCUSABLE = 'input, button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
+const INERT_TARGETS = '#main, .site-nav, .site-footer';
+
 const CommandPalette: FC<Props> = ({ base, nav }) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Result[]>([]);
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const opener = useRef<HTMLElement | null>(null);
   const pagefind = useRef<any>(null);
 
   // Lazy-load the Pagefind bundle on first open.
@@ -46,24 +53,33 @@ const CommandPalette: FC<Props> = ({ base, nav }) => {
     setActive(0);
   }, []);
 
+  const toggle = useCallback(() => {
+    setOpen((o) => {
+      if (!o) opener.current = document.activeElement as HTMLElement | null;
+      return !o;
+    });
+  }, []);
+
   // Global ⌘K / Ctrl-K + "/" to open.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.key === 'k' && (e.metaKey || e.ctrlKey)) || (e.key === '/' && !isTyping())) {
         e.preventDefault();
-        setOpen((o) => !o);
+        toggle();
       }
       if (e.key === 'Escape') close();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [close]);
+  }, [close, toggle]);
 
   // Listen for clicks on any [data-open-search] trigger.
   useEffect(() => {
     const onTrigger = (e: Event) => {
-      if ((e.target as HTMLElement)?.closest?.('[data-open-search]')) {
+      const t = (e.target as HTMLElement)?.closest?.('[data-open-search]') as HTMLElement | null;
+      if (t) {
         e.preventDefault();
+        opener.current = t;
         setOpen(true);
       }
     };
@@ -71,16 +87,23 @@ const CommandPalette: FC<Props> = ({ base, nav }) => {
     return () => document.removeEventListener('click', onTrigger);
   }, []);
 
+  // Open/close side effects: focus, scroll lock, inert background, focus return.
   useEffect(() => {
-    if (open) {
-      loadPagefind();
-      requestAnimationFrame(() => inputRef.current?.focus());
-      document.documentElement.style.overflow = 'hidden';
-      window.__lenis?.stop?.();
-    } else {
+    if (!open) return;
+    loadPagefind();
+    requestAnimationFrame(() => inputRef.current?.focus());
+    document.documentElement.style.overflow = 'hidden';
+    window.__lenis?.stop?.();
+    const bg = [...document.querySelectorAll<HTMLElement>(INERT_TARGETS)];
+    bg.forEach((el) => el.setAttribute('inert', ''));
+    return () => {
       document.documentElement.style.overflow = '';
       window.__lenis?.start?.();
-    }
+      bg.forEach((el) => el.removeAttribute('inert'));
+      const back = opener.current;
+      opener.current = null;
+      if (back && document.contains(back)) back.focus({ preventScroll: true });
+    };
   }, [open, loadPagefind]);
 
   // Run search (debounced).
@@ -118,13 +141,24 @@ const CommandPalette: FC<Props> = ({ base, nav }) => {
     if (e.key === 'ArrowDown') { e.preventDefault(); setActive((a) => Math.min(a + 1, items.length - 1)); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((a) => Math.max(a - 1, 0)); }
     else if (e.key === 'Enter' && items[active]) { e.preventDefault(); go(items[active].url); }
+    else if (e.key === 'Tab') {
+      // Focus trap: cycle within the panel's focusable controls.
+      const panel = panelRef.current;
+      if (!panel) return;
+      const list = [...panel.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => el.offsetParent !== null);
+      if (list.length === 0) return;
+      const i = list.indexOf(document.activeElement as HTMLElement);
+      e.preventDefault();
+      const next = e.shiftKey ? (i <= 0 ? list.length - 1 : i - 1) : (i + 1) % list.length;
+      list[next]?.focus();
+    }
   };
 
   if (!open) return null;
 
   return (
     <div className="cmdk" role="dialog" aria-modal="true" aria-label="Search" onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}>
-      <div className="cmdk__panel" onKeyDown={onListKey}>
+      <div className="cmdk__panel" ref={panelRef} onKeyDown={onListKey}>
         <div className="cmdk__inputrow">
           <span className="cmdk__icon" aria-hidden="true">⌕</span>
           <input
@@ -134,11 +168,13 @@ const CommandPalette: FC<Props> = ({ base, nav }) => {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             aria-label="Search"
+            aria-controls="cmdk-list"
+            aria-activedescendant={items[active] ? `cmdk-opt-${active}` : undefined}
             autoComplete="off"
           />
           <kbd className="cmdk__esc">ESC</kbd>
         </div>
-        <ul className="cmdk__list" role="listbox">
+        <ul className="cmdk__list" id="cmdk-list" role="listbox">
           {items.length === 0 && query.trim() && (
             <li className="cmdk__empty">No matches for “{query}”.</li>
           )}
@@ -146,9 +182,11 @@ const CommandPalette: FC<Props> = ({ base, nav }) => {
           {items.map((it, i) => (
             <li key={it.url + i}>
               <button
+                id={`cmdk-opt-${i}`}
                 className={`cmdk__item${i === active ? ' is-active' : ''}`}
                 role="option"
                 aria-selected={i === active}
+                tabIndex={-1}
                 onMouseEnter={() => setActive(i)}
                 onClick={() => go(it.url)}
               >

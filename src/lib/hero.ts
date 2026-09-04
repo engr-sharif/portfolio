@@ -73,10 +73,19 @@ function revealHero() {
  * Hero status rotator: cycle the "NOW →" instrument readout through its lines.
  * Pauses under reduced motion (shows the first line only).
  */
+let rotator: ReturnType<typeof setInterval> | null = null;
+let rotatorSwap: ReturnType<typeof setTimeout> | null = null;
+
+function stopStatusRotator() {
+  if (rotator) clearInterval(rotator);
+  if (rotatorSwap) clearTimeout(rotatorSwap);
+  rotator = rotatorSwap = null;
+}
+
 function startStatusRotator() {
+  stopStatusRotator(); // never stack intervals across View Transitions
   const el = document.querySelector<HTMLElement>('[data-status-lines]');
-  if (!el || el.dataset.rotating) return;
-  el.dataset.rotating = '1';
+  if (!el) return;
 
   let lines: string[] = [];
   try {
@@ -88,9 +97,11 @@ function startStatusRotator() {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   let i = 0;
-  setInterval(() => {
+  rotator = setInterval(() => {
+    // Pause while the tab is hidden — no point animating an invisible readout.
+    if (document.hidden) return;
     el.classList.add('is-swapping');
-    setTimeout(() => {
+    rotatorSwap = setTimeout(() => {
       i = (i + 1) % lines.length;
       el.textContent = lines[i];
       el.classList.remove('is-swapping');
@@ -102,3 +113,4 @@ document.addEventListener('astro:page-load', () => {
   revealHero();
   startStatusRotator();
 });
+document.addEventListener('astro:before-swap', stopStatusRotator);

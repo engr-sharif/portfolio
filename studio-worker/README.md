@@ -58,16 +58,39 @@ much of the free daily allowance, drop the text model to
 `@cf/meta/llama-3.1-8b-instruct` for faster, cheaper edits. The assistant's
 voice/tone guide lives in the Worker (and is editable at **Studio → AI Assistant**).
 
+## Redeploying after a code change (no CLI needed)
+Cloudflare Dashboard → Workers & Pages → **engr-sharif-studio** → **Edit code**
+→ replace the contents with the new `worker.js` → **Deploy**. Secrets and vars
+are kept. Check the **Settings → Variables** tab has `ALLOWED_ORIGIN` set —
+since this revision the Worker refuses cross-origin requests without it.
+
 ## How it works
 - **Login:** `POST /api/login` with the password → returns a signed JWT (8 h).
 - **Edits:** the studio reads/writes content files via the Worker, which uses
   your `GITHUB_TOKEN` to commit. Every save is a real Git commit → the site
   rebuilds and is live in ~90 seconds.
-- **Security:** password + GitHub token live only in the Worker's environment.
-  The browser only ever holds a short-lived session token. CORS is locked to
-  your site origin (`ALLOWED_ORIGIN` in `wrangler.toml`).
+- **Deploy status:** `GET /api/deploy-status?since=<ms>` reads the Actions run
+  for the deploy branch so the Studio can say *Live* / *Build failed* honestly
+  (falls back to an unauthenticated read — the repo is public — when the PAT
+  has no Actions permission).
+- **AI:** `POST /api/assist` proxies to Workers AI. Vision tasks only accept
+  images hosted in this repo (`raw.githubusercontent.com/<repo>/…`).
+
+## Security posture
+- Password + GitHub token live only in the Worker's environment; the browser
+  holds a short-lived session token.
+- **CORS fails closed** — only origins listed in `ALLOWED_ORIGIN` are echoed;
+  unknown `Origin` headers get a 403.
+- **JWT pinned to HS256**; `alg`/`typ`/`sub`/`exp`/`iat` are all checked.
+- **Rate limits** (per client IP, in isolate memory): 8 sign-in attempts per
+  10 min, 40 assist calls per 10 min. Pair with a Cloudflare WAF rule for a
+  hard ceiling if you ever need one.
+- **Repo paths are validated** (relative, no `..`, no control chars) and
+  uploads are capped at ~50 MB; assist input at 20k chars / 8 MB images.
+- Responses carry `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`,
+  `Referrer-Policy: no-referrer`.
 
 ## Notes
-- This Worker is separate from the older `cms-oauth-worker` (which backed
-  Sveltia). You can retire that one once you've moved fully to the studio.
-- To change your password later: `npx wrangler secret put STUDIO_PASSWORD`.
+- To change your password later: `npx wrangler secret put STUDIO_PASSWORD`
+  (or Dashboard → Settings → Variables → edit the secret).
+- Local dev: add `http://localhost:4321` to `ALLOWED_ORIGIN` (comma-separated).

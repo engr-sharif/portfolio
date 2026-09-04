@@ -30,31 +30,60 @@ export default function WorkMapIsland({ projects, photos, base = '/' }: Props) {
   const mapRef = useRef<any>(null);
   const markers = useRef<{ project: any[]; photo: any[] }>({ project: [], photo: [] });
   const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState<string>('');
   const [showProjects, setShowProjects] = useState(true);
   const [showPhotos, setShowPhotos] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const maplibregl = (await import('maplibre-gl')).default;
+      let maplibregl: any;
+      try {
+        maplibregl = (await import('maplibre-gl')).default;
+      } catch {
+        if (!cancelled) setFailed('The map library could not be loaded.');
+        return;
+      }
       if (cancelled || !elRef.current) return;
+      if (typeof maplibregl.supported === 'function' && !maplibregl.supported()) {
+        setFailed('This browser can’t render WebGL maps.');
+        return;
+      }
 
-      const map = new maplibregl.Map({
-        container: elRef.current,
-        style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-        bounds: [[-124.5, 32.4], [-114.1, 42.1]], // California
-        fitBoundsOptions: { padding: 40 },
-        cooperativeGestures: true, // don't hijack page scroll
-        attributionControl: { compact: true },
-      });
+      let map: any;
+      try {
+        map = new maplibregl.Map({
+          container: elRef.current,
+          style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+          bounds: [[-124.5, 32.4], [-114.1, 42.1]], // California
+          fitBoundsOptions: { padding: 40 },
+          cooperativeGestures: true, // don't hijack page scroll
+          attributionControl: { compact: true },
+        });
+      } catch {
+        if (!cancelled) setFailed('The map could not be started on this device.');
+        return;
+      }
       mapRef.current = map;
       map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+
+      // Basemap/tiles blocked (offline, corporate proxy, ad-blocker) → say so
+      // instead of leaving a silent black rectangle. Only style-level failures
+      // count; a single missing tile is normal and non-fatal.
+      let loaded = false;
+      map.on('error', (e: any) => {
+        if (cancelled || loaded) return;
+        const msg = String(e?.error?.message || e?.error || '');
+        const isStyle = !e?.tile && (/style|Failed to fetch|NetworkError|403|404|5\d\d/i.test(msg) || !map.isStyleLoaded?.());
+        if (isStyle) setFailed('The basemap could not be loaded — it may be blocked on this network.');
+      });
 
       const popup = (html: string) =>
         new maplibregl.Popup({ offset: 16, closeButton: false, className: 'wm-popup' }).setHTML(html);
 
       map.on('load', () => {
         if (cancelled) return;
+        loaded = true;
 
         projects.forEach((p) => {
           const el = document.createElement('div');
@@ -121,7 +150,26 @@ export default function WorkMapIsland({ projects, photos, base = '/' }: Props) {
         )}
         <span className="wm__note">Locations approximate</span>
       </div>
-      <div ref={elRef} className="wm__canvas" />
+      <div className="wm__stage">
+        <div ref={elRef} className="wm__canvas" aria-hidden={!!failed} />
+        {failed && (
+          <div className="wm__fallback" role="status">
+            <p className="wm__fallback-title">Map unavailable</p>
+            <p className="wm__fallback-msg">{failed}</p>
+            {projects.length > 0 && (
+              <ul className="wm__fallback-list">
+                {projects.map((p) => (
+                  <li key={p.slug}>
+                    <a href={`${base}projects/${p.slug}/`}>{p.title}</a>
+                    {p.location && <span> · {p.location}</span>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+        {!failed && !ready && <div className="wm__loading" aria-hidden="true" />}
+      </div>
     </div>
   );
 }

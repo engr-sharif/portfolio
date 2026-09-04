@@ -6,6 +6,7 @@ import expressiveCode from 'astro-expressive-code';
 import pagefind from 'astro-pagefind';
 import tailwindcss from '@tailwindcss/vite';
 import { remarkReadingTime } from './src/lib/remark-reading-time.mjs';
+import studioCsp from './integrations/studio-csp.mjs';
 
 // DEPLOY TARGET: project site at https://engr-sharif.github.io/portfolio/
 // The repo is named `portfolio`, so Pages serves it under the /portfolio/
@@ -34,6 +35,7 @@ export default defineConfig({
       filter: (page) => !page.includes('/studio'),
     }),
     pagefind(),
+    studioCsp(),
   ],
   markdown: {
     remarkPlugins: [remarkReadingTime],
