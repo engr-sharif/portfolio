@@ -978,6 +978,11 @@ html.js [data-reveal-stagger] > * {
   #intro { display: none !important; }
 }
 .no-js #intro { display: none !important; }
+/* Pure-CSS failsafe: if the motion bundle never loads (blocked CDN, chunk
+   error), the splash still gets out of the way. The JS path removes the node
+   well before this fires, so it's invisible in normal use. */
+#intro { animation: intro-failsafe 0.4s ease 4.5s forwards; }
+@keyframes intro-failsafe { to { opacity: 0; visibility: hidden; pointer-events: none; } }
 
 /* ==========================================================================
    REDUCED MOTION

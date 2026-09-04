@@ -222,6 +222,7 @@ function open(triggerEl: HTMLElement) {
 
 function close() {
   if (!overlay) return;
+  if (!overlay.classList.contains('is-open')) return; // already closed (idempotent)
   overlay.classList.remove('is-open', 'is-zoomed');
   document.documentElement.style.overflow = '';
   window.__lenis?.start?.();
@@ -354,5 +355,18 @@ function bind() {
   });
 }
 
+/**
+ * View Transitions swap <body>, which would orphan our overlay (module state
+ * still points at a detached node, so the next open() renders into nothing).
+ * Close, tear the overlay down, and let ensureOverlay() rebuild it on the new
+ * page. Module-level listeners are registered exactly once (module cache).
+ */
+function teardown() {
+  close();
+  overlay?.remove();
+  overlay = null;
+  group = [];
+}
+
 document.addEventListener('astro:page-load', bind);
-document.addEventListener('astro:before-swap', close);
+document.addEventListener('astro:before-swap', teardown);

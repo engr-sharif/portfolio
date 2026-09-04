@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type FC } from 'react';
+import { useState, useEffect, type FC } from 'react';
 import type { Field as FieldDef } from './schema';
 import { uploadImage, rawImageUrl, rawRepoUrl, aiAssist } from './api';
 import { listImages, aiGuide, type MediaItem } from './studio-lib';
@@ -8,6 +8,7 @@ interface Props {
   field: FieldDef;
   value: any;
   onChange: (v: any) => void;
+  error?: string;                        // validation message for this field
   onMeta?: (m: ImageMeta) => void;       // image fields: surface extracted EXIF (GPS/date)
   onCaption?: (text: string) => void;    // image fields: AI-written caption/alt accepted
 }
@@ -15,16 +16,19 @@ interface Props {
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9.]+/g, '-').replace(/(^-|-$)/g, '');
 
+const readAsDataUrl = (file: Blob) =>
+  new Promise<string>((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result));
+    r.onerror = () => rej(new Error('Could not read that file.'));
+    r.readAsDataURL(file);
+  });
+
 /** Optimise + upload an image to the repo; returns the stored path and any
  * EXIF metadata (GPS/date) read before re-encoding stripped it. */
 async function uploadFile(file: File, dir: string): Promise<{ path: string; meta: ImageMeta }> {
   const { file: out, meta } = await processImage(file);
-  const base64 = await new Promise<string>((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(String(r.result));
-    r.onerror = rej;
-    r.readAsDataURL(out);
-  });
+  const base64 = await readAsDataUrl(out);
   const name = slugify(out.name);
   const path = `${dir}/${name}`;
   await uploadImage(path, base64, `studio: upload ${name}`);
@@ -36,33 +40,34 @@ async function uploadFile(file: File, dir: string): Promise<{ path: string; meta
  * optimised; PDFs pass through untouched. */
 async function uploadPublicFile(file: File, dir: string): Promise<string> {
   const { file: out } = await processImage(file);
-  const base64 = await new Promise<string>((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(String(r.result));
-    r.onerror = rej;
-    r.readAsDataURL(out);
-  });
+  const base64 = await readAsDataUrl(out);
   const name = slugify(out.name);
   const path = `${dir}/${name}`;
   await uploadImage(path, base64, `studio: upload ${name}`);
   return '/' + path.replace(/^public\//, ''); // public/og/x.png → /og/x.png
 }
 
-export const Field: FC<Props> = ({ field, value, onChange, onMeta, onCaption }) => {
+const ErrorLine: FC<{ id: string; msg?: string }> = ({ id, msg }) =>
+  msg ? <p id={id} className="sf__err" role="alert">{msg}</p> : null;
+
+export const Field: FC<Props> = ({ field, value, onChange, error, onMeta, onCaption }) => {
   const id = `f-${field.name}`;
+  const errId = `${id}-err`;
   const label = (
     <label className="sf__label" htmlFor={id}>
       {field.label}
       {field.required && <span className="sf__req">*</span>}
     </label>
   );
+  const a11y = error ? { 'aria-invalid': true as const, 'aria-describedby': errId } : {};
 
   switch (field.type) {
     case 'text':
       return (
-        <div className="sf">
+        <div className={`sf${error ? ' sf--invalid' : ''}`}>
           {label}
-          <input id={id} className="sf__input" value={value ?? ''} onChange={(e) => onChange(e.target.value)} />
+          <input id={id} className="sf__input" value={value ?? ''} onChange={(e) => onChange(e.target.value)} {...a11y} />
+          <ErrorLine id={errId} msg={error} />
           {field.hint && <p className="sf__hint">{field.hint}</p>}
         </div>
       );
@@ -70,7 +75,7 @@ export const Field: FC<Props> = ({ field, value, onChange, onMeta, onCaption }) 
     case 'textarea':
     case 'markdown':
       return (
-        <div className="sf">
+        <div className={`sf${error ? ' sf--invalid' : ''}`}>
           {label}
           <textarea
             id={id}
@@ -78,76 +83,122 @@ export const Field: FC<Props> = ({ field, value, onChange, onMeta, onCaption }) 
             rows={field.type === 'markdown' ? 14 : 4}
             value={value ?? ''}
             onChange={(e) => onChange(e.target.value)}
+            {...a11y}
           />
+          <ErrorLine id={errId} msg={error} />
           {field.hint && <p className="sf__hint">{field.hint}</p>}
         </div>
       );
 
     case 'number':
-      return (
-        <div className="sf">
-          {label}
-          <input id={id} type="number" className="sf__input sf__input--sm" value={value ?? 0}
-            onChange={(e) => onChange(e.target.value === '' ? 0 : Number(e.target.value))} />
-        </div>
-      );
+      return <NumberField field={field} value={value} onChange={onChange} error={error} label={label} />;
 
     case 'boolean':
       return (
         <div className="sf sf--row">
-          <button type="button" role="switch" aria-checked={!!value}
+          <button type="button" role="switch" aria-checked={!!value} id={id}
             className={`sf__toggle${value ? ' is-on' : ''}`} onClick={() => onChange(!value)}>
             <span className="sf__toggle-knob" />
           </button>
           <div>
-            <span className="sf__label sf__label--inline">{field.label}</span>
+            <label className="sf__label sf__label--inline" htmlFor={id}>{field.label}</label>
             {field.hint && <p className="sf__hint">{field.hint}</p>}
           </div>
         </div>
       );
 
-    case 'select':
+    case 'select': {
+      const opts = field.options ?? [];
+      const legacy = value != null && value !== '' && !opts.includes(value);
       return (
-        <div className="sf">
+        <div className={`sf${error ? ' sf--invalid' : ''}`}>
           {label}
-          <div className="sf__chips">
-            {field.options?.map((opt) => (
-              <button type="button" key={opt}
+          <div className="sf__chips" role="radiogroup" aria-labelledby={id}>
+            {opts.map((opt) => (
+              <button type="button" key={opt} role="radio" aria-checked={value === opt}
                 className={`sf__chip${value === opt ? ' is-active' : ''}`}
                 onClick={() => onChange(opt)}>{opt}</button>
             ))}
+            {legacy && (
+              <button type="button" role="radio" aria-checked className="sf__chip is-active sf__chip--legacy"
+                title="This value isn't one of the current options. Pick another to replace it."
+                onClick={() => {}}>{String(value)} · legacy</button>
+            )}
+            {value && !field.required && (
+              <button type="button" className="sf__chip sf__chip--clear" onClick={() => onChange(undefined)}>clear</button>
+            )}
           </div>
+          <ErrorLine id={errId} msg={error} />
+          {field.hint && <p className="sf__hint">{field.hint}</p>}
         </div>
       );
+    }
 
     case 'date':
       return (
-        <div className="sf">
+        <div className={`sf${error ? ' sf--invalid' : ''}`}>
           {label}
           <input id={id} type="date" className="sf__input sf__input--sm"
-            value={(value ?? '').slice(0, 10)} onChange={(e) => onChange(e.target.value)} />
+            value={String(value ?? '').slice(0, 10)} onChange={(e) => onChange(e.target.value)} {...a11y} />
+          <ErrorLine id={errId} msg={error} />
+          {field.hint && <p className="sf__hint">{field.hint}</p>}
         </div>
       );
 
     case 'tags':
-      return <TagsField field={field} value={value} onChange={onChange} label={label} />;
+      return <TagsField field={field} value={value} onChange={onChange} error={error} label={label} />;
 
     case 'image':
-      return <ImageField field={field} value={value} onChange={onChange} onMeta={onMeta} onCaption={onCaption} label={label} />;
+      return <ImageField field={field} value={value} onChange={onChange} error={error} onMeta={onMeta} onCaption={onCaption} label={label} />;
 
     case 'file':
-      return <FileField field={field} value={value} onChange={onChange} label={label} />;
+      return <FileField field={field} value={value} onChange={onChange} error={error} label={label} />;
 
     case 'list':
-      return <ListField field={field} value={value} onChange={onChange} />;
+      return <ListField field={field} value={value} onChange={onChange} error={error} />;
 
     default:
       return null;
   }
 };
 
+/* ------------------------------------------------------------------ Number */
+/** Numbers are edited as text so "-", "1." and "" are typeable; the committed
+ * value is a real number, or undefined when cleared. */
+const NumberField: FC<Props & { label: React.ReactNode }> = ({ field, value, onChange, error, label }) => {
+  const id = `f-${field.name}`;
+  const [text, setText] = useState(value == null || value === '' ? '' : String(value));
+  useEffect(() => {
+    const parsed = text.trim() === '' ? undefined : Number(text);
+    const same = (parsed === undefined && (value == null || value === '')) || (typeof value === 'number' && parsed === value);
+    if (!same) setText(value == null || value === '' ? '' : String(value));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+  const commit = (t: string) => {
+    setText(t);
+    const trimmed = t.trim();
+    if (trimmed === '') { onChange(undefined); return; }
+    if (/^-?\d*\.?\d*$/.test(trimmed) && trimmed !== '-' && trimmed !== '.' && trimmed !== '-.') {
+      const n = Number(trimmed);
+      if (Number.isFinite(n)) onChange(n);
+    }
+  };
+  const bad = text.trim() !== '' && !Number.isFinite(Number(text));
+  return (
+    <div className={`sf${error || bad ? ' sf--invalid' : ''}`}>
+      {label}
+      <input id={id} type="text" inputMode="decimal" className="sf__input sf__input--sm" value={text}
+        onChange={(e) => commit(e.target.value)}
+        onBlur={() => { if (bad) setText(value == null ? '' : String(value)); }}
+        aria-invalid={!!(error || bad)} />
+      <ErrorLine id={`${id}-err`} msg={error || (bad ? 'Enter a number' : undefined)} />
+      {field.hint && <p className="sf__hint">{field.hint}</p>}
+    </div>
+  );
+};
+
 /* -------------------------------------------------------------- Tags / list */
-const TagsField: FC<Props & { label: React.ReactNode }> = ({ field, value, onChange, label }) => {
+const TagsField: FC<Props & { label: React.ReactNode }> = ({ field, value, onChange, error, label }) => {
   const [draft, setDraft] = useState('');
   const [lib, setLib] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -157,7 +208,11 @@ const TagsField: FC<Props & { label: React.ReactNode }> = ({ field, value, onCha
   const isImage = field.itemType === 'image';
   const dir = field.mediaDir || 'src/assets/gallery';
 
-  const add = (v: string) => { if (v.trim()) onChange([...arr, v.trim()]); setDraft(''); };
+  const add = (v: string) => {
+    const t = v.trim();
+    if (t && !arr.includes(t)) onChange([...arr, t]);
+    setDraft('');
+  };
   const remove = (i: number) => onChange(arr.filter((_, j) => j !== i));
   const move = (i: number, d: number) => {
     const n = [...arr]; const t = i + d;
@@ -171,6 +226,7 @@ const TagsField: FC<Props & { label: React.ReactNode }> = ({ field, value, onCha
     setBusy(true); setErr('');
     let acc = [...arr];
     const failed: string[] = [];
+    let lastErr = '';
     for (let i = 0; i < files.length; i++) {
       setProgress(`Uploading ${i + 1} of ${files.length}…`);
       try {
@@ -179,18 +235,18 @@ const TagsField: FC<Props & { label: React.ReactNode }> = ({ field, value, onCha
         onChange(acc);
       } catch (e: any) {
         failed.push(files[i].name);
+        lastErr = e?.message || '';
       }
     }
     setProgress('');
     setBusy(false);
     if (failed.length) {
-      setErr(`Couldn't upload ${failed.length} file(s): ${failed.join(', ')}. ` +
-        `Try again, or add them one at a time — a flaky connection is the usual cause.`);
+      setErr(`Couldn't upload ${failed.length} file(s): ${failed.join(', ')}. ${lastErr || 'Try again, or add them one at a time.'}`);
     }
   };
 
   return (
-    <div className="sf">
+    <div className={`sf${error ? ' sf--invalid' : ''}`}>
       {label}
       {isImage ? (
         <div className="sf__imggrid">
@@ -208,7 +264,7 @@ const TagsField: FC<Props & { label: React.ReactNode }> = ({ field, value, onCha
       ) : (
         <div className="sf__tags">
           {arr.map((t, i) => (
-            <span className="sf__tag" key={i}>{t}<button type="button" onClick={() => remove(i)} aria-label="Remove">×</button></span>
+            <span className="sf__tag" key={i}>{t}<button type="button" onClick={() => remove(i)} aria-label={`Remove ${t}`}>×</button></span>
           ))}
         </div>
       )}
@@ -217,7 +273,7 @@ const TagsField: FC<Props & { label: React.ReactNode }> = ({ field, value, onCha
           <div className="sf__image-actions">
             <label className={`sf__btn sf__btn--upload${busy ? ' is-busy' : ''}`}>
               {busy ? (progress || 'Uploading…') : '+ Upload'}
-              <input type="file" accept="image/*" multiple hidden disabled={busy} onChange={async (e) => {
+              <input type="file" accept="image/*,.heic,.heif" multiple hidden disabled={busy} onChange={async (e) => {
                 const files = Array.from(e.target.files || []);
                 e.target.value = ''; // allow re-selecting the same files later
                 if (files.length) await uploadMany(files);
@@ -225,20 +281,27 @@ const TagsField: FC<Props & { label: React.ReactNode }> = ({ field, value, onCha
             </label>
             <button type="button" className="sf__btn sf__btn--ghost" disabled={busy} onClick={() => setLib(true)}>Choose existing</button>
           </div>
-          {err && <p className="sf__hint sf__hint--err">{err}</p>}
+          {err && <p className="sf__hint sf__hint--err" role="alert">{err}</p>}
         </>
       ) : (
-        <input className="sf__input sf__input--sm" placeholder="Type and press Enter" value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+        <input className="sf__input sf__input--sm" placeholder="Type, then Enter or comma" value={draft}
+          aria-label={`Add ${field.label}`}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v.includes(',')) { v.split(',').forEach(add); return; }
+            setDraft(v);
+          }}
+          onBlur={() => add(draft)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(draft); } }} />
       )}
+      <ErrorLine id={`f-${field.name}-err`} msg={error} />
       {field.hint && <p className="sf__hint">{field.hint}</p>}
       {lib && <MediaLibrary dir={dir} onPick={(p) => { onChange([...arr, p]); setLib(false); }} onClose={() => setLib(false)} />}
     </div>
   );
 };
 
-const ImageField: FC<Props & { label: React.ReactNode }> = ({ field, value, onChange, onMeta, onCaption, label }) => {
+const ImageField: FC<Props & { label: React.ReactNode }> = ({ field, value, onChange, error, onMeta, onCaption, label }) => {
   const [busy, setBusy] = useState(false);
   const [lib, setLib] = useState(false);
   const [describing, setDescribing] = useState(false);
@@ -260,7 +323,7 @@ const ImageField: FC<Props & { label: React.ReactNode }> = ({ field, value, onCh
   };
 
   return (
-    <div className="sf">
+    <div className={`sf${error ? ' sf--invalid' : ''}`}>
       {label}
       <div className="sf__image">
         {value ? (
@@ -269,12 +332,15 @@ const ImageField: FC<Props & { label: React.ReactNode }> = ({ field, value, onCh
           <span className="sf__thumb sf__thumb--empty">No image</span>
         )}
         <div className="sf__image-actions">
-          <label className="sf__btn sf__btn--upload">
+          <label className={`sf__btn sf__btn--upload${busy ? ' is-busy' : ''}`}>
             {busy ? 'Uploading…' : value ? 'Replace' : 'Upload'}
-            <input type="file" accept="image/*" hidden disabled={busy} onChange={async (e) => {
-              const f = e.target.files?.[0]; if (!f) return;
-              setBusy(true);
+            <input type="file" accept="image/*,.heic,.heif" hidden disabled={busy} onChange={async (e) => {
+              const f = e.target.files?.[0];
+              e.target.value = '';
+              if (!f) return;
+              setBusy(true); setErr('');
               try { const { path, meta } = await uploadFile(f, dir); onChange(path); onMeta?.(meta); }
+              catch (e: any) { setErr(e?.message || 'Upload failed. Check your connection and try again.'); }
               finally { setBusy(false); }
             }} />
           </label>
@@ -287,7 +353,8 @@ const ImageField: FC<Props & { label: React.ReactNode }> = ({ field, value, onCh
           {value && <button type="button" className="sf__btn sf__btn--ghost" onClick={() => onChange('')}>Clear</button>}
         </div>
       </div>
-      {err && <p className="sf__hint sf__hint--err">{err}</p>}
+      {err && <p className="sf__hint sf__hint--err" role="alert">{err}</p>}
+      <ErrorLine id={`f-${field.name}-err`} msg={error} />
       {draft !== null && (
         <div className="sf__ai-draft">
           <textarea className="sf__input sf__textarea" rows={2} value={draft} onChange={(e) => setDraft(e.target.value)} />
@@ -305,12 +372,13 @@ const ImageField: FC<Props & { label: React.ReactNode }> = ({ field, value, onCh
 
 const isImagePath = (s: string) => /\.(jpg|jpeg|png|webp|avif|gif|svg)$/i.test(s);
 
-const FileField: FC<Props & { label: React.ReactNode }> = ({ field, value, onChange, label }) => {
+const FileField: FC<Props & { label: React.ReactNode }> = ({ field, value, onChange, error, label }) => {
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
   const dir = field.mediaDir || 'public/uploads';
   const val = String(value || '');
   return (
-    <div className="sf">
+    <div className={`sf${error ? ' sf--invalid' : ''}`}>
       {label}
       <div className="sf__file">
         {val ? (
@@ -321,17 +389,23 @@ const FileField: FC<Props & { label: React.ReactNode }> = ({ field, value, onCha
           <span className="sf__file-name sf__file-name--empty">No file</span>
         )}
         <div className="sf__image-actions">
-          <label className="sf__btn sf__btn--upload">
+          <label className={`sf__btn sf__btn--upload${busy ? ' is-busy' : ''}`}>
             {busy ? 'Uploading…' : val ? 'Replace' : 'Upload'}
             <input type="file" accept={field.accept || undefined} hidden disabled={busy} onChange={async (e) => {
-              const f = e.target.files?.[0]; if (!f) return;
-              setBusy(true);
-              try { onChange(await uploadPublicFile(f, dir)); } finally { setBusy(false); }
+              const f = e.target.files?.[0];
+              e.target.value = '';
+              if (!f) return;
+              setBusy(true); setErr('');
+              try { onChange(await uploadPublicFile(f, dir)); }
+              catch (e: any) { setErr(e?.message || 'Upload failed. Check your connection and try again.'); }
+              finally { setBusy(false); }
             }} />
           </label>
           {val && <button type="button" className="sf__btn sf__btn--ghost" onClick={() => onChange('')}>Clear</button>}
         </div>
       </div>
+      {err && <p className="sf__hint sf__hint--err" role="alert">{err}</p>}
+      <ErrorLine id={`f-${field.name}-err`} msg={error} />
       {field.hint && <p className="sf__hint">{field.hint}</p>}
     </div>
   );
@@ -341,12 +415,17 @@ const FileField: FC<Props & { label: React.ReactNode }> = ({ field, value, onCha
 const MediaLibrary: FC<{ dir: string; onPick: (path: string) => void; onClose: () => void }> = ({ dir, onPick, onClose }) => {
   const [items, setItems] = useState<MediaItem[] | null>(null);
   useEffect(() => { listImages(dir).then(setItems); }, [dir]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
   return (
-    <div className="st-modal" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="st-modal" role="dialog" aria-modal="true" aria-label="Media library" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="st-modal__panel">
         <div className="st-modal__head">
           <h3>Media library <span className="st-modal__dir">{dir}</span></h3>
-          <button className="sf__btn sf__btn--ghost" onClick={onClose}>Close</button>
+          <button className="sf__btn sf__btn--ghost" onClick={onClose} autoFocus>Close</button>
         </div>
         {items === null ? <div className="st-loading">Loading…</div> : items.length === 0 ? (
           <p className="st-list__empty">No images here yet — upload one.</p>
@@ -365,7 +444,7 @@ const MediaLibrary: FC<{ dir: string; onPick: (path: string) => void; onClose: (
   );
 };
 
-const ListField: FC<Props> = ({ field, value, onChange }) => {
+const ListField: FC<Props> = ({ field, value, onChange, error }) => {
   const arr: any[] = Array.isArray(value) ? value : [];
   const update = (i: number, patch: any) => onChange(arr.map((it, j) => (j === i ? { ...it, ...patch } : it)));
   const remove = (i: number) => onChange(arr.filter((_, j) => j !== i));
@@ -393,7 +472,7 @@ const ListField: FC<Props> = ({ field, value, onChange }) => {
   };
 
   return (
-    <div className="sf">
+    <div className={`sf${error ? ' sf--invalid' : ''}`}>
       <span className="sf__label">{field.label}</span>
       <div className="sf__list">
         {arr.map((item, i) => (
@@ -414,6 +493,7 @@ const ListField: FC<Props> = ({ field, value, onChange }) => {
           </div>
         ))}
       </div>
+      <ErrorLine id={`f-${field.name}-err`} msg={error} />
       <button type="button" className="sf__btn" onClick={() => onChange([...arr, blank()])}>+ Add {field.label.replace(/s$/, '')}</button>
     </div>
   );

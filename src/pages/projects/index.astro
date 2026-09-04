@@ -4,6 +4,7 @@ import PageHeader from '../../components/atlas/PageHeader.astro';
 import ProjectCard from '../../components/ProjectCard.astro';
 import ProjectExplorer from '../../components/ProjectExplorer.tsx';
 import { getProjects, getTechniques } from '../../lib/projects';
+import { site } from '../../lib/site';
 
 const projects = await getProjects();
 const techniques = await getTechniques();
@@ -13,7 +14,7 @@ const statusCounts = projects.reduce<Record<string, number>>((acc, p) => {
 }, {});
 ---
 <BaseLayout
-  title="Projects — Nawaz Sharif"
+  title={`Projects — ${site.name}`}
   description="Environmental projects: site characterization, remediation, PFAS, landfill CQA, and groundwater/landfill-gas monitoring across California."
 >
   <main class="u-container">

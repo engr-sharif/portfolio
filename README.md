@@ -46,7 +46,7 @@ Node 20+ recommended.
 ## How to add a project (no code)
 
 Each project is one Markdown file in `src/content/projects/`. Either edit via the
-CMS at `/admin` (see below) or add a file directly:
+Studio at `/studio` (see below) or add a file directly:
 
 ```md
 ---
@@ -74,7 +74,7 @@ Markdown write-up here (public, high-level only).
 
 ## How to add a blog post
 
-Write from the CMS (`/admin` → **Blog** → New Post) or add a file directly at
+Write from the Studio (`/studio` → **Blog** → New Post) or add a file directly at
 `src/content/blog/<slug>.md`:
 
 ```md
@@ -102,7 +102,7 @@ blocks get syntax highlighting + a copy button automatically.
 
 ## How to add gallery media
 
-**From the browser (recommended):** go to **`/admin` → Field Gallery → Photos →
+**From the browser (recommended):** go to **`/studio` → Field Gallery → Photos →
 Add Photo**, upload an image, and write a short alt-text description. Drag to
 reorder. Saving commits the photo to `src/assets/gallery/` and the optimized,
 lazy-loaded masonry gallery rebuilds automatically.
@@ -121,11 +121,13 @@ commit large raw video. Add external embeds (YouTube/Vimeo) under *Site Settings
 
 Replace **`public/resume/Sharif_Resume.pdf`** with your real PDF (keep the
 filename). Update the "last updated" date under *Site Settings* (`resumeUpdated`
-in `src/content/settings/site.json`). The current file is a placeholder.
+in `src/content/settings/site.json`). Until a real PDF is in place the site
+detects the placeholder at build time and shows "Request résumé" instead of a
+download link (see `src/lib/resume.ts`).
 
-## Editing in the browser (`/admin` — the Studio)
+## Editing in the browser (`/studio` — the Studio)
 
-`/admin` is a **custom-built admin** ("the Studio") — a React app under
+`/studio` is a **custom-built admin** ("the Studio") — a React app under
 `src/studio/` that edits content live and commits straight back to the repo
 through a small Cloudflare Worker (`studio-worker/`, password-protected). No
 third-party CMS, no GitHub OAuth dance. It works on desktop and mobile.
@@ -162,10 +164,11 @@ location in the Studio (or `lat`/`lng` in frontmatter).
 ## Project structure
 
 ```
-.github/workflows/deploy.yml   GitHub Pages deploy (official Actions flow)
+.github/workflows/deploy.yml   GitHub Pages deploy (official Actions flow, main only)
+.github/workflows/ci.yml       PR checks: unit tests (vitest) · astro check · build
+tests/                         unit tests (frontmatter round-trip, schemas, date range)
 studio-worker/                 Cloudflare Worker backend for the Studio (auth + commits)
 public/
-  admin/                      Studio entry (mounts src/studio)
   resume/Sharif_Resume.pdf    résumé (swap via the Studio)
   og-image.png, robots.txt, favicon.svg, .nojekyll
 src/

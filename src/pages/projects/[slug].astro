@@ -10,6 +10,7 @@ import { getCover, getGalleryImage } from '../../lib/images';
 import { getCaption } from '../../lib/captions';
 import { withBase } from '../../lib/path';
 import { getProjects, dateRange } from '../../lib/projects';
+import { site } from '../../lib/site';
 
 export async function getStaticPaths() {
   const projects = await getProjects();
@@ -45,7 +46,7 @@ const galleryItems = await Promise.all(
     })),
 );
 ---
-<BaseLayout title={`${data.title} — ${data.siteType}`} description={data.summary} image={ogImage} ogType="article">
+<BaseLayout title={`${data.title} — ${data.siteType} · ${site.name}`} description={data.summary} image={ogImage} ogType="article">
   <article class="detail">
     <div class="u-container">
       <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Projects', href: 'projects/' }, { label: data.title }]} />
@@ -57,7 +58,7 @@ const galleryItems = await Promise.all(
           <div><dt>Client / Site</dt><dd>{data.client}</dd></div>
           <div><dt>Type</dt><dd>{data.siteType}</dd></div>
           <div><dt>Role</dt><dd>{data.role}</dd></div>
-          <div><dt>Dates</dt><dd class="u-mono">{dateRange(data.startDate, data.endDate)}</dd></div>
+          <div><dt>Dates</dt><dd class="u-mono">{dateRange(data.startDate, data.endDate, data.status)}</dd></div>
         </dl>
         <ul class="card__tags" style="margin-top:1.4rem;display:flex;flex-wrap:wrap;gap:0.4rem;list-style:none;padding:0;">
           {data.techniques.map((t) => <li class="chip">{t}</li>)}

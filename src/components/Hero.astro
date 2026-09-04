@@ -3,18 +3,32 @@ import { site } from '../lib/site';
 import { withBase } from '../lib/path';
 import { getProjects } from '../lib/projects';
 import { getTools } from '../lib/tools';
+import { profile } from '../lib/profile';
+import { resumeReady } from '../lib/resume';
 import HeroScene from './three/HeroScene.tsx';
 
 // A rotating "instrument readout" of live facts under the name — turns the
-// subhead area into data, not a slogan. Derived from real content + settings.
+// subhead area into data, not a slogan. Every line is derived from real
+// content + settings (nothing hardcoded), so it stays true as the site evolves.
 const projects = await getProjects();
 const tools = await getTools();
 const active = projects.filter((p) => p.data.status === 'active');
+
+// Licensure line from profile.json: "<current credential> → <in-progress one>".
+const held = profile.credentials.find((c) => /active|held|licensed/i.test(c.status));
+const pending = profile.credentials.find((c) => /progress|pending|anticipated/i.test(c.status));
+const abbrev = (label: string) => label.match(/\(([^)]+)\)/)?.[1] ?? label;
+const licensureLine = held && pending
+  ? `${abbrev(held.label)} → ${abbrev(pending.label)} ${pending.date.toLowerCase()}`
+  : held
+    ? `${abbrev(held.label)} · ${held.issuer}`
+    : null;
+
 const statusLines = [
   active[0] ? `${active[0].data.title} — active` : null,
-  'EIT → PE anticipated 2027',
-  tools.length > 0 ? `${tools.length} field tools shipped` : null,
-  `${projects.length} projects documented`,
+  licensureLine,
+  tools.length > 0 ? `${tools.length} field tool${tools.length === 1 ? '' : 's'} shipped` : null,
+  `${projects.length} project${projects.length === 1 ? '' : 's'} documented`,
 ].filter(Boolean) as string[];
 ---
 <section class="hero" aria-label="Introduction" data-hero>
@@ -42,8 +56,17 @@ const statusLines = [
     )}
 
     <div class="hero__cta" data-hero-fade>
-      <a href={withBase(site.resume)} class="btn" data-magnetic="0.4" download>Download résumé</a>
-      <a href={withBase('#work')} class="btn btn--ghost" data-magnetic="0.4">View the work</a>
+      {resumeReady ? (
+        <>
+          <a href={withBase(site.resume)} class="btn" data-magnetic="0.4" download>Download résumé</a>
+          <a href={withBase('#work')} class="btn btn--ghost" data-magnetic="0.4">View the work</a>
+        </>
+      ) : (
+        <>
+          <a href={withBase('#work')} class="btn" data-magnetic="0.4">View the work</a>
+          <a href={withBase('#contact')} class="btn btn--ghost" data-magnetic="0.4">Request résumé</a>
+        </>
+      )}
     </div>
 
     <p class="hero__avail u-mono" data-hero-fade>

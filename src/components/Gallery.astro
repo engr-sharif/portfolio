@@ -8,7 +8,7 @@ import galleryData from '../content/settings/gallery.json';
 
 /**
  * Field gallery. Primary source is the CMS-managed list (src/content/settings/
- * gallery.json → editable at /admin → Field Gallery), which carries alt text
+ * gallery.json → editable at /studio → Field Gallery), which carries alt text
  * for accessibility. If that list is empty we fall back to auto-globbing every
  * image in src/assets/gallery/ (the "drop a file in the folder" workflow still
  * works). Either way images go through Astro's <Image> optimizer.
@@ -66,7 +66,7 @@ function videoHref(v: { provider: string; id: string; url: string }) {
       ))}
     </div>
   ) : (
-    <p style="color:var(--color-muted);">No field photos yet — add them in <code>/admin → Field Gallery</code>.</p>
+    <p style="color:var(--color-muted);">No field photos yet — add them in <code>/studio → Field Gallery</code>.</p>
   )}
 
   {videos.length > 0 && (

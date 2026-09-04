@@ -3,12 +3,13 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import BlogCard from '../../components/BlogCard.astro';
 import { withBase } from '../../lib/path';
 import { getPosts, getTags, tagSlug } from '../../lib/blog';
+import { site } from '../../lib/site';
 
 const posts = await getPosts();
 const tags = await getTags();
 ---
 <BaseLayout
-  title="Field Notes & Writing — Nawaz Sharif"
+  title={`Field Notes & Writing — ${site.name}`}
   description="Technical field notes and writing on environmental characterization, remediation, PFAS, landfill CQA, and the tools behind the work."
 >
   <section class="blog-hero u-container">
