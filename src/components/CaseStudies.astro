@@ -29,7 +29,9 @@ const rows = (featured.length >= 2 ? featured : all).slice(0, 3);
           data.outcome && { k: 'Outcome', v: data.outcome },
         ].filter(Boolean) as { k: string; v: string }[];
         return (
-          <article class={`case${i % 2 ? ' case--flip' : ''}`} data-reveal>
+          <article class={`case${i % 2 ? ' case--flip' : ''}`} data-reveal
+            data-station-lat={data.lat && data.lng ? data.lat : undefined}
+            data-station-lng={data.lat && data.lng ? data.lng : undefined}>
             <a class="case__media" href={href} aria-label={`Open case study: ${data.title}`} tabindex="-1">
               {cover ? (
                 <Image
