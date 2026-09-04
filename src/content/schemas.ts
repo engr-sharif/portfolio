@@ -9,6 +9,14 @@
  */
 import { z } from 'astro/zod';
 
+// Zod 4 probes `new Function("")` to decide whether it may JIT-compile object
+// parsers. That probe is a Content-Security-Policy violation in the Studio
+// (script-src has no 'unsafe-eval'), so opt out — the interpreter path is
+// plenty fast for a handful of fields.
+if (typeof (z as { config?: (o: { jitless: boolean }) => void }).config === 'function') {
+  (z as unknown as { config: (o: { jitless: boolean }) => void }).config({ jitless: true });
+}
+
 const yearMonth = z
   .string()
   .regex(/^\d{4}(-\d{2})?$/, 'Use YYYY or YYYY-MM (e.g. 2024-03)');

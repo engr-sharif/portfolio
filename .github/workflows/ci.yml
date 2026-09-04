@@ -38,6 +38,20 @@ jobs:
       - name: Build
         run: npm run build
 
+      # Drive every page type in headless Chrome (preinstalled on the runner):
+      # fails on CSP violations, console errors, reveals left invisible, or a
+      # missing share card. Runs twice — once natively, once with scroll-driven
+      # animations disabled to exercise the IntersectionObserver fallback.
+      - name: Smoke test (native scroll-driven animations)
+        run: npm run smoke
+        env:
+          PLAYWRIGHT_CHROMIUM: /usr/bin/google-chrome
+      - name: Smoke test (fallback path)
+        run: npm run smoke
+        env:
+          PLAYWRIGHT_CHROMIUM: /usr/bin/google-chrome
+          SMOKE_NO_SDA: '1'
+
       - name: Guard — no admin leftovers
         run: |
           test ! -e public/admin || (echo "public/admin must not exist" && exit 1)

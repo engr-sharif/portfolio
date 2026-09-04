@@ -97,7 +97,6 @@ const statusLines = [
     position: absolute;
     inset: 0;
     z-index: 0;
-    will-change: transform;
   }
   .hero-canvas {
     position: absolute;
@@ -243,6 +242,7 @@ const statusLines = [
 </style>
 
 <script>
+  // Headline reveal + status rotator. The scroll parallax is pure CSS now
+  // (see SCROLL-DRIVEN REVEALS in global.css: [data-hero-parallax]).
   import '../lib/hero';
-  import '../lib/hero-parallax';
 </script>

@@ -1,19 +1,22 @@
 /**
  * Global motion infrastructure — vanilla (no React island overhead).
  *
- * Responsibilities:
- *  - Lenis momentum smooth-scroll, synced to GSAP's ScrollTrigger + ticker.
- *  - Custom cursor + magnetic buttons (pointer devices only).
- *  - Declarative scroll reveals via [data-reveal].
- *  - Full prefers-reduced-motion + touch-device fallbacks.
+ * The scroll layer is native: the browser scrolls, CSS scroll-driven
+ * animations (global.css → SCROLL-DRIVEN REVEALS) scrub reveals, parallax and
+ * progress on the compositor. No smooth-scroll library, no scroll listeners.
  *
- * Designed to cooperate with Astro View Transitions: Lenis/cursor are created
- * once and persist; per-page bindings (reveals, magnetic, ScrollTrigger) are
- * torn down and rebuilt on every `astro:page-load`.
+ * What still lives here:
+ *  - Custom cursor + magnetic buttons (pointer devices only, GSAP quickTo).
+ *  - A 2 KB IntersectionObserver fallback for browsers without
+ *    `animation-timeline: view()` — it only toggles classes; the motion itself
+ *    is still CSS.
+ *  - View Transition hygiene: kill stale ScrollTriggers (showcase, counters)
+ *    before a swap; move focus to <main> after one.
+ *
+ * Full prefers-reduced-motion + touch-device fallbacks throughout.
  */
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import Lenis from 'lenis';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -23,96 +26,14 @@ const prefersReduced = () =>
 const isTouch = () =>
   window.matchMedia('(hover: none), (pointer: coarse)').matches;
 
+/** True when the browser scrubs reveals natively — the fallback stays idle. */
+const nativeScrollTimelines = () =>
+  typeof CSS !== 'undefined' && CSS.supports?.('animation-timeline: view()');
+
 declare global {
   interface Window {
-    __lenis?: Lenis;
     __motionInit?: boolean;
-    __anchorInit?: boolean;
   }
-}
-
-/* ------------------------------------------------------------------ Lenis */
-function initLenis() {
-  if (window.__lenis || prefersReduced()) return; // reduced-motion: native scroll
-
-  // lerp (frame-rate-independent smoothing) feels snappier and more 1:1 than a
-  // long duration ease — closer to the tight momentum on Apple/Stripe sites.
-  const lenis = new Lenis({
-    lerp: 0.11,
-    wheelMultiplier: 1,
-    smoothWheel: true,
-    touchMultiplier: 1.5,
-  });
-  window.__lenis = lenis;
-
-  lenis.on('scroll', ScrollTrigger.update);
-  gsap.ticker.add((time) => lenis.raf(time * 1000));
-  gsap.ticker.lagSmoothing(0);
-}
-
-/* ------------------------------------------------------------ Anchor scroll */
-const NAV_OFFSET = 84; // keep targets clear of the fixed nav
-
-/** Smoothly scroll to an in-page #target, via Lenis when available. */
-function scrollToHash(hash: string, smooth = true): boolean {
-  let target: Element | null = null;
-  try {
-    target = document.querySelector(hash);
-  } catch {
-    return false; // invalid selector
-  }
-  if (!target) return false;
-
-  const lenis = window.__lenis;
-  if (lenis && smooth) {
-    lenis.scrollTo(target as HTMLElement, { offset: -NAV_OFFSET, duration: 1.1 });
-  } else {
-    // reduced-motion / no Lenis: native jump (scroll-margin-top handles offset)
-    (target as HTMLElement).scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
-  }
-  return true;
-}
-
-/**
- * Intercept same-page hash links in the CAPTURE phase and handle the scroll
- * ourselves with Lenis — and stopImmediatePropagation so Astro's ClientRouter
- * never also tries to navigate (that double-handling was the "stutter"). Links
- * to a different page keep their default behaviour; the hash is honoured on the
- * next astro:page-load.
- */
-function initAnchorScroll() {
-  if (window.__anchorInit) return;
-  window.__anchorInit = true;
-
-  document.addEventListener(
-    'click',
-    (e) => {
-      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
-      const a = (e.target as HTMLElement)?.closest?.('a[href]') as HTMLAnchorElement | null;
-      if (!a || a.target === '_blank') return;
-      const url = new URL(a.href, location.href);
-      if (url.origin !== location.origin) return;
-      if (!url.hash || url.hash === '#') return;
-      if (url.pathname !== location.pathname) return; // different page → let the router navigate
-      if (scrollToHash(url.hash)) {
-        // preventDefault is enough for Astro's router to skip a same-page hash
-        // link (it checks defaultPrevented); we deliberately DON'T stop
-        // propagation so other listeners (e.g. mobile-menu close) still fire.
-        e.preventDefault();
-        history.pushState(null, '', url.hash);
-      }
-    },
-    true, // capture: run before ClientRouter's listener
-  );
-
-  // Honour a hash on (first or post-navigation) load — covers cross-page anchors
-  // like a project page → "/#contact". Wait a frame so layout/ScrollTrigger settle.
-  document.addEventListener('astro:page-load', () => {
-    const hash = location.hash;
-    if (hash && hash.length > 1) {
-      requestAnimationFrame(() => setTimeout(() => scrollToHash(hash), 120));
-    }
-  });
 }
 
 /* ----------------------------------------------------------------- Cursor */
@@ -134,20 +55,16 @@ function initCursor() {
     gsap.set(dot, { x: e.clientX, y: e.clientY });
     xTo(e.clientX);
     yTo(e.clientY);
-  });
+  }, { passive: true });
 
   // Grow over interactive targets.
   document.addEventListener('pointerover', (e) => {
     const t = e.target as HTMLElement;
-    if (t.closest('a, button, [data-cursor="hover"]')) {
-      ring.classList.add('is-hover');
-    }
+    if (t.closest('a, button, [data-cursor="hover"]')) ring.classList.add('is-hover');
   });
   document.addEventListener('pointerout', (e) => {
     const t = e.target as HTMLElement;
-    if (t.closest('a, button, [data-cursor="hover"]')) {
-      ring.classList.remove('is-hover');
-    }
+    if (t.closest('a, button, [data-cursor="hover"]')) ring.classList.remove('is-hover');
   });
 }
 
@@ -181,108 +98,53 @@ function initMagnetic() {
   });
 }
 
-/* ---------------------------------------------------------------- Reveals */
-function initReveals() {
-  // Reduced motion: ensure everything is simply visible.
-  if (prefersReduced()) {
-    gsap.set('[data-reveal], [data-reveal-stagger] > *', { clearProps: 'all', opacity: 1, y: 0 });
+/* ------------------------------------------------- Reveal fallback (Tier 2) */
+// Browsers without scroll-driven animations get the same reveals as CSS
+// transitions, triggered here. `.is-inview` starts the motion; `.is-settled`
+// (a second later) hands transitions back to the component so hover effects
+// behave normally afterwards.
+const REVEAL_SELECTOR = '[data-reveal], [data-reveal-stagger], [data-figure], [data-topo]';
+let revealObserver: IntersectionObserver | null = null;
+
+function initRevealFallback() {
+  revealObserver?.disconnect();
+  revealObserver = null;
+  if (nativeScrollTimelines()) return;
+
+  const targets = [...document.querySelectorAll<HTMLElement>(REVEAL_SELECTOR)];
+  if (!targets.length) return;
+
+  if (prefersReduced() || typeof IntersectionObserver === 'undefined') {
+    targets.forEach((el) => el.classList.add('is-inview', 'is-settled'));
     return;
   }
 
-  document.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => {
-    const delay = Number(el.dataset.revealDelay) || 0;
-    gsap.fromTo(
-      el,
-      { y: 34, opacity: 0, willChange: 'transform, opacity' },
-      {
-        y: 0,
-        opacity: 1,
-        duration: 0.85,
-        delay,
-        ease: 'expo.out',
-        // willChange only while animating, then cleared — never a permanent layer
-        clearProps: 'willChange',
-        scrollTrigger: { trigger: el, start: 'top 90%', once: true },
-      },
-    );
-  });
-
-  // Staggered groups.
-  document.querySelectorAll<HTMLElement>('[data-reveal-stagger]').forEach((group) => {
-    const items = group.querySelectorAll(':scope > *');
-    gsap.fromTo(
-      items,
-      { y: 36, opacity: 0, willChange: 'transform, opacity' },
-      {
-        y: 0,
-        opacity: 1,
-        duration: 0.75,
-        ease: 'expo.out',
-        stagger: 0.07,
-        clearProps: 'willChange',
-        scrollTrigger: { trigger: group, start: 'top 88%', once: true },
-      },
-    );
-  });
-}
-
-/* ----------------------------------------------------------- SVG line draw */
-/** Topo dividers + any [data-draw] path: stroke draws itself in on scroll. */
-function initDraw() {
-  if (prefersReduced()) return;
-  document.querySelectorAll<SVGPathElement>('[data-draw]').forEach((path) => {
-    if (path.dataset.drawn) return;
-    path.dataset.drawn = '1';
-    const len = path.getTotalLength();
-    gsap.set(path, { strokeDasharray: len, strokeDashoffset: len });
-    gsap.to(path, {
-      strokeDashoffset: 0,
-      duration: 1.4,
-      ease: 'power2.out',
-      scrollTrigger: { trigger: path.closest('[data-topo]') ?? path, start: 'top 92%', once: true },
-    });
-  });
-}
-
-/* ----------------------------------------------------------- Figure reveal */
-/** Figures wipe in with a clip-path "scanline" — like an image developing. */
-function initFigures() {
-  if (prefersReduced()) {
-    gsap.set('[data-figure]', { clearProps: 'all', opacity: 1 });
-    return;
-  }
-  document.querySelectorAll<HTMLElement>('[data-figure]').forEach((el) => {
-    if (el.dataset.figBound) return;
-    el.dataset.figBound = '1';
-    gsap.fromTo(
-      el,
-      { clipPath: 'inset(0 100% 0 0)', opacity: 0.4 },
-      {
-        clipPath: 'inset(0 0% 0 0)',
-        opacity: 1,
-        duration: 1,
-        ease: 'expo.out',
-        scrollTrigger: { trigger: el, start: 'top 85%', once: true },
-      },
-    );
-  });
+  revealObserver = new IntersectionObserver(
+    (entries, obs) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const el = entry.target as HTMLElement;
+        el.classList.add('is-inview');
+        setTimeout(() => el.classList.add('is-settled'), 1300);
+        obs.unobserve(el);
+      }
+    },
+    { rootMargin: '0px 0px -10% 0px', threshold: 0.05 },
+  );
+  targets.forEach((el) => revealObserver!.observe(el));
 }
 
 /* ------------------------------------------------------------- Page setup */
 function setupPage() {
   initMagnetic();
-  initReveals();
-  initDraw();
-  initFigures();
+  initRevealFallback();
   ScrollTrigger.refresh();
 }
 
 export function bootMotion() {
   if (!window.__motionInit) {
     window.__motionInit = true;
-    initLenis();
     initCursor();
-    initAnchorScroll();
   }
   setupPage();
 }
@@ -292,11 +154,13 @@ document.addEventListener('astro:page-load', bootMotion);
 // Clean ScrollTriggers before swapping pages to avoid stale triggers.
 document.addEventListener('astro:before-swap', () => {
   ScrollTrigger.getAll().forEach((t) => t.kill());
+  revealObserver?.disconnect();
+  revealObserver = null;
 });
 
 // A11y: after a View Transition, move focus to <main> so keyboard/screen-reader
 // users aren't stranded on the old document position. preventScroll so it
-// doesn't fight Lenis or the hash-scroll handler.
+// doesn't fight the router's own hash scrolling.
 document.addEventListener('astro:after-swap', () => {
   const main = document.getElementById('main');
   if (main && !location.hash) {

@@ -93,12 +93,10 @@ const CommandPalette: FC<Props> = ({ base, nav }) => {
     loadPagefind();
     requestAnimationFrame(() => inputRef.current?.focus());
     document.documentElement.style.overflow = 'hidden';
-    window.__lenis?.stop?.();
     const bg = [...document.querySelectorAll<HTMLElement>(INERT_TARGETS)];
     bg.forEach((el) => el.setAttribute('inert', ''));
     return () => {
       document.documentElement.style.overflow = '';
-      window.__lenis?.start?.();
       bg.forEach((el) => el.removeAttribute('inert'));
       const back = opener.current;
       opener.current = null;
