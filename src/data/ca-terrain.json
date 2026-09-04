@@ -1,0 +1,14 @@
+{
+  "bbox": {
+    "west": -124.6,
+    "east": -113.9,
+    "south": 32.3,
+    "north": 42.15
+  },
+  "width": 192,
+  "height": 216,
+  "metersMax": 4400,
+  "zoom": 7,
+  "credits": "Elevation: Mapzen Terrarium (SRTM, NED, GMTED). Boundary: Natural Earth via PublicaMundi.",
+  "generated": "2026-09-04"
+}

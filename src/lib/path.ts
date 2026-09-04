@@ -13,6 +13,6 @@ const BASE = import.meta.env.BASE_URL; // e.g. "/portfolio/" or "/"
 
 export function withBase(path = ''): string {
   const b = BASE.endsWith('/') ? BASE.slice(0, -1) : BASE; // "/portfolio" or ""
-  if (!path) return b || '/';
+  if (!path) return `${b}/`; // always the canonical trailing-slash form
   return `${b}/${path.replace(/^\//, '')}`;
 }

@@ -44,7 +44,8 @@ const galleryItems = await Promise.all(
     })),
 );
 ---
-<BaseLayout title={`${data.title} — ${data.siteType} · ${site.name}`} description={data.summary} image={ogImage} ogType="article">
+<BaseLayout title={`${data.title} — ${data.siteType} · ${site.name}`} description={data.summary} image={ogImage} ogType="article"
+  scene={data.lat && data.lng ? 'site' : 'page'} sceneLat={data.lat} sceneLng={data.lng}>
   <article class="detail">
     <div class="u-container">
       <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Projects', href: 'projects/' }, { label: data.title }]} />

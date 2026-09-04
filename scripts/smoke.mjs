@@ -131,6 +131,12 @@ for (const route of routes) {
     if (applied !== THEME) problems.push(`theme not applied: expected ${THEME}, got ${applied}`);
   }
 
+  // The Living Atlas canvas must be present on public pages (WebGL boots at idle).
+  if (route !== 'studio/') {
+    const canvas = await page.$('.atlas-layer canvas');
+    if (!canvas) problems.push('no Living Atlas canvas');
+  }
+
   const hasCsp = await page.$('meta[http-equiv="content-security-policy" i]');
   if (!hasCsp) problems.push('no CSP meta');
 

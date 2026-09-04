@@ -189,6 +189,31 @@ src/
 astro.config.mjs
 ```
 
+## The Living Atlas (WebGL California)
+
+One persistent WebGL scene sits behind every public page: a point field of
+**real California terrain** (Sierra crest, Central Valley, Tahoe, the coast)
+with slowly climbing contour lines, a pointer ripple, and the project sites
+glowing on their real coordinates.
+
+- **Data** — `node scripts/build-terrain.mjs` fetches SRTM-derived Mapzen
+  terrarium tiles + the Natural Earth state boundary and bakes
+  `public/data/ca-terrain.png` (192×216 RGBA: elevation, sea flag, in-state
+  mask) and `src/data/ca-terrain.json` (bbox, scale). Both are committed; re-run
+  only to change resolution.
+- **Scene** — `src/components/three/TerrainField.tsx` samples the heightmap in
+  the vertex shader (≈ 41k points desktop / 10k phone), mounted once in
+  `BaseLayout` with `transition:persist` so the canvas and camera survive View
+  Transitions.
+- **Stations** — each page declares where the camera should be via `<body
+  data-scene>`: `home` (scroll flies hero → Atlas plan view → quiet backdrop),
+  `page` (quiet backdrop), `site` (close over `data-scene-lat/lng` — project
+  pages). The homepage Field Atlas list emits `atlas:active` on hover to light a
+  node; the scene emits `atlas:pose` for the hero HUD readout.
+- **Discipline** — DPR capped, render loop paused when the tab is hidden,
+  on-demand frames under reduced motion, additive blending only on the dark
+  theme, colours from the theme tokens (`--hero-*`).
+
 ## Design & motion notes
 
 - **Two themes.** *Field* (dark, default) and *Lab* (light) are one token set
@@ -196,9 +221,10 @@ astro.config.mjs
   choice persists in localStorage and follows the OS until you pick, and a
   hashed inline script applies it before first paint. The WebGL hero and the
   MapLibre basemap recolour with the theme.
-- **Field Atlas.** The homepage's `FieldAtlas.astro` puts every published site
-  with a location on a synced map + list (hover a row, the pin lights up).
-  Data prep is shared with the About-page map in `src/lib/atlas.ts`.
+- **Field Atlas.** The homepage's `FieldAtlas.astro` lists every published site
+  with a location beside an intentionally empty stage: the Living Atlas behind
+  the page is the map (hover a row, its node lights up). The About page keeps a
+  conventional MapLibre map; data prep is shared in `src/lib/atlas.ts`.
 - **Case studies.** Projects carry optional `problem` / `approach` / `outcome`
   fields (editable in the Studio). When present they render as a brief on the
   homepage rows (`CaseStudies.astro`) and at the top of the project page.

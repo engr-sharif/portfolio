@@ -10,8 +10,10 @@ import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
 import RecruiterBar from '../components/RecruiterBar.astro';
 import CommandPalette from '../components/CommandPalette.tsx';
+import TerrainField from '../components/three/TerrainField.tsx';
 import { withBase } from '../lib/path';
 import { site } from '../lib/site';
+import { getAtlasPoints } from '../lib/atlas';
 
 export interface Props {
   title?: string;
@@ -22,6 +24,11 @@ export interface Props {
   image?: string;
   showChrome?: boolean;
   ogType?: string;
+  /** Camera station for the Living Atlas: 'home' (scroll-driven flight),
+   *  'page' (quiet backdrop) or 'site' (close over sceneLat/sceneLng). */
+  scene?: 'home' | 'page' | 'site';
+  sceneLat?: number;
+  sceneLng?: number;
 }
 
 /**
@@ -54,7 +61,13 @@ const {
   image = site.ogImage?.trim() || ogFor(Astro.url.pathname),
   showChrome = true,
   ogType = 'website',
+  scene = Astro.url.pathname.replace(/\/$/, '') === import.meta.env.BASE_URL.replace(/\/$/, '') ? 'home' : 'page',
+  sceneLat,
+  sceneLng,
 } = Astro.props;
+
+// Project sites for the Living Atlas nodes (published + located only).
+const atlasNodes = (await getAtlasPoints()).projects.map((p) => ({ slug: p.slug, lat: p.lat, lng: p.lng, status: p.status }));
 
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 // Per-page images may arrive absolute; base-relative ones (e.g. /og/home.png)
@@ -167,7 +180,11 @@ if (Astro.csp) {
 
     <ClientRouter />
   </head>
-  <body>
+  <body data-scene={scene} data-scene-lat={sceneLat} data-scene-lng={sceneLng}>
+    {/* The Living Atlas — one persistent WebGL California behind every page.
+        transition:persist keeps the same canvas (and its camera) alive across
+        View Transitions; each page only tells it where to fly (data-scene). */}
+    {showChrome && <TerrainField client:idle transition:persist="living-atlas" nodes={atlasNodes} />}
     {showChrome && (
       <div id="intro" aria-hidden="true">
         <div class="intro__mask"><span class="intro__label">{site.name}</span></div>

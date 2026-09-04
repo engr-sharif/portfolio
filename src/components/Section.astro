@@ -4,10 +4,12 @@ export interface Props {
   eyebrow?: string;
   title?: string;
   class?: string;
+  /** Render the content on a translucent glass plate over the Living Atlas. */
+  plate?: boolean;
 }
-const { id, eyebrow, title, class: className = '' } = Astro.props;
+const { id, eyebrow, title, class: className = '', plate = false } = Astro.props;
 ---
-<section id={id} class={`section ${className}`}>
+<section id={id} class={`section ${plate ? 'plate' : ''} ${className}`}>
   <div class="u-container">
     {(eyebrow || title) && (
       <header class="section__head">

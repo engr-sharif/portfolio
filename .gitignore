@@ -26,4 +26,7 @@ yarn-error.log*
 Thumbs.db
 
 # design-review screenshots (scripts/shots.mjs)
-.shots/
+.shots*/
+
+# throwaway probe scripts
+.scratch/
