@@ -30,6 +30,12 @@ export const projectSchema = z.object({
   startDate: yearMonth,
   endDate: yearMonth.optional(),
   summary: z.string().min(1, 'Write a short summary — it appears on cards and in search'),
+  // Case-study brief (all optional): one or two sentences each. When present
+  // they render as a Problem / Approach / Outcome panel on the homepage rows
+  // and at the top of the project page; when absent the summary stands in.
+  problem: z.string().optional(),
+  approach: z.string().optional(),
+  outcome: z.string().optional(),
   techniques: z.array(z.string()).default([]),
   coverImage: z.string().optional(),
   coverAlt: z.string().optional(),

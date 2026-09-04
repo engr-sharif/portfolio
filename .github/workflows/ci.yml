@@ -46,11 +46,12 @@ jobs:
         run: npm run smoke
         env:
           PLAYWRIGHT_CHROMIUM: /usr/bin/google-chrome
-      - name: Smoke test (fallback path)
+      - name: Smoke test (fallback path, Lab theme)
         run: npm run smoke
         env:
           PLAYWRIGHT_CHROMIUM: /usr/bin/google-chrome
           SMOKE_NO_SDA: '1'
+          SMOKE_THEME: light
 
       - name: Guard — no admin leftovers
         run: |

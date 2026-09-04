@@ -3,7 +3,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 
 export interface ProjectPoint {
   title: string; slug: string; location?: string; siteType?: string;
-  status?: string; lat: number; lng: number;
+  status?: string; dates?: string; lat: number; lng: number;
 }
 export interface PhotoPoint {
   caption?: string; takenAt?: string; lat: number; lng: number;
@@ -13,29 +13,46 @@ interface Props {
   projects: ProjectPoint[];
   photos: PhotoPoint[];
   base?: string;
+  /**
+   * 'atlas' — the homepage Field Atlas: the map plus a synced list of sites
+   *           (hover/focus a row → the pin lights up and the map eases to it;
+   *           hover a pin → the row lights up).
+   * 'compact' — the map alone (About page).
+   */
+  variant?: 'atlas' | 'compact';
 }
 
 const esc = (s = '') =>
   s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
 
-// Field-Atlas status colours.
-const STATUS_COLOR: Record<string, string> = {
-  active: '#e0a93b',     // hazard amber
-  complete: '#57c08a',   // field bright
-  proposed: '#8a918a',   // muted
+// Field-Atlas status colours as CSS tokens → they follow the theme.
+const STATUS_VAR: Record<string, string> = {
+  active: 'var(--color-hazard)',
+  complete: 'var(--color-field-bright)',
+  proposed: 'var(--color-muted)',
 };
 
-export default function WorkMapIsland({ projects, photos, base = '/' }: Props) {
+// CARTO basemaps: dark matter for Field, positron for Lab.
+const STYLE: Record<string, string> = {
+  dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+  light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+};
+const themeNow = () => (document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
+
+export default function WorkMapIsland({ projects, photos, base = '/', variant = 'compact' }: Props) {
   const elRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
-  const markers = useRef<{ project: any[]; photo: any[] }>({ project: [], photo: [] });
+  const markers = useRef<{ project: Map<string, any>; photo: any[] }>({ project: new Map(), photo: [] });
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState<string>('');
   const [showProjects, setShowProjects] = useState(true);
   const [showPhotos, setShowPhotos] = useState(true);
+  const [active, setActive] = useState<string | null>(null);
+  const isAtlas = variant === 'atlas';
 
   useEffect(() => {
     let cancelled = false;
+    let onTheme: (() => void) | null = null;
     (async () => {
       let maplibregl: any;
       try {
@@ -54,7 +71,7 @@ export default function WorkMapIsland({ projects, photos, base = '/' }: Props) {
       try {
         map = new maplibregl.Map({
           container: elRef.current,
-          style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+          style: STYLE[themeNow()],
           bounds: [[-124.5, 32.4], [-114.1, 42.1]], // California
           fitBoundsOptions: { padding: 40 },
           cooperativeGestures: true, // don't hijack page scroll
@@ -88,18 +105,22 @@ export default function WorkMapIsland({ projects, photos, base = '/' }: Props) {
         projects.forEach((p) => {
           const el = document.createElement('div');
           el.className = 'wm-pin wm-pin--project';
-          el.style.setProperty('--pin', STATUS_COLOR[p.status || ''] || '#57c08a');
-          markers.current.project.push(
-            new maplibregl.Marker({ element: el })
-              .setLngLat([p.lng, p.lat])
-              .setPopup(popup(
-                `<strong>${esc(p.title)}</strong>` +
-                (p.location ? `<span class="wm-pop__loc">${esc(p.location)}</span>` : '') +
-                (p.siteType ? `<span class="wm-pop__type">${esc(p.siteType)}</span>` : '') +
-                `<a class="wm-pop__link" href="${base}projects/${p.slug}/">View project →</a>`,
-              ))
-              .addTo(map),
-          );
+          el.style.setProperty('--pin', STATUS_VAR[p.status || ''] || STATUS_VAR.complete);
+          el.dataset.slug = p.slug;
+          if (isAtlas) {
+            el.addEventListener('pointerenter', () => setActive(p.slug));
+            el.addEventListener('pointerleave', () => setActive(null));
+          }
+          const m = new maplibregl.Marker({ element: el })
+            .setLngLat([p.lng, p.lat])
+            .setPopup(popup(
+              `<strong>${esc(p.title)}</strong>` +
+              (p.location ? `<span class="wm-pop__loc">${esc(p.location)}</span>` : '') +
+              (p.siteType ? `<span class="wm-pop__type">${esc(p.siteType)}</span>` : '') +
+              `<a class="wm-pop__link" href="${base}projects/${p.slug}/">View project →</a>`,
+            ))
+            .addTo(map);
+          markers.current.project.set(p.slug, m);
         });
 
         photos.forEach((p) => {
@@ -121,12 +142,20 @@ export default function WorkMapIsland({ projects, photos, base = '/' }: Props) {
         if (all.length) {
           const b = new maplibregl.LngLatBounds();
           all.forEach((p) => b.extend([p.lng, p.lat]));
-          map.fitBounds(b, { padding: 70, maxZoom: 8.5, duration: 0 });
+          map.fitBounds(b, { padding: isAtlas ? 60 : 70, maxZoom: 8.5, duration: 0 });
         }
         setReady(true);
       });
+
+      // Theme switch → swap the basemap. DOM markers survive setStyle.
+      onTheme = () => { try { map.setStyle(STYLE[themeNow()]); } catch { /* ignore */ } };
+      window.addEventListener('themechange', onTheme);
     })();
-    return () => { cancelled = true; mapRef.current?.remove(); };
+    return () => {
+      cancelled = true;
+      if (onTheme) window.removeEventListener('themechange', onTheme);
+      mapRef.current?.remove();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -137,38 +166,95 @@ export default function WorkMapIsland({ projects, photos, base = '/' }: Props) {
     markers.current.photo.forEach((m) => { m.getElement().style.display = showPhotos ? '' : 'none'; });
   }, [showPhotos, ready]);
 
-  return (
-    <div className="wm">
-      <div className="wm__legend">
-        <button type="button" aria-pressed={showProjects} className={`wm__toggle${showProjects ? ' is-on' : ''}`} onClick={() => setShowProjects((v) => !v)}>
-          <span className="wm__swatch wm__swatch--project" /> Project sites ({projects.length})
+  // Atlas sync: highlight the active pin and ease the map toward it.
+  useEffect(() => {
+    if (!isAtlas || !ready) return;
+    markers.current.project.forEach((m, slug) => m.getElement().classList.toggle('is-active', slug === active));
+    const map = mapRef.current;
+    const m = active ? markers.current.project.get(active) : null;
+    if (map && m && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      map.easeTo({ center: m.getLngLat(), duration: 600, essential: false });
+    }
+  }, [active, ready, isAtlas]);
+
+  const legend = (
+    <div className="wm__legend">
+      <button type="button" aria-pressed={showProjects} className={`wm__toggle${showProjects ? ' is-on' : ''}`} onClick={() => setShowProjects((v) => !v)}>
+        <span className="wm__swatch wm__swatch--project" /> Project sites ({projects.length})
+      </button>
+      {photos.length > 0 && (
+        <button type="button" aria-pressed={showPhotos} className={`wm__toggle${showPhotos ? ' is-on' : ''}`} onClick={() => setShowPhotos((v) => !v)}>
+          <span className="wm__swatch wm__swatch--photo" /> Field photos ({photos.length})
         </button>
-        {photos.length > 0 && (
-          <button type="button" aria-pressed={showPhotos} className={`wm__toggle${showPhotos ? ' is-on' : ''}`} onClick={() => setShowPhotos((v) => !v)}>
-            <span className="wm__swatch wm__swatch--photo" /> Field photos ({photos.length})
-          </button>
-        )}
-        <span className="wm__note">Locations approximate</span>
+      )}
+      <span className="wm__note">Locations approximate</span>
+    </div>
+  );
+
+  const stage = (
+    <div className="wm__stage">
+      <div ref={elRef} className="wm__canvas" aria-hidden={!!failed} />
+      {failed && (
+        <div className="wm__fallback" role="status">
+          <p className="wm__fallback-title">Map unavailable</p>
+          <p className="wm__fallback-msg">{failed}</p>
+          {!isAtlas && projects.length > 0 && (
+            <ul className="wm__fallback-list">
+              {projects.map((p) => (
+                <li key={p.slug}>
+                  <a href={`${base}projects/${p.slug}/`}>{p.title}</a>
+                  {p.location && <span> · {p.location}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+      {!failed && !ready && <div className="wm__loading" aria-hidden="true" />}
+    </div>
+  );
+
+  if (!isAtlas) {
+    return (
+      <div className="wm">
+        {legend}
+        {stage}
       </div>
-      <div className="wm__stage">
-        <div ref={elRef} className="wm__canvas" aria-hidden={!!failed} />
-        {failed && (
-          <div className="wm__fallback" role="status">
-            <p className="wm__fallback-title">Map unavailable</p>
-            <p className="wm__fallback-msg">{failed}</p>
-            {projects.length > 0 && (
-              <ul className="wm__fallback-list">
-                {projects.map((p) => (
-                  <li key={p.slug}>
-                    <a href={`${base}projects/${p.slug}/`}>{p.title}</a>
-                    {p.location && <span> · {p.location}</span>}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-        {!failed && !ready && <div className="wm__loading" aria-hidden="true" />}
+    );
+  }
+
+  return (
+    <div className="wm wm--atlas">
+      <ol className="atlas__list" aria-label="Project sites">
+        {projects.map((p, i) => (
+          <li key={p.slug} className={`atlas__row${active === p.slug ? ' is-active' : ''}`}>
+            <a
+              href={`${base}projects/${p.slug}/`}
+              className="atlas__link"
+              onPointerEnter={() => setActive(p.slug)}
+              onPointerLeave={() => setActive(null)}
+              onFocus={() => setActive(p.slug)}
+              onBlur={() => setActive(null)}
+            >
+              <span className="atlas__index u-mono">{String(i + 1).padStart(2, '0')}</span>
+              <span className="atlas__main">
+                <span className="atlas__title">{p.title}</span>
+                <span className="atlas__meta u-mono">
+                  {p.location || 'California'}{p.siteType ? ` · ${p.siteType}` : ''}
+                </span>
+              </span>
+              <span className="atlas__side">
+                <span className={`status status--${p.status || 'complete'}`}>{p.status || 'complete'}</span>
+                {p.dates && <span className="atlas__dates u-mono">{p.dates}</span>}
+              </span>
+              <span className="atlas__arrow" aria-hidden="true">→</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+      <div className="atlas__map">
+        {legend}
+        {stage}
       </div>
     </div>
   );

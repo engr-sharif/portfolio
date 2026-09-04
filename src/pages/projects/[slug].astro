@@ -58,6 +58,13 @@ const galleryItems = await Promise.all(
           <div><dt>Role</dt><dd>{data.role}</dd></div>
           <div><dt>Dates</dt><dd class="u-mono">{dateRange(data.startDate, data.endDate, data.status)}</dd></div>
         </dl>
+        {(data.problem || data.approach || data.outcome) && (
+          <dl class="brief">
+            {data.problem && <div><dt>Problem</dt><dd>{data.problem}</dd></div>}
+            {data.approach && <div><dt>Approach</dt><dd>{data.approach}</dd></div>}
+            {data.outcome && <div><dt>Outcome</dt><dd>{data.outcome}</dd></div>}
+          </dl>
+        )}
         <ul class="card__tags" style="margin-top:1.4rem;display:flex;flex-wrap:wrap;gap:0.4rem;list-style:none;padding:0;">
           {data.techniques.map((t) => <li class="chip">{t}</li>)}
         </ul>
@@ -154,6 +161,14 @@ const galleryItems = await Promise.all(
   }
   .detail__facts dt { color: var(--color-muted); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.12em; }
   .detail__facts dd { margin-top: 0.4rem; font-size: var(--text-base); }
+  /* case-study brief: Problem / Approach / Outcome */
+  .brief {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 1.4rem;
+    margin-top: 1.8rem; padding: 1.4rem; max-width: 56rem;
+    border: 1px solid var(--color-line); border-radius: 8px; background: var(--color-ink-1);
+  }
+  .brief dt { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-field-bright); }
+  .brief dd { margin-top: 0.45rem; color: var(--color-paper-soft); line-height: 1.6; }
   .detail__cover-btn { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
   .detail__cover { width: 100%; height: auto; border-radius: 6px; margin: clamp(2rem, 6vw, 4rem) 0; aspect-ratio: 16 / 9; object-fit: cover; transition: transform 0.5s var(--ease-out-expo); border: 1px solid var(--color-line); }
   .detail__cover-btn:hover .detail__cover { transform: scale(1.01); }

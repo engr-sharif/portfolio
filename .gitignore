@@ -24,3 +24,6 @@ yarn-error.log*
 .vscode/
 .idea/
 Thumbs.db
+
+# design-review screenshots (scripts/shots.mjs)
+.shots/

@@ -24,6 +24,8 @@ const PORT = Number(process.env.SMOKE_PORT || 4321);
 // SMOKE_NO_SDA=1 disables scroll-driven animations in Chromium to exercise the
 // IntersectionObserver fallback path (Tier 2 in global.css).
 const NO_SDA = process.env.SMOKE_NO_SDA === '1';
+// SMOKE_THEME=light loads every page in the Lab (light) theme.
+const THEME = process.env.SMOKE_THEME === 'light' ? 'light' : 'dark';
 const ORIGIN = `http://localhost:${PORT}`;
 
 const routes = [
@@ -74,19 +76,20 @@ await new Promise((res, rej) => {
 
 const exe = process.env.PLAYWRIGHT_CHROMIUM || (existsSync('/opt/pw-browsers/chromium-1194/chrome-linux/chrome') ? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' : undefined);
 browser = await chromium.launch({ executablePath: exe, args: ['--no-sandbox', ...(NO_SDA ? ['--disable-blink-features=ScrollTimeline'] : [])] });
-console.log(`smoke: ${routes.length} routes · scroll-driven animations ${NO_SDA ? 'DISABLED (fallback path)' : 'enabled'}`);
+console.log(`smoke: ${routes.length} routes · scroll-driven animations ${NO_SDA ? 'DISABLED (fallback path)' : 'enabled'} · theme ${THEME}`);
 const failures = [];
 
 for (const route of routes) {
   const url = `${ORIGIN}${BASE}${route}`;
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   const problems = [];
-  await page.addInitScript(() => {
+  await page.addInitScript((theme) => {
+    try { localStorage.setItem('theme', theme); } catch {}
     window.__cspViolations = [];
     document.addEventListener('securitypolicyviolation', (e) => {
       window.__cspViolations.push(`${e.violatedDirective} ← ${e.blockedURI || 'inline'} (${(e.sourceFile || '').split('/').pop()}:${e.lineNumber})`);
     });
-  });
+  }, THEME);
   page.on('pageerror', (e) => problems.push(`pageerror: ${e.message}`));
   page.on('console', (m) => {
     if (m.type() === 'error' && !/favicon|net::ERR_INTERNET_DISCONNECTED|Failed to load resource/i.test(m.text())) problems.push(`console: ${m.text()}`);
@@ -121,6 +124,11 @@ for (const route of routes) {
       const r = await page.request.get(local).catch(() => null);
       if (!r || !r.ok()) problems.push(`og:image not served: ${og}`);
     }
+  }
+
+  if (route !== 'studio/') {
+    const applied = await page.evaluate(() => document.documentElement.dataset.theme || 'dark');
+    if (applied !== THEME) problems.push(`theme not applied: expected ${THEME}, got ${applied}`);
   }
 
   const hasCsp = await page.$('meta[http-equiv="content-security-policy" i]');

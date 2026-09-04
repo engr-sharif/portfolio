@@ -8,6 +8,7 @@ import { createHash } from 'node:crypto';
 import { ClientRouter } from 'astro:transitions';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+import RecruiterBar from '../components/RecruiterBar.astro';
 import CommandPalette from '../components/CommandPalette.tsx';
 import { withBase } from '../lib/path';
 import { site } from '../lib/site';
@@ -99,7 +100,13 @@ const goatcounter = (site as { analytics?: string }).analytics?.trim();
  *    regulatory badge), Web3Forms (contact), YouTube/Vimeo (embeds), and
  *    GoatCounter only when analytics is switched on.
  */
-const JS_GATE = "document.documentElement.classList.add('js');";
+// One inline script, run before first paint: (1) mark JS available so reveals
+// may start hidden, (2) apply the saved/OS colour theme so there's no flash of
+// the wrong theme. Hashed below for the Content-Security-Policy.
+const JS_GATE =
+  "(function(){var d=document.documentElement;d.classList.add('js');" +
+  "try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'}" +
+  "d.dataset.theme=t;d.style.colorScheme=t}catch(e){}})();";
 const jsGateHash = `sha256-${createHash('sha256').update(JS_GATE).digest('base64')}` as const;
 // Astro's directive type only lists the directives its config validates;
 // style-src-attr is a real CSP3 directive the runtime passes through untouched.
@@ -124,8 +131,7 @@ if (Astro.csp) {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- Mark JS as available before first paint so reveal elements can start
-         hidden without a flash (html.js gate in global.css). Hashed for CSP. -->
+    <!-- JS gate + theme, before first paint (see JS_GATE above). Hashed for CSP. -->
     <script is:inline set:html={JS_GATE} />
     <link rel="icon" href={withBase('favicon.svg')} type="image/svg+xml" />
     <meta name="generator" content={Astro.generator} />
@@ -175,6 +181,7 @@ if (Astro.csp) {
       <slot />
     </main>
     {showChrome && <Footer />}
+    {showChrome && <RecruiterBar />}
     {showChrome && (
       <CommandPalette
         client:idle
@@ -195,6 +202,7 @@ if (Astro.csp) {
       // for the very first load in case the event already fired.
       import { bootMotion } from '../lib/motion';
       import '../lib/intro';
+      import '../lib/theme';
       bootMotion();
     </script>
     {goatcounter && <script>import '../lib/analytics';</script>}
