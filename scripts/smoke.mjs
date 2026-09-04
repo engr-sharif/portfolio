@@ -16,6 +16,7 @@
  */
 import { spawn } from 'node:child_process';
 import { existsSync, readdirSync, statSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 
 const BASE = '/portfolio/';
@@ -41,15 +42,38 @@ function firstOf(dir, prefix, skip = []) {
   } catch { return []; }
 }
 
-const server = spawn('npx', ['astro', 'preview', '--port', String(PORT)], { stdio: ['ignore', 'pipe', 'pipe'] });
+// Hard ceiling so a hung browser or server can never wedge a CI job.
+const WATCHDOG_MS = 6 * 60 * 1000;
+setTimeout(() => { console.error(`smoke: watchdog fired after ${WATCHDOG_MS / 1000}s — aborting`); shutdown(2); }, WATCHDOG_MS).unref();
+
+// Spawn the Astro CLI directly (not via npx) in its own process group, so
+// shutdown can kill the server AND the esbuild child it forks. Killing only an
+// npx wrapper leaves those alive holding the step's stdout — in GitHub Actions
+// that hangs the job until the 6-hour limit.
+const astroBin = new URL('../node_modules/astro/bin/astro.mjs', import.meta.url);
+const server = spawn(process.execPath, [fileURLToPath(astroBin), 'preview', '--port', String(PORT)], {
+  stdio: ['ignore', 'pipe', 'pipe'],
+  detached: true,
+});
+let browser;
+function shutdown(code) {
+  try { browser?.close?.(); } catch { /* already closed */ }
+  try { process.kill(-server.pid, 'SIGTERM'); } catch { try { server.kill('SIGTERM'); } catch { /* gone */ } }
+  // Give the group a moment to die, then force it and exit no matter what.
+  setTimeout(() => { try { process.kill(-server.pid, 'SIGKILL'); } catch { /* gone */ } process.exit(code); }, 500).unref();
+}
+process.on('SIGINT', () => shutdown(130));
+process.on('SIGTERM', () => shutdown(143));
+
 await new Promise((res, rej) => {
   const t = setTimeout(() => rej(new Error('preview server did not start')), 30000);
   server.stdout.on('data', (d) => { if (String(d).includes(String(PORT))) { clearTimeout(t); res(); } });
   server.stderr.on('data', (d) => process.stderr.write(d));
-});
+  server.on('exit', (c) => rej(new Error(`preview server exited early (code ${c})`)));
+}).catch((e) => { console.error(e.message); shutdown(2); });
 
 const exe = process.env.PLAYWRIGHT_CHROMIUM || (existsSync('/opt/pw-browsers/chromium-1194/chrome-linux/chrome') ? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' : undefined);
-const browser = await chromium.launch({ executablePath: exe, args: ['--no-sandbox', ...(NO_SDA ? ['--disable-blink-features=ScrollTimeline'] : [])] });
+browser = await chromium.launch({ executablePath: exe, args: ['--no-sandbox', ...(NO_SDA ? ['--disable-blink-features=ScrollTimeline'] : [])] });
 console.log(`smoke: ${routes.length} routes · scroll-driven animations ${NO_SDA ? 'DISABLED (fallback path)' : 'enabled'}`);
 const failures = [];
 
@@ -109,6 +133,6 @@ for (const route of routes) {
 }
 
 await browser.close();
-server.kill();
-if (failures.length) { console.error(`\n${failures.length} page(s) failed`); process.exit(1); }
-console.log(`\nAll ${routes.length} pages clean.`);
+if (failures.length) console.error(`\n${failures.length} page(s) failed`);
+else console.log(`\nAll ${routes.length} pages clean.`);
+shutdown(failures.length ? 1 : 0);
