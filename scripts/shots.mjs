@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 
 const PORT = Number(process.env.SHOTS_PORT || 4377);
-const BASE = `http://localhost:${PORT}/portfolio/`;
+const BASE = `http://localhost:${PORT}${process.env.BASE_PATH || '/portfolio/'}`;
 const OUT = process.env.SHOTS_OUT || '.shots';
 mkdirSync(OUT, { recursive: true });
 

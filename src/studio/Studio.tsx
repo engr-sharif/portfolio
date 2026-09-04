@@ -11,7 +11,7 @@ type View =
   | { name: 'list'; collectionId: string }
   | { name: 'edit'; collectionId: string; path: string | null };
 
-const SITE_URL = '/portfolio/';
+const SITE_URL = import.meta.env.BASE_URL; // the site's base path, whatever host it's on
 
 const Studio: FC = () => {
   const [authed, setAuthed] = useState(isLoggedIn());

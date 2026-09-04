@@ -124,8 +124,8 @@ export const MarkdownEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/ass
       const name = slugify(file.name);
       const path = `public/videos/${name}`;
       await uploadImage(path, base64, `studio: upload ${name}`);
-      // Root-relative under the site base (/portfolio/), matching the rest of the codebase.
-      insertBlock(`<video class="video-embed-native" controls preload="metadata" src="/portfolio/videos/${name}"></video>`);
+      // Root-relative under the site's base path (import.meta.env.BASE_URL).
+      insertBlock(`<video class="video-embed-native" controls preload="metadata" src="${import.meta.env.BASE_URL}videos/${name}"></video>`);
       setVideoOpen(false);
     } catch (e: any) {
       setVideoErr(e?.message || 'Upload failed.');

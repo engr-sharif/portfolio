@@ -13,22 +13,27 @@ on every page · a custom Studio admin · TypeScript. Output is 100% static
 
 ---
 
-## Deploy target & `base` path
+## Hosting: deploy target & `base` path
 
-This site deploys as a GitHub **project site** and is shareable at:
+The build is **host-agnostic**. Two environment variables decide where it lives:
 
-> **https://engr-sharif.github.io/portfolio/**
+| Host | `SITE_URL` | `BASE_PATH` |
+|---|---|---|
+| GitHub Pages (project site, the default) | `https://engr-sharif.github.io` | `/portfolio/` |
+| Cloudflare Pages / custom domain | `https://<project>.pages.dev` | `/` |
 
-```js
-// astro.config.mjs
-site: 'https://engr-sharif.github.io',
-base: '/portfolio/',   // matches the repo name → served under /portfolio/
-```
+Every internal link goes through `withBase()` (`src/lib/path.ts`), every absolute
+URL through `Astro.site`, `robots.txt` is generated from both, and the Studio,
+share cards and test scripts read the same values — so moving host is a
+two-variable change, not a search-and-replace.
 
-All internal links/assets go through `withBase()` (`src/lib/path.ts`) so they
-resolve correctly under the subpath. If you ever rename the repo to
-`engr-sharif.github.io` (a user site at the root domain), just change `base`
-back to `'/'` — everything else keeps working.
+**Cloudflare Pages setup (one time, in the dashboard):** Workers & Pages → Create
+→ Pages → *Connect to Git* → this repo → build command `npm run build`, output
+`dist`, and add the variables `SITE_URL=https://<project>.pages.dev` and
+`BASE_PATH=/` (Node comes from `.node-version`). Every branch then gets a preview
+URL; `main` is production. Add the new origin to the Studio Worker's
+`ALLOWED_ORIGIN`. `public/_headers` supplies the security/caching headers a static
+host can't otherwise send.
 
 ---
 

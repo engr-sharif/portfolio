@@ -19,7 +19,8 @@ import { getPosts, formatDate } from '../../lib/blog';
 import { getTools } from '../../lib/tools';
 import { getImage } from '../../lib/images';
 
-const SITE_URL = 'https://engr-sharif.github.io/portfolio/';
+// Absolute public URL of the site root (host-agnostic: Astro.site + base).
+const SITE_URL = new URL(import.meta.env.BASE_URL, import.meta.env.SITE).href;
 
 type Card = Omit<CardInput, 'siteName' | 'siteUrl'>;
 
