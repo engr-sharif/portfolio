@@ -21,7 +21,7 @@
  *   in  'atlas:active'  { detail: slug | null }  highlight a project node
  *   out 'atlas:pose'    { detail: { lat, lng } } camera target, for the HUD
  */
-import { useRef, useMemo, useState, useEffect, type FC } from 'react';
+import { useRef, useMemo, useState, useEffect, type FC, type RefObject } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import meta from '../../data/ca-terrain.json';
@@ -35,7 +35,7 @@ const RELIEF = 1.6; // vertical exaggeration of the 0..4400 m range, in plane un
 
 const GRID = { desktop: { cols: meta.width - 1, rows: meta.height - 1 }, mobile: { cols: 95, rows: 107 } };
 
-export interface Node { slug: string; lat: number; lng: number; status: string }
+export interface Node { slug: string; lat: number; lng: number; status: string; title?: string; location?: string }
 
 /** lon/lat → plane xy (z comes from the heightmap). */
 export function toPlane(lng: number, lat: number) {
@@ -192,6 +192,8 @@ const POSES: Record<string, Pose> = {
   page:  { theta: deg(-100), phi: deg(24), r: 16,   offX: 0.12, offY: 0.05, alpha: 0.16, tx: 0, ty: 0 },
   // close over a project site
   site:  { theta: deg(-112), phi: deg(52), r: 4.2,  offX: 0.18, offY: -0.05, alpha: 0.5, tx: 0, ty: 0 },
+  // homepage case-study flyover: the site behind a glass plate
+  station: { theta: deg(-104), phi: deg(46), r: 5.6, offX: 0.0, offY: 0.08, alpha: 0.42, tx: 0, ty: 0 },
 };
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const mixPose = (a: Pose, b: Pose, t: number): Pose => ({
@@ -219,11 +221,31 @@ function targetPose(): Pose {
   const t1 = ease(Math.min(1, Math.max(0, 1 - (rect.top - vh * 0.3) / (vh * 0.9))));
   // t2: 0 while the atlas occupies the viewport → 1 once its bottom passes 40%
   const t2 = ease(Math.min(1, Math.max(0, 1 - (rect.bottom - vh * 0.4) / (vh * 0.6))));
-  return mixPose(mixPose(POSES.hero, POSES.atlas, t1), POSES.deep, t2);
+  let pose = mixPose(mixPose(POSES.hero, POSES.atlas, t1), POSES.deep, t2);
+
+  // Case-study stations: as a project's row crosses the middle of the
+  // viewport, the camera flies down to that site behind the plate. Weight
+  // falls off with distance from centre so consecutive rows hand over smoothly.
+  if (t2 > 0.5) {
+    let best: { w: number; lat: number; lng: number } | null = null;
+    document.querySelectorAll<HTMLElement>('[data-station-lat]').forEach((el) => {
+      const r = el.getBoundingClientRect();
+      const centre = (r.top + r.bottom) / 2 - vh / 2;
+      const w = 1 - Math.min(1, Math.abs(centre) / (vh * 0.55));
+      if (w > 0 && (!best || w > best.w)) best = { w, lat: Number(el.dataset.stationLat), lng: Number(el.dataset.stationLng) };
+    });
+    if (best) {
+      const b = best as { w: number; lat: number; lng: number };
+      const pt = toPlane(b.lng, b.lat);
+      const station: Pose = { ...POSES.station, tx: pt.x, ty: pt.y };
+      pose = mixPose(pose, station, ease(b.w));
+    }
+  }
+  return pose;
 }
 
 /* ------------------------------------------------------------------ scene */
-const Scene: FC<{ reduced: boolean; small: boolean; nodes: Node[]; onAlpha: (a: number) => void }> = ({ reduced, small, nodes, onAlpha }) => {
+const Scene: FC<{ reduced: boolean; small: boolean; nodes: Node[]; onAlpha: (a: number) => void; overlay: RefObject<HTMLDivElement | null> }> = ({ reduced, small, nodes, onAlpha, overlay }) => {
   const { camera, gl, size, invalidate } = useThree();
   const terrainMat = useRef<THREE.ShaderMaterial>(null);
   const nodeMat = useRef<THREE.ShaderMaterial>(null);
@@ -351,15 +373,31 @@ const Scene: FC<{ reduced: boolean; small: boolean; nodes: Node[]; onAlpha: (a: 
   const rippleTarget = useRef(0);
   const ray = useMemo(() => new THREE.Raycaster(), []);
   const groundPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), []);
+  const lens = useRef<{ x: number; y: number; on: boolean; lat: number; lng: number }>({ x: 0, y: 0, on: false, lat: 0, lng: 0 });
   useEffect(() => {
     if (reduced || matchMedia('(hover: none)').matches) return;
     const hit = new THREE.Vector3();
     const onMove = (e: PointerEvent) => {
       const ndc = new THREE.Vector2((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
       ray.setFromCamera(ndc, camera);
-      if (ray.ray.intersectPlane(groundPlane, hit)) { planePointer.current.set(hit.x, hit.y); rippleTarget.current = 0.6; }
+      if (ray.ray.intersectPlane(groundPlane, hit)) {
+        planePointer.current.set(hit.x, hit.y); rippleTarget.current = 0.6;
+        // lens: only over land inside the state, and only when not over interactive text
+        const u = hit.x / PLANE_W + 0.5, v = hit.y / PLANE_H + 0.5;
+        const px = heightPx.current;
+        let inside = false;
+        if (px && u >= 0 && u <= 1 && v >= 0 && v <= 1) {
+          const ix = Math.round(u * (meta.width - 1)), iy = Math.round((1 - v) * (meta.height - 1));
+          inside = px[(iy * meta.width + ix) * 4 + 3] === 255;
+        }
+        const overText = !!(e.target as HTMLElement)?.closest?.('a, button, input, textarea, .plate, .rbar, .site-nav');
+        const ll = toLonLat(hit.x, hit.y);
+        lens.current = { x: e.clientX, y: e.clientY, on: inside && !overText, lat: ll.lat, lng: ll.lng };
+      } else {
+        lens.current.on = false;
+      }
     };
-    const onLeave = () => { rippleTarget.current = 0; };
+    const onLeave = () => { rippleTarget.current = 0; lens.current.on = false; };
     window.addEventListener('pointermove', onMove, { passive: true });
     document.addEventListener('pointerleave', onLeave);
     return () => { window.removeEventListener('pointermove', onMove); document.removeEventListener('pointerleave', onLeave); };
@@ -443,6 +481,36 @@ const Scene: FC<{ reduced: boolean; small: boolean; nodes: Node[]; onAlpha: (a: 
       if (changed) nodeGeo.current.attributes.aActive.needsUpdate = true;
     }
 
+    // Projected site labels: visible in plan-ish views, fading with the layer.
+    const ov = overlay.current;
+    if (ov) {
+      const planness = 1 - Math.min(1, Math.max(0, (p.phi - deg(14)) / deg(30))); // 1 at plan view → 0 oblique
+      const labelAlpha = Math.min(1, p.alpha * 1.4) * planness;
+      const els = ov.querySelectorAll<HTMLElement>('[data-label]');
+      els.forEach((el, i) => {
+        const n = nodes[i]; if (!n) return;
+        const pos = new THREE.Vector3(nodeData.pos[i * 3], nodeData.pos[i * 3 + 1], nodeData.pos[i * 3 + 2]);
+        pos.project(camera);
+        const x = (pos.x * 0.5 + 0.5) * size.width, y = (-pos.y * 0.5 + 0.5) * size.height;
+        const onScreen = pos.z < 1 && x > -40 && x < size.width + 40 && y > -20 && y < size.height + 20;
+        const isActive = n.slug === active.current;
+        el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
+        el.style.opacity = String(onScreen ? (isActive ? 1 : labelAlpha * 0.85) : 0);
+        el.classList.toggle('is-active', isActive);
+      });
+      // coordinate lens follows the pointer over the state
+      const lz = ov.querySelector<HTMLElement>('[data-lens]');
+      if (lz) {
+        const L = lens.current;
+        const show = L.on && p.alpha > 0.6;
+        lz.style.opacity = show ? '1' : '0';
+        if (show) {
+          lz.style.transform = `translate3d(${(L.x + 18).toFixed(1)}px, ${(L.y + 18).toFixed(1)}px, 0)`;
+          lz.textContent = `${Math.abs(L.lat).toFixed(2)}° N  ${Math.abs(L.lng).toFixed(2)}° W`;
+        }
+      }
+    }
+
     // HUD: camera target as lon/lat, ~10×/s
     if (t - lastHud.current > 0.1) {
       lastHud.current = t;
@@ -490,6 +558,7 @@ const TerrainField: FC<{ nodes?: Node[] }> = ({ nodes = [] }) => {
 
   // Opacity of the whole layer follows the pose (CSSOM write, cheap).
   const onAlpha = (a: number) => { if (wrapRef.current) wrapRef.current.style.opacity = String(Math.min(1, a + 0.05)); };
+  const overlayRef = useRef<HTMLDivElement>(null);
 
   return (
     <div ref={wrapRef} className="atlas-layer" aria-hidden="true">
@@ -500,8 +569,21 @@ const TerrainField: FC<{ nodes?: Node[] }> = ({ nodes = [] }) => {
         gl={{ antialias: false, alpha: true, powerPreference: 'high-performance', premultipliedAlpha: true }}
         onCreated={({ gl }) => gl.setClearColor(0x000000, 0)}
       >
-        <Scene reduced={reduced} small={small} nodes={nodes} onAlpha={onAlpha} />
+        <Scene reduced={reduced} small={small} nodes={nodes} onAlpha={onAlpha} overlay={overlayRef} />
       </Canvas>
+      {/* DOM overlay: site labels projected from the scene each frame + the coordinate lens */}
+      <div ref={overlayRef} className="atlas-overlay">
+        {nodes.map((n) => (
+          <div key={n.slug} className={`atlas-label atlas-label--${n.status || 'complete'}`} data-label style={{ opacity: 0 }}>
+            <span className="atlas-label__dot" />
+            <span className="atlas-label__text">
+              <span className="atlas-label__title">{n.title || n.slug}</span>
+              {n.location && <span className="atlas-label__loc">{n.location}</span>}
+            </span>
+          </div>
+        ))}
+        <div className="atlas-lens" data-lens style={{ opacity: 0 }} />
+      </div>
     </div>
   );
 };

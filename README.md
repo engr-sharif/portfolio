@@ -216,6 +216,18 @@ glowing on their real coordinates.
 
 ## Design & motion notes
 
+- **The Living Atlas.** One persistent WebGL scene (`src/components/three/
+  TerrainField.tsx`, mounted in BaseLayout with `transition:persist`) renders
+  California's real terrain as a point field from a heightmap baked by
+  `scripts/build-terrain.mjs` (SRTM tiles + state boundary → `public/data/
+  ca-terrain.png`). Pages declare a camera station on `<body data-scene>`
+  (`home` scroll flight · `page` backdrop · `site` close-up over lat/lng);
+  on the homepage the camera also flies to each case study's site as its row
+  crosses the viewport. Project sites glow as nodes with projected labels, a
+  coordinate lens follows the pointer over the state, and the hero HUD reads
+  the live camera target. Hovering an Atlas row emits `atlas:active`.
+- **Kinetic type.** Section and case-study titles settle from light to bold as
+  they enter (Space Grotesk's weight axis, scroll-driven, no JS).
 - **Two themes.** *Field* (dark, default) and *Lab* (light) are one token set
   each in `global.css`; the toggle lives in the nav (`src/lib/theme.ts`), the
   choice persists in localStorage and follows the OS until you pick, and a

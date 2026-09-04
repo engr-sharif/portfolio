@@ -67,7 +67,7 @@ const {
 } = Astro.props;
 
 // Project sites for the Living Atlas nodes (published + located only).
-const atlasNodes = (await getAtlasPoints()).projects.map((p) => ({ slug: p.slug, lat: p.lat, lng: p.lng, status: p.status }));
+const atlasNodes = (await getAtlasPoints()).projects.map((p) => ({ slug: p.slug, lat: p.lat, lng: p.lng, status: p.status, title: p.title, location: p.location }));
 
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 // Per-page images may arrive absolute; base-relative ones (e.g. /og/home.png)

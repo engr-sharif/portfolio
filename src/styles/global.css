@@ -237,6 +237,40 @@ a {
     background: color-mix(in srgb, var(--color-ink) 62%, transparent);
   }
 }
+/* DOM overlay for the scene: projected site labels + the coordinate lens */
+.atlas-overlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.atlas-label {
+  position: absolute; left: 0; top: 0;
+  display: flex; align-items: center; gap: 0.5rem;
+  transform: translate3d(-9999px, -9999px, 0);
+  will-change: transform, opacity;
+  transition: opacity 0.25s linear;
+  font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.06em;
+  color: var(--color-paper-soft);
+  /* anchor the dot on the node, text to the right */
+  margin: -0.6rem 0 0 -0.35rem;
+}
+.atlas-label__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-field-bright); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-field-bright) 25%, transparent); flex: none; }
+.atlas-label--active .atlas-label__dot { background: var(--color-hazard); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-hazard) 25%, transparent); }
+.atlas-label__text { display: flex; flex-direction: column; line-height: 1.25; padding: 0.3rem 0.55rem; border-radius: 6px; background: color-mix(in srgb, var(--color-ink) 62%, transparent); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border: 1px solid color-mix(in srgb, var(--color-line) 70%, transparent); }
+/* at rest a label is just the place (short, quiet); the active site expands to its full title */
+.atlas-label__title { display: none; color: var(--color-paper); white-space: nowrap; }
+.atlas-label__loc { color: var(--color-paper-soft); white-space: nowrap; }
+.atlas-label.is-active .atlas-label__text { border-color: color-mix(in srgb, var(--color-field-bright) 60%, transparent); background: color-mix(in srgb, var(--color-ink) 80%, transparent); }
+.atlas-label.is-active .atlas-label__title { display: block; color: var(--color-field-bright); }
+.atlas-label.is-active .atlas-label__loc { color: var(--color-muted); }
+.atlas-label.is-active { z-index: 2; }
+.atlas-lens {
+  position: absolute; left: 0; top: 0;
+  transform: translate3d(-9999px, -9999px, 0);
+  padding: 0.3rem 0.55rem; border-radius: 6px;
+  font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.08em; white-space: pre;
+  color: var(--color-field-bright); background: color-mix(in srgb, var(--color-ink) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-field-bright) 35%, transparent);
+  transition: opacity 0.15s linear; will-change: transform;
+}
+@media (hover: none) { .atlas-lens, .atlas-label { display: none; } }
+
 /* page content sits above the layer (nav/recruiter bar are fixed with their own z-index) */
 main, .site-footer { position: relative; z-index: 1; }
 
@@ -275,6 +309,7 @@ main, .site-footer { position: relative; z-index: 1; }
   to   { stroke-dashoffset: 0; }
 }
 @keyframes grow-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes type-settle { from { font-weight: 320; letter-spacing: 0.005em; } to { font-weight: 600; letter-spacing: -0.02em; } }
 @keyframes grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
 /* ---- Tier 1: native ---- */
@@ -296,6 +331,18 @@ main, .site-footer { position: relative; z-index: 1; }
   html.js [data-reveal-stagger] > :nth-child(4)  { animation-range: entry 20% entry 53%; }
   html.js [data-reveal-stagger] > :nth-child(5)  { animation-range: entry 25% entry 58%; }
   html.js [data-reveal-stagger] > :nth-child(n+6) { animation-range: entry 30% entry 63%; }
+
+  /* kinetic type: section titles settle from light to bold as they enter the
+     viewport (Space Grotesk's wght axis), on top of the reveal. Both
+     animations ride the same view timeline. */
+  html.js .section__title[data-reveal],
+  html.js .page-head__title,
+  html.js .case__title {
+    animation: reveal-up var(--ease-out-expo) backwards, type-settle var(--ease-out-expo) both;
+    animation-timeline: view(), view();
+    animation-range: entry 5% entry 38%, entry 0% entry 75%;
+  }
+  html.js .case__title, html.js .page-head__title { animation-name: type-settle; animation-fill-mode: both; animation-timeline: view(); animation-range: entry 0% entry 75%; }
 
   /* figures develop like a print — a left-to-right scanline wipe */
   html.js [data-figure] {
