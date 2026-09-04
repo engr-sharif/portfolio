@@ -30,15 +30,21 @@ export const isLoggedIn = () => !!getToken();
 export class ApiError extends Error {
   status: number;
   code?: string;
-  constructor(message: string, status: number, code?: string) {
+  /** Extra structured fields from the server (e.g. `paths` on a 409). */
+  data?: Record<string, unknown>;
+  constructor(message: string, status: number, code?: string, data?: Record<string, unknown>) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
+    this.data = data;
   }
 }
 export const isSessionExpired = (e: unknown) => e instanceof ApiError && e.status === 401;
 export const isConflict = (e: unknown) => e instanceof ApiError && e.status === 409;
+/** The deployed Worker predates this route (the Studio then falls back to the
+ * older, per-file behaviour so an out-of-date Worker never blocks editing). */
+export const isMissingRoute = (e: unknown) => e instanceof ApiError && e.status === 404 && e.code === 'Not found';
 
 const FRIENDLY: Record<number, string> = {
   400: 'The server rejected that request as invalid.',
@@ -86,14 +92,16 @@ async function call(path: string, init: RequestInit = {}) {
   if (!res.ok) {
     let msg = FRIENDLY[res.status] || `Request failed (${res.status}).`;
     let code: string | undefined;
+    let data: Record<string, unknown> | undefined;
     try {
       const body = await res.json();
       // Server-provided messages are already written for humans.
       if (body?.error && body.error !== 'conflict') msg = String(body.error);
       if (body?.detail && res.status !== 502) msg += ` ${String(body.detail)}`;
       code = body?.error;
+      if (body && typeof body === 'object') data = body;
     } catch { /* non-JSON body */ }
-    throw new ApiError(msg, res.status, code);
+    throw new ApiError(msg, res.status, code, data);
   }
   return res.json();
 }
@@ -135,9 +143,29 @@ export async function lastDeployTime(): Promise<number | null> {
   }
 }
 
-export interface FileResult { content: string | null; sha: string | null }
+export interface FileResult { content: string | null; sha: string | null; ref?: string }
 export const readFile = (path: string): Promise<FileResult> =>
   call(`/api/file?path=${encodeURIComponent(path)}`);
+
+/** The file as it was at a past commit (sha from `history()`). The returned
+ * `sha` is that version's blob — never use it to save over the live file. */
+export const readFileAt = (path: string, ref: string): Promise<FileResult> =>
+  call(`/api/file?path=${encodeURIComponent(path)}&ref=${encodeURIComponent(ref)}`);
+
+export interface CommitFile { path: string; content: string; sha?: string | null; encoding?: 'utf-8' | 'base64' }
+export interface CommitDelete { path: string; sha?: string | null }
+export interface CommitResult { ok: true; commit: string; head: string; noop?: boolean; files: { path: string; sha: string }[]; deleted?: string[] }
+
+/** Write and/or delete several files as ONE commit. Either everything lands or
+ * nothing does. Pass each file's loaded `sha` for per-file conflict detection
+ * (a 409 lists the stale paths in `err.data.paths`). */
+export const commitFiles = (message: string, files: CommitFile[], deletes: CommitDelete[] = []): Promise<CommitResult> =>
+  call('/api/commit', { method: 'POST', body: JSON.stringify({ message, files, deletes }) });
+
+export interface HistoryEntry { sha: string; message: string; date: string | null; author: string; url?: string }
+/** Commits that touched `path` (newest first) — or the whole site when omitted. */
+export const history = (path?: string, limit = 20): Promise<HistoryEntry[]> =>
+  call(`/api/history?${path ? `path=${encodeURIComponent(path)}&` : ''}limit=${limit}`);
 
 export const writeFile = (path: string, content: string, message: string, sha?: string | null): Promise<{ ok: true; sha?: string }> =>
   call('/api/file', { method: 'PUT', body: JSON.stringify({ path, content, message, sha: sha || undefined }) });

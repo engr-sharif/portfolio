@@ -3,7 +3,9 @@ import type { Collection } from './schema';
 import { Field } from './Field';
 import { MarkdownEditor } from './MarkdownEditor';
 import { PreviewPane } from './PreviewPane';
-import { readFile, writeFile, deleteFile, isSessionExpired, isConflict } from './api';
+import { History } from './History';
+import { readFile, writeFile, deleteFile, isSessionExpired, isConflict, type HistoryEntry } from './api';
+import { timeAgo } from './studio-lib';
 import { parse, stringify, cleanForSchema } from './frontmatter';
 import { validateEntry, type FieldErrors } from '../content/schemas';
 import { uniqueEntryPath, invalidateAiGuide, AI_GUIDE_PATH } from './studio-lib';
@@ -43,8 +45,11 @@ export const Editor: FC<Props> = ({ collection, path, onDone, onPublished, onDir
   const [dirty, setDirty] = useState(false); // unsaved-changes guard
   const [pendingDraft, setPendingDraft] = useState<Draft | null>(null);
   const [preview, setPreview] = useState(() => localStorage.getItem('studio.preview') === '1');
+  const [showHistory, setShowHistory] = useState(false);
+  const [notice, setNotice] = useState(''); // non-error status (e.g. "restored a version")
 
   const isFileCollection = collection.kind === 'file';
+  const repoPath = isFileCollection ? collection.file! : filePath;
   const hasBody = !isFileCollection && !!collection.bodyLabel;
   const showPreview = preview && hasBody;
   const key = draftKey(collection.id, path);
@@ -124,8 +129,27 @@ export const Editor: FC<Props> = ({ collection, path, onDone, onPublished, onDir
   };
   const discardDraft = () => { clearDraft(key); setPendingDraft(null); };
 
+  // What Save would write right now — the History drawer diffs versions
+  // against this, so the author sees exactly what Restore would change.
+  const serialise = (d: Record<string, any>, b: string) =>
+    isFileCollection ? JSON.stringify(d, null, 2) + '\n' : stringify({ data: cleanForSchema(d), body: b });
+
+  // Restore = load an old version into the form as an unsaved edit. Nothing is
+  // published until Save, which still carries the live sha (conflict-safe).
+  const restoreVersion = (content: string, entry: HistoryEntry) => {
+    try {
+      if (isFileCollection) setData(JSON.parse(content));
+      else { const doc = parse(content); setData(doc.data); setBody(doc.body); }
+      setDirty(true); setFieldErrors({}); setError(''); setShowHistory(false);
+      setNotice(`Restored the version from ${timeAgo(entry.date) || entry.sha.slice(0, 7)}. Review it, then Save & publish to make it live.`);
+    } catch (e: any) {
+      setShowHistory(false);
+      setError(e?.message || 'That version could not be read.');
+    }
+  };
+
   const save = async () => {
-    setSaving(true); setError(''); setFieldErrors({});
+    setSaving(true); setError(''); setNotice(''); setFieldErrors({});
     try {
       if (isFileCollection) {
         await writeFile(collection.file!, JSON.stringify(data, null, 2) + '\n', `studio: update ${collection.label}`, sha);
@@ -190,6 +214,9 @@ export const Editor: FC<Props> = ({ collection, path, onDone, onPublished, onDir
               {preview ? '◉' : '○'} Preview
             </button>
           )}
+          {repoPath && sha && (
+            <button type="button" className="st-btn st-btn--ghost" onClick={() => setShowHistory(true)} title="Every published version of this entry">History</button>
+          )}
           {filePath && !isFileCollection && sha && (
             <button className="st-btn st-btn--danger" onClick={remove} disabled={saving}>Delete</button>
           )}
@@ -215,6 +242,12 @@ export const Editor: FC<Props> = ({ collection, path, onDone, onPublished, onDir
       )}
 
       {error && <div className="st-error" role="alert">{error}{errorCount > 1 && <span className="st-error__count"> · {errorCount} issues</span>}</div>}
+      {notice && (
+        <div className="st-notice" role="status">
+          <span>{notice}</span>
+          <button type="button" className="st-btn st-btn--ghost" onClick={() => setNotice('')} aria-label="Dismiss">✕</button>
+        </div>
+      )}
 
       <div className="st-editor__cols">
         <div className="st-editor__form">
@@ -240,6 +273,10 @@ export const Editor: FC<Props> = ({ collection, path, onDone, onPublished, onDir
           />
         )}
       </div>
+
+      {showHistory && repoPath && (
+        <History path={repoPath} current={serialise(data, body)} onRestore={restoreVersion} onClose={() => setShowHistory(false)} />
+      )}
 
       <div className="st-editor__footer">
         <button className="st-btn st-btn--primary" onClick={save} disabled={saving}>

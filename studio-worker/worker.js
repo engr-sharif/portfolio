@@ -3,8 +3,11 @@
  *
  * Provides a small, secure server for an otherwise-static site:
  *   POST /api/login           { password } -> { token }      (signed JWT session)
- *   GET  /api/file?path=…      -> { content, sha }            (read a repo file)
+ *   GET  /api/file?path=…&ref= -> { content, sha }            (read a repo file; ref = any past commit)
  *   PUT  /api/file            { path, content, message, sha } (commit a file)
+ *   POST /api/commit          { message, files:[{path,content,sha?}], deletes:[{path,sha?}] }
+ *                             -> { commit, files:[{path,sha}] }  (ONE atomic commit; 409 on conflict)
+ *   GET  /api/history?path=…&limit= -> [{ sha, message, date, author, url }]
  *   POST /api/upload          { path, base64, message }       (commit binary/image)
  *   DELETE /api/file          { path, message, sha }          (delete a file)
  *   GET  /api/list?dir=…       -> [{ name, path, sha }]        (list a directory)
@@ -96,6 +99,9 @@ const TASKS = {
 const MAX_ASSIST_CHARS = 20_000;     // ~5k tokens of input is plenty for a write-up
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const MAX_UPLOAD_B64 = 70 * 1024 * 1024; // ~50 MB binary (GitHub Contents API ceiling is 100 MB)
+const MAX_COMMIT_FILES = 60;             // one reorder touches every entry of a collection; 60 is generous
+const MAX_COMMIT_CHARS = 20 * 1024 * 1024; // total payload of one atomic commit (text + base64)
+const isGitSha = (s) => typeof s === 'string' && /^[0-9a-f]{7,40}$/i.test(s);
 
 /* ----------------------------------------------------------------- helpers */
 const b64url = (buf) =>
@@ -232,6 +238,103 @@ async function gh(env, path, init = {}) {
 // path turns "/" into %2F, which the Contents API rejects for nested paths.
 const ghPath = (p) => p.split('/').map(encodeURIComponent).join('/');
 
+/* ------------------------------------------------------------ atomic commit */
+/**
+ * Commit several writes/deletes as ONE commit via the Git Data API:
+ *   ref → base commit → (recursive tree for conflict checks) → blobs → tree →
+ *   commit → fast-forward the branch ref.
+ * Either every change lands or none does, so a reorder can never leave the
+ * collection half-renumbered. Conflicts are detected two ways: each write may
+ * carry the blob sha the author loaded (compared against the live tree), and
+ * the final ref update is non-forced, so a push that races us is refused by
+ * GitHub (422) and reported as 409 — nothing has been written to the branch at
+ * that point, only unreferenced objects.
+ *
+ * Returns { status, body } ready for json().
+ */
+async function atomicCommit(env, repo, branch, { message, writes, removals, expectedHead }) {
+  const fail = (res, what) => ({ status: 502, body: { error: `GitHub ${res.status} while ${what}` } });
+  const conflict = (detail, extra = {}) => ({ status: 409, body: { error: 'conflict', detail, ...extra } });
+
+  const refRes = await gh(env, `/repos/${repo}/git/ref/heads/${encodeURIComponent(branch)}`);
+  if (!refRes.ok) return fail(refRes, 'reading the branch');
+  const head = (await refRes.json()).object?.sha;
+  if (!isGitSha(head)) return { status: 502, body: { error: 'GitHub returned no branch head' } };
+  if (expectedHead && expectedHead !== head) {
+    return conflict('The site changed since you loaded it. Reload and try again.', { head });
+  }
+
+  const headRes = await gh(env, `/repos/${repo}/git/commits/${head}`);
+  if (!headRes.ok) return fail(headRes, 'reading the head commit');
+  const baseTree = (await headRes.json()).tree?.sha;
+
+  // Per-file conflict detection against the live tree (one call, whole repo).
+  // Also lets us drop deletes of paths that are already gone instead of failing.
+  const needTree = removals.length > 0 || writes.some((w) => w.sha);
+  if (needTree) {
+    const treeRes = await gh(env, `/repos/${repo}/git/trees/${baseTree}?recursive=1`);
+    if (!treeRes.ok) return fail(treeRes, 'reading the tree');
+    const t = await treeRes.json();
+    const live = new Map((t.tree || []).filter((e) => e.type === 'blob').map((e) => [e.path, e.sha]));
+    if (!t.truncated) {
+      const stale = [];
+      for (const w of writes) if (w.sha && live.get(w.path) !== w.sha) stale.push(w.path);
+      for (const r of removals) if (r.sha && live.has(r.path) && live.get(r.path) !== r.sha) stale.push(r.path);
+      if (stale.length) {
+        return conflict(`These files changed since you loaded them: ${stale.join(', ')}. Reload and re-apply your edits.`, { paths: stale, head });
+      }
+      removals = removals.filter((r) => live.has(r.path));
+    }
+  }
+  if (writes.length === 0 && removals.length === 0) return { status: 200, body: { ok: true, noop: true, commit: head, head, files: [] } };
+
+  // Blobs are created serially — GitHub asks for writes to be sequential per token.
+  const entries = [];
+  for (const w of writes) {
+    const b = await gh(env, `/repos/${repo}/git/blobs`, {
+      method: 'POST',
+      body: JSON.stringify({ content: w.content, encoding: w.encoding }),
+    });
+    if (!b.ok) return fail(b, `storing ${w.path}`);
+    entries.push({ path: w.path, mode: '100644', type: 'blob', sha: (await b.json()).sha });
+  }
+  for (const r of removals) entries.push({ path: r.path, mode: '100644', type: 'blob', sha: null });
+
+  const treeRes = await gh(env, `/repos/${repo}/git/trees`, {
+    method: 'POST',
+    body: JSON.stringify({ base_tree: baseTree, tree: entries }),
+  });
+  if (!treeRes.ok) return fail(treeRes, 'building the tree');
+  const tree = (await treeRes.json()).sha;
+
+  const commitRes = await gh(env, `/repos/${repo}/git/commits`, {
+    method: 'POST',
+    body: JSON.stringify({ message, tree, parents: [head] }),
+  });
+  if (!commitRes.ok) return fail(commitRes, 'creating the commit');
+  const commit = (await commitRes.json()).sha;
+
+  const upd = await gh(env, `/repos/${repo}/git/refs/heads/${encodeURIComponent(branch)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ sha: commit, force: false }),
+  });
+  if (upd.status === 422 || upd.status === 409) {
+    return conflict('Someone pushed to the site while you were saving. Nothing was changed — reload and try again.', { head });
+  }
+  if (!upd.ok) return fail(upd, 'updating the branch');
+
+  return {
+    status: 200,
+    body: {
+      ok: true,
+      commit,
+      head: commit,
+      files: entries.filter((e) => e.sha).map((e) => ({ path: e.path, sha: e.sha })),
+      deleted: removals.map((r) => r.path),
+    },
+  };
+}
+
 /* -------------------------------------------------------------------- main */
 export default {
   async fetch(request, env) {
@@ -301,14 +404,43 @@ export default {
     }
 
     // --- read a file ---
+    // `ref` (a commit sha from /api/history) reads the file as it was at that
+    // commit — the basis of the Studio's version history / restore.
     if (pathname === '/api/file' && request.method === 'GET') {
       const path = safeRepoPath(url.searchParams.get('path'));
       if (!path) return json({ error: 'A valid repo path is required' }, env, request, 400);
-      const res = await gh(env, `/repos/${repo}/contents/${ghPath(path)}?ref=${encodeURIComponent(branch)}`);
-      if (res.status === 404) return json({ content: null, sha: null }, env, request);
+      const refParam = url.searchParams.get('ref');
+      if (refParam && !isGitSha(refParam)) return json({ error: 'ref must be a commit sha' }, env, request, 400);
+      const ref = refParam || branch;
+      const res = await gh(env, `/repos/${repo}/contents/${ghPath(path)}?ref=${encodeURIComponent(ref)}`);
+      if (res.status === 404) return json({ content: null, sha: null, ref }, env, request);
       if (!res.ok) return json({ error: `GitHub ${res.status}` }, env, request, 502);
       const d = await res.json();
-      return json({ content: d.content ? fromB64url(d.content.replace(/\n/g, '')) : '', sha: d.sha }, env, request);
+      return json({ content: d.content ? fromB64url(d.content.replace(/\n/g, '')) : '', sha: d.sha, ref }, env, request);
+    }
+
+    // --- version history: commits touching a path (or the whole site) ---
+    if (pathname === '/api/history' && request.method === 'GET') {
+      const rawPath = url.searchParams.get('path');
+      const path = rawPath ? safeRepoPath(rawPath) : '';
+      if (rawPath && !path) return json({ error: 'A valid repo path is required' }, env, request, 400);
+      const limit = Math.min(Math.max(Number(url.searchParams.get('limit')) || 20, 1), 50);
+      const q = new URLSearchParams({ sha: branch, per_page: String(limit) });
+      if (path) q.set('path', path);
+      const res = await gh(env, `/repos/${repo}/commits?${q}`);
+      if (res.status === 404 || res.status === 409) return json([], env, request); // 409 = empty repo
+      if (!res.ok) return json({ error: `GitHub ${res.status}` }, env, request, 502);
+      const list = await res.json();
+      return json(
+        (Array.isArray(list) ? list : []).map((c) => ({
+          sha: c.sha,
+          message: String(c.commit?.message || '').split('\n')[0].slice(0, 200),
+          date: c.commit?.author?.date || c.commit?.committer?.date || null,
+          author: c.commit?.author?.name || c.author?.login || '',
+          url: c.html_url,
+        })),
+        env, request,
+      );
     }
 
     // --- list a directory ---
@@ -344,6 +476,45 @@ export default {
       if (!res.ok) return json({ error: `GitHub ${res.status}`, detail: (await res.text()).slice(0, 500) }, env, request, 502);
       const d = await res.json();
       return json({ ok: true, sha: d.content?.sha, commit: d.commit?.sha }, env, request);
+    }
+
+    // --- atomic multi-file commit (reorders, bulk edits) ---
+    if (pathname === '/api/commit' && request.method === 'POST') {
+      if (rateLimited(request, 'commit', 60, 10 * 60 * 1000)) {
+        return json({ error: 'Too many saves in a short time. Wait a few minutes and try again.' }, env, request, 429);
+      }
+      const body = await readJson(request);
+      const files = Array.isArray(body?.files) ? body.files : [];
+      const deletes = Array.isArray(body?.deletes) ? body.deletes : [];
+      if (files.length + deletes.length === 0) return json({ error: 'Nothing to commit' }, env, request, 400);
+      if (files.length + deletes.length > MAX_COMMIT_FILES) return json({ error: `Too many files in one commit (max ${MAX_COMMIT_FILES}).` }, env, request, 400);
+      const seen = new Set();
+      const writes = [];
+      let chars = 0;
+      for (const f of files) {
+        const path = safeRepoPath(f?.path);
+        if (!path || typeof f.content !== 'string') return json({ error: 'Every file needs a valid path and string content' }, env, request, 400);
+        if (seen.has(path)) return json({ error: `Duplicate path in commit: ${path}` }, env, request, 400);
+        seen.add(path);
+        chars += f.content.length;
+        if (chars > MAX_COMMIT_CHARS) return json({ error: 'That commit is too large.' }, env, request, 413);
+        if (f.sha != null && !isGitSha(f.sha)) return json({ error: `Bad sha for ${path}` }, env, request, 400);
+        writes.push({ path, content: f.content, encoding: f.encoding === 'base64' ? 'base64' : 'utf-8', sha: f.sha || null });
+      }
+      const removals = [];
+      for (const d of deletes) {
+        const path = safeRepoPath(typeof d === 'string' ? d : d?.path);
+        if (!path) return json({ error: 'Every delete needs a valid path' }, env, request, 400);
+        if (seen.has(path)) return json({ error: `Duplicate path in commit: ${path}` }, env, request, 400);
+        seen.add(path);
+        const sha = typeof d === 'object' && d?.sha ? String(d.sha) : null;
+        if (sha && !isGitSha(sha)) return json({ error: `Bad sha for ${path}` }, env, request, 400);
+        removals.push({ path, sha });
+      }
+      const expectedHead = isGitSha(body.expectedHead) ? body.expectedHead : null;
+      const message = String(body.message || `studio: update ${writes.length + removals.length} files`).slice(0, 500);
+      const out = await atomicCommit(env, repo, branch, { message, writes, removals, expectedHead });
+      return json(out.body, env, request, out.status);
     }
 
     // --- upload binary (image / pdf / video) ---

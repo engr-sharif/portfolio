@@ -2,7 +2,7 @@
  * Studio helpers that compose the api + schema (kept out of api.ts so api stays
  * a thin transport layer).
  */
-import { login as apiLogin, clearToken, isLoggedIn as apiIsLoggedIn, listDir, readFile, writeFile, rawImageUrl } from './api';
+import { login as apiLogin, clearToken, isLoggedIn as apiIsLoggedIn, listDir, readFile, writeFile, rawImageUrl, commitFiles, isMissingRoute } from './api';
 import { parse, stringify } from './frontmatter';
 import { collections, type Collection } from './schema';
 
@@ -72,23 +72,59 @@ export async function listImages(dir: string): Promise<MediaItem[]> {
 }
 
 /** Persist a new order for a folder collection by writing each entry's `order`
- * field to match its position. Sequential commits (small N); reports partial
- * failure so the author knows which items didn't move. */
+ * field to match its position — as ONE atomic commit, so the collection can
+ * never be left half-renumbered and the site rebuilds once, not N times. Each
+ * file carries the sha it was read at, so an edit made elsewhere in the
+ * meantime is refused (409) instead of overwritten. */
 export async function saveOrder(paths: string[]): Promise<void> {
+  const changed = (
+    await Promise.all(
+      paths.map(async (path, i) => {
+        const { content, sha } = await readFile(path);
+        if (content == null) return null;
+        const doc = parse(content);
+        if (doc.data.order === i) return null; // already in place
+        doc.data.order = i;
+        return { path, content: stringify(doc), sha };
+      }),
+    )
+  ).filter((x): x is { path: string; content: string; sha: string | null } => x !== null);
+  if (changed.length === 0) return;
+
+  try {
+    await commitFiles(`studio: reorder ${changed.length} ${changed.length === 1 ? 'entry' : 'entries'}`, changed);
+    return;
+  } catch (e) {
+    // A real failure (conflict, network) wrote nothing — surface it as-is.
+    if (!isMissingRoute(e)) throw e;
+  }
+
+  // The deployed Worker predates /api/commit: fall back to one commit per file.
   const failed: string[] = [];
-  for (let i = 0; i < paths.length; i++) {
-    try {
-      const { content, sha } = await readFile(paths[i]);
-      if (content == null) continue;
-      const doc = parse(content);
-      if (doc.data.order === i) continue; // no change
-      doc.data.order = i;
-      await writeFile(paths[i], stringify(doc), `studio: reorder (${i})`, sha);
-    } catch {
-      failed.push(paths[i].split('/').pop() || paths[i]);
-    }
+  for (const c of changed) {
+    try { await writeFile(c.path, c.content, 'studio: reorder', c.sha); }
+    catch { failed.push(c.path.split('/').pop() || c.path); }
   }
   if (failed.length) throw new Error(`Saved most of the order, but these didn't update: ${failed.join(', ')}. Reload and try again.`);
+}
+
+/** "3 min ago" / "yesterday" / "12 Mar" — for history and activity lists. */
+export function timeAgo(iso: string | null | undefined, now = Date.now()): string {
+  if (!iso) return '';
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return '';
+  const s = Math.round((now - t) / 1000);
+  if (s < 45) return 'just now';
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} hr ago`;
+  const d = Math.round(h / 24);
+  if (d === 1) return 'yesterday';
+  if (d < 14) return `${d} days ago`;
+  const date = new Date(t);
+  const sameYear = date.getFullYear() === new Date(now).getFullYear();
+  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }) });
 }
 
 /** Duplicate an entry: read it, append " copy" to the label, return the new

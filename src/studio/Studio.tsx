@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FC } from 'react';
 import { collections, getCollection, type Collection } from './schema';
-import { isLoggedIn, login, logout, listEntries, getStats, saveOrder, duplicateEntry, uniqueEntryPath, type CollStat, type EntryRow } from './studio-lib';
-import { writeFile } from './api';
+import { isLoggedIn, login, logout, listEntries, getStats, saveOrder, duplicateEntry, uniqueEntryPath, timeAgo, type CollStat, type EntryRow } from './studio-lib';
+import { writeFile, history, type HistoryEntry } from './api';
 import { stringify } from './frontmatter';
 import { Editor } from './Editor';
 import { PublishToast } from './PublishToast';
@@ -160,9 +160,12 @@ const Dashboard: FC<{ onOpen: (id: string) => void; onNew: (id: string) => void 
   const folders = collections.filter((c) => c.kind === 'folder');
   const [stats, setStats] = useState<CollStat[]>([]);
   const [statsErr, setStatsErr] = useState('');
+  const [activity, setActivity] = useState<HistoryEntry[] | null>(null);
   const statOf = (id: string) => stats.find((s) => s.id === id);
 
   useEffect(() => { getStats().then(setStats).catch((e) => setStatsErr(e?.message || '')); }, []);
+  // Recent commits to the site — silent on an older Worker without /api/history.
+  useEffect(() => { history(undefined, 8).then(setActivity).catch(() => setActivity(null)); }, []);
 
   return (
     <div className="st-dash">
@@ -197,6 +200,21 @@ const Dashboard: FC<{ onOpen: (id: string) => void; onNew: (id: string) => void 
           );
         })}
       </div>
+
+      {activity && activity.length > 0 && (
+        <section className="st-activity" aria-labelledby="st-activity-title">
+          <h2 id="st-activity-title" className="st-activity__title">Recent changes</h2>
+          <ol className="st-activity__list">
+            {activity.map((a) => (
+              <li key={a.sha} className="st-activity__item">
+                <span className="st-activity__when u-mono">{timeAgo(a.date)}</span>
+                <span className="st-activity__msg">{a.message.replace(/^studio:\s*/i, '')}</span>
+                {a.url && <a className="st-activity__sha u-mono" href={a.url} target="_blank" rel="noreferrer">{a.sha.slice(0, 7)}</a>}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
     </div>
   );
 };

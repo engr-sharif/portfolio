@@ -148,6 +148,14 @@ What it can do:
 - **Media** — image upload + a media library to reuse existing assets.
 - **Headshot** and **résumé PDF** upload, **reorder / duplicate / search**
   entries, and an **unsaved-changes guard**.
+- **Version history** — every entry has a **History** drawer listing each
+  published version; pick one to see a line diff against what's in the editor
+  and **Restore** it (loads into the form; nothing goes live until you Save).
+  The dashboard shows the site's **recent changes**.
+- **Atomic saves** — reordering a collection is committed as **one** commit via
+  the Git Data API (`POST /api/commit`), so the site rebuilds once and can never
+  be left half-renumbered. Every save carries the file's loaded sha, so an edit
+  made elsewhere in the meantime is refused instead of overwritten.
 
 ### Image pipeline (automatic on upload)
 Every uploaded photo is processed in the browser before it's committed
