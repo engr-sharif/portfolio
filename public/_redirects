@@ -1,0 +1,4 @@
+# Cloudflare Pages: the Studio is a single-page app under /studio/. Deep links
+# (e.g. /studio/c/projects) rewrite to its shell with a 200 so reloads and
+# shared links work. Everything else is a real static file.
+/studio/* /studio/index.html 200

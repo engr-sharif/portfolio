@@ -58,6 +58,12 @@ jobs:
         run: npm run smoke:studio
         env:
           PLAYWRIGHT_CHROMIUM: /usr/bin/google-chrome
+      # Drive the Studio end to end against its in-memory mock Worker: sign in,
+      # ⌘K, drag-reorder, edit + save, history diff, bulk actions, field log.
+      - name: Studio e2e (demo mode)
+        run: npm run e2e:studio
+        env:
+          PLAYWRIGHT_CHROMIUM: /usr/bin/google-chrome
 
       # The Worker is deployed by copy-pasting worker.js into the Cloudflare
       # dashboard. Invisible control bytes do not survive that trip (a regex

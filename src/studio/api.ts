@@ -13,8 +13,20 @@ const ENDPOINT_KEY = 'studio.endpoint';
 export const REPO = 'engr-sharif/portfolio';
 export const BRANCH = 'main';
 
+// Mock mode: a fully in-memory Worker (src/studio/app/mock.ts) seeded from the
+// repo's own content. Used by the e2e suite and for trying the Studio without
+// credentials. Toggle with ?mock=1 / ?mock=0 on /studio/, or the palette.
+const MOCK_KEY = 'studio.mock';
+export const isMock = () => { try { return localStorage.getItem(MOCK_KEY) === '1'; } catch { return false; } };
+export const setMock = (on: boolean) => { try { on ? localStorage.setItem(MOCK_KEY, '1') : localStorage.removeItem(MOCK_KEY); } catch { /* fine */ } };
+async function apiFetch(url: string, init: RequestInit): Promise<Response> {
+  if (isMock()) { const { mockFetch } = await import('./app/mock'); return mockFetch(url, init); }
+  return fetch(url, init);
+}
+
 // The Worker URL is configured once (defaults baked in; overridable for testing).
 export function getEndpoint(): string {
+  if (isMock()) return 'mock://studio';
   return (
     localStorage.getItem(ENDPOINT_KEY) ||
     'https://engr-sharif-studio.engr-sharif209.workers.dev'
@@ -61,7 +73,7 @@ const FRIENDLY: Record<number, string> = {
 async function call(path: string, init: RequestInit = {}) {
   let res: Response;
   try {
-    res = await fetch(`${getEndpoint()}${path}`, {
+    res = await apiFetch(`${getEndpoint()}${path}`, {
       ...init,
       signal: AbortSignal.timeout(30000),
       headers: {
