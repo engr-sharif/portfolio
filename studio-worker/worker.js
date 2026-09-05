@@ -212,7 +212,8 @@ function rateLimited(request, key, limit, windowMs) {
 /** Repo-relative, no traversal, no control chars, no leading slash, ≤ 400 chars. */
 function safeRepoPath(p) {
   if (typeof p !== 'string' || !p || p.length > 400) return null;
-  if (/[ -]/.test(p)) return null;
+  // Letters, digits, '_', '.', '-', '/' only — everything a slugified repo path can contain.
+  if (/[^A-Za-z0-9_.\/-]/.test(p)) return null;
   const parts = p.replace(/^\/+/, '').split('/');
   if (parts.some((seg) => seg === '' || seg === '.' || seg === '..')) return null;
   return parts.join('/');

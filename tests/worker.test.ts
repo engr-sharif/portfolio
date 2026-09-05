@@ -186,3 +186,18 @@ describe('GET /api/deploy-status', () => {
     expect((await api('/api/deploy-status', { token })).body).toEqual({ state: 'unknown' });
   });
 });
+
+describe('safeRepoPath (via GET /api/file)', () => {
+  /** Regression: a stray control character in the validator's character class
+   * made every path with a hyphen a 400 — i.e. nearly every content file. */
+  it('accepts hyphenated, nested, dotted paths and rejects traversal / odd bytes', async () => {
+    for (const p of ['src/content/projects/pge-bakersfield-mgp.md', 'src/assets/blog/2026-09-05-cell-4-liner-seams-north-slope-1.jpg', 'public/resume/Sharif_Resume.pdf']) {
+      const r = await api(`/api/file?path=${encodeURIComponent(p)}`, { token });
+      expect(r.status, p).toBe(200);
+    }
+    for (const p of ['../secrets', 'src//x.md', 'src/./x.md', 'a b.md', 'x;rm', 'src/content/..']) {
+      const r = await api(`/api/file?path=${encodeURIComponent(p)}`, { token });
+      expect(r.status, p).toBe(400);
+    }
+  });
+});
