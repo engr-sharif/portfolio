@@ -59,6 +59,16 @@ jobs:
         env:
           PLAYWRIGHT_CHROMIUM: /usr/bin/google-chrome
 
+      # The Worker is deployed by copy-pasting worker.js into the Cloudflare
+      # dashboard. Invisible control bytes do not survive that trip (a regex
+      # written with literal \x00/\x1F once collapsed to "reject hyphens" in
+      # production), so the file must be plain printable ASCII/UTF-8.
+      - name: Guard — Worker source is paste-safe (no control bytes)
+        run: |
+          if LC_ALL=C grep -nP '[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]' studio-worker/worker.js; then
+            echo "studio-worker/worker.js contains control bytes" && exit 1
+          fi
+
       - name: Guard — no admin leftovers
         run: |
           test ! -e public/admin || (echo "public/admin must not exist" && exit 1)
