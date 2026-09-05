@@ -156,6 +156,9 @@ CMS, no OAuth dance. Desktop and phone; installable; opens offline.
   menu (polish / grammar / summarize / expand), and a **Markdown** toggle to
   the raw source. The file stays clean markdown: every real post round-trips
   with identical rendered HTML (tested), and raw embeds are kept byte-exact.
+- **Media library** — one tab per managed folder; drop any number of files
+  to upload them as **one commit** (images optimised first), multi-select to
+  delete, copy a path. **`?`** opens a keyboard-shortcuts sheet.
 - **Location picker** — projects get a map card (click to pin, drag, or type
   lat/lng) instead of two bare number fields.
 - **Editor** with a publish sidebar, live preview, **⌘S** to save, local drafts

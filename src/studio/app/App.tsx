@@ -11,6 +11,8 @@ import { Login } from '../features/auth/Login';
 import { Dashboard } from '../features/dashboard/Dashboard';
 import { CollectionPage } from '../features/collection/CollectionPage';
 import { EditorPage } from '../features/editor/EditorPage';
+import { MediaPage } from '../features/media/MediaPage';
+import { Shortcuts } from '../ui/Shortcuts';
 import { FieldLog } from '../FieldLog';
 
 /**
@@ -42,6 +44,8 @@ const Routes: FC<{ onDirty: (d: boolean) => void }> = ({ onDirty }) => {
         <Route path="/c/:id/e/:slug"><EditorRoute onDirty={onDirty} /></Route>
         <Route path="/file/:id"><EditorRoute onDirty={onDirty} /></Route>
         <Route path="/field-log"><FieldLogRoute /></Route>
+        <Route path="/media"><MediaPage /></Route>
+        <Route path="/media/:dir"><MediaRoute /></Route>
         <Route><Redirect to="/" /></Route>
       </Switch>
     </ErrorBoundary>
@@ -63,6 +67,8 @@ const EditorRoute: FC<{ onDirty: (d: boolean) => void; isNew?: boolean }> = ({ o
   return <EditorPage key={`${c.id}:${path ?? 'new'}`} collection={c} path={path} onDirtyChange={onDirty} />;
 };
 
+const MediaRoute: FC = () => { const { dir } = useParams<{ dir: string }>(); return <MediaPage key={dir} dirId={dir} />; };
+
 const FieldLogRoute: FC = () => {
   const [, navigate] = useLocation();
   const { publish } = useToast();
@@ -74,6 +80,7 @@ const Inner: FC = () => {
   const [expired, setExpired] = useState(false);
   const [theme, setTheme] = useState<Theme>(readTheme);
   const [palette, setPalette] = useState(false);
+  const [keysOpen, setKeysOpen] = useState(false);
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => { document.documentElement.dataset.theme = theme; try { localStorage.setItem('studio.theme', theme); } catch { /* fine */ } }, [theme]);
@@ -83,7 +90,11 @@ const Inner: FC = () => {
     return () => window.removeEventListener('studio:unauthorized', onExpired);
   }, []);
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setPalette((p) => !p); } };
+    const typing = (t: EventTarget | null) => { const el = t as HTMLElement | null; return !!el && (['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) || el.isContentEditable); };
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setPalette((p) => !p); }
+      else if (e.key === '?' && !e.metaKey && !e.ctrlKey && !typing(e.target)) { e.preventDefault(); setKeysOpen((k) => !k); }
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
@@ -118,6 +129,7 @@ const Inner: FC = () => {
         <Routes onDirty={setDirty} />
       </Shell>
       <CommandPalette open={palette} onClose={() => setPalette(false)} ctx={{ theme, toggleTheme, signOut, toggleMock, mock: isMock() }} />
+      <Shortcuts open={keysOpen} onClose={() => setKeysOpen(false)} />
       {expired && <Login overlay onAuthed={() => setExpired(false)} onCancel={() => { setExpired(false); clearToken(); setAuthed(false); }} />}
     </Router>
   );

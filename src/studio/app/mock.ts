@@ -145,7 +145,7 @@ export async function mockFetch(input: string, init: RequestInit = {}): Promise<
     if (stale.length) return json({ error: 'conflict', detail: `These files changed since you loaded them: ${stale.join(', ')}. Reload and re-apply your edits.`, paths: stale }, 409);
     const changes = new Map<string, string | null>();
     for (const w of writes) { if (w.encoding === 'base64') { assets.add(w.path); changes.set(w.path, '<binary>'); } else { files.set(w.path, w.content); changes.set(w.path, w.content); } }
-    for (const d of deletes) { const p = typeof d === 'string' ? d : d.path; if (files.delete(p)) changes.set(p, null); }
+    for (const d of deletes) { const p = typeof d === 'string' ? d : d.path; if (files.delete(p) || assets.delete(p)) changes.set(p, null); }
     const commit = record(String(body.message || 'studio: update'), changes);
     return json({ ok: true, commit, head: commit, files: writes.map((w: { path: string; content: string }) => ({ path: w.path, sha: hash(w.content) })), deleted: [...changes].filter(([, v]) => v === null).map(([k]) => k) });
   }

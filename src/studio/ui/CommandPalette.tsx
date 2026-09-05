@@ -34,6 +34,7 @@ export const CommandPalette: FC<{ open: boolean; onClose: () => void; ctx: Palet
       { id: 'nav-dash', group: 'Go to', label: 'Dashboard', icon: <LayoutDashboard size={16} />, run: go('/') },
       ...collections.map((c) => ({ id: `nav-${c.id}`, group: 'Go to', label: c.label, icon: collectionIcon(c.id), run: go(c.kind === 'folder' ? `/c/${c.id}` : `/file/${c.id}`), hint: c.kind === 'folder' ? 'collection' : 'settings' })),
       { id: 'nav-fieldlog', group: 'Go to', label: 'Field log', hint: 'works offline', icon: <MapPin size={16} />, run: go('/field-log') },
+      { id: 'nav-media', group: 'Go to', label: 'Media library', hint: 'upload · delete · copy paths', icon: <Images size={16} />, run: go('/media'), keywords: 'images photos files upload' },
       ...collections.filter((c) => c.kind === 'folder').map((c) => ({ id: `new-${c.id}`, group: 'Create', label: `New ${c.label.replace(/s$/, '').toLowerCase()}`, icon: <Plus size={16} />, run: go(`/c/${c.id}/new`) })),
       { id: 'theme', group: 'Preferences', label: ctx.theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme', icon: ctx.theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />, run: () => { ctx.toggleTheme(); onClose(); } },
       { id: 'mock', group: 'Preferences', label: ctx.mock ? 'Leave demo mode (use the real site)' : 'Try demo mode (in-memory copy of the site)', icon: <FlaskConical size={16} />, run: () => { ctx.toggleMock(); onClose(); }, keywords: 'mock demo sandbox' },

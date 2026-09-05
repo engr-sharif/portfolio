@@ -8,10 +8,11 @@
  */
 import StudioPage from '../../studio/StudioPage.astro';
 import { collections } from '../../studio/schema';
+import { MEDIA_DIRS } from '../../studio/media-dirs';
 
 export function getStaticPaths() {
   const files = Object.keys(import.meta.glob('/src/content/**/*.{md,mdx}'));
-  const routes: string[] = ['field-log'];
+  const routes: string[] = ['field-log', 'media', ...MEDIA_DIRS.map((d) => `media/${d.id}`)];
   for (const c of collections) {
     if (c.kind === 'file') { routes.push(`file/${c.id}`); continue; }
     routes.push(`c/${c.id}`, `c/${c.id}/new`);
