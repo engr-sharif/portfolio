@@ -1,0 +1,29 @@
+// Cloudflare Workers config for hosting the BUILT SITE as static assets.
+// (The Studio's API Worker has its own config in studio-worker/.)
+//
+// This is what Cloudflare's "Workers & Pages → Create → connect a repository"
+// flow deploys: Cloudflare Builds runs `npm run build`, then `npx wrangler
+// deploy` uploads ./dist to Cloudflare's edge as a static-assets Worker.
+// Non-production branches get preview URLs; `main` is production.
+//
+// The two build variables that decide where the site lives are set in the
+// dashboard (Project → Settings → Build → Variables), NOT here:
+//   SITE_URL  = https://<name>.<account>.workers.dev  (or the custom domain)
+//   BASE_PATH = /
+//
+// `name` must match the project name typed in the dashboard.
+{
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "sharif",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./dist",
+    // Astro builds /about/index.html with trailingSlash 'always'; serve /about/
+    // and redirect /about → /about/ so canonical URLs stay consistent.
+    "html_handling": "auto-trailing-slash",
+    // Serve Astro's dist/404.html for unknown paths (public/_headers and any
+    // _redirects in dist are honoured automatically).
+    "not_found_handling": "404-page"
+  },
+  "observability": { "enabled": true }
+}

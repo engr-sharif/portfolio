@@ -1,4 +1,4 @@
-# Cloudflare Pages response headers (ignored by GitHub Pages, which serves this
+# Cloudflare (Workers static assets / Pages) response headers (ignored by GitHub Pages, which serves this
 # as a plain file). The Content-Security-Policy itself stays in each page's
 # <meta> because Astro hashes it per page; these are the headers a meta tag
 # cannot express.

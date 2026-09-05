@@ -20,20 +20,22 @@ The build is **host-agnostic**. Two environment variables decide where it lives:
 | Host | `SITE_URL` | `BASE_PATH` |
 |---|---|---|
 | GitHub Pages (project site, the default) | `https://engr-sharif.github.io` | `/portfolio/` |
-| Cloudflare Pages / custom domain | `https://<project>.pages.dev` | `/` |
+| Cloudflare Workers (static assets) / custom domain | `https://<name>.<account>.workers.dev` | `/` |
 
 Every internal link goes through `withBase()` (`src/lib/path.ts`), every absolute
 URL through `Astro.site`, `robots.txt` is generated from both, and the Studio,
 share cards and test scripts read the same values — so moving host is a
 two-variable change, not a search-and-replace.
 
-**Cloudflare Pages setup (one time, in the dashboard):** Workers & Pages → Create
-→ Pages → *Connect to Git* → this repo → build command `npm run build`, output
-`dist`, and add the variables `SITE_URL=https://<project>.pages.dev` and
-`BASE_PATH=/` (Node comes from `.node-version`). Every branch then gets a preview
-URL; `main` is production. Add the new origin to the Studio Worker's
+**Cloudflare setup (one time, in the dashboard):** Workers & Pages → Create →
+*Import a repository* → this repo. Project name must match `name` in the root
+`wrangler.jsonc` (`sharif`); build command `npm run build`, deploy command
+`npx wrangler deploy` (the defaults). Under *Advanced settings → Build variables*
+add `SITE_URL=https://<name>.<account>.workers.dev` and `BASE_PATH=/` (Node comes
+from `.node-version`). Cloudflare then builds every push: `main` is production,
+other branches get preview URLs. Add the new origin to the Studio Worker's
 `ALLOWED_ORIGIN`. `public/_headers` supplies the security/caching headers a static
-host can't otherwise send.
+host can't otherwise send (Workers static assets honour it, as Pages did).
 
 ---
 
