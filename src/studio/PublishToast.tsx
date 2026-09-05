@@ -2,10 +2,10 @@ import { useEffect, useState, type FC } from 'react';
 import { deployStatus, type DeployState } from './api';
 
 /**
- * After a publish, show "Publishing… → Live ✓" — honestly. We poll the
- * Worker's deploy-status (backed by the Actions run for the deploy branch):
- *   live    — a rebuild triggered after the publish finished successfully
- *   failed  — the rebuild broke (link to the run so it can be inspected)
+ * After a publish, show "Publishing… → Live ✓" — honestly. We poll the site's
+ * own build stamp (build.json) and the Worker's deploy-status:
+ *   live    — the deployed build is the commit we just made
+ *   failed  — the host reported a broken build (link to it so it can be read)
  *   unsure  — nothing could be confirmed within the wait window; we say so
  *             instead of pretending.
  */
@@ -13,7 +13,7 @@ type Phase = 'hidden' | 'building' | 'live' | 'failed' | 'unsure';
 const MAX_WAIT_MS = 4 * 60 * 1000;
 const SITE_URL = import.meta.env.BASE_URL; // the site's base path, whatever host it's on
 
-export const PublishToast: FC<{ trigger: number }> = ({ trigger }) => {
+export const PublishToast: FC<{ trigger: number; commit?: string | null }> = ({ trigger, commit }) => {
   const [phase, setPhase] = useState<Phase>('hidden');
   const [runUrl, setRunUrl] = useState<string | undefined>();
 
@@ -32,7 +32,7 @@ export const PublishToast: FC<{ trigger: number }> = ({ trigger }) => {
 
     const poll = async () => {
       if (cancelled) return;
-      const s = await deployStatus(trigger);
+      const s = await deployStatus(trigger, commit);
       if (cancelled) return;
       const state: DeployState = s.state;
       if (state === 'live') return finish('live', s.url);
@@ -40,9 +40,11 @@ export const PublishToast: FC<{ trigger: number }> = ({ trigger }) => {
       if (Date.now() - startedAt > MAX_WAIT_MS) return finish('unsure', s.url, 12000);
       timer = setTimeout(poll, state === 'building' ? 6000 : 9000);
     };
-    // give the Action a head start before first check
-    timer = setTimeout(poll, 10000);
+    // a Cloudflare Pages build takes ~1–2 min; the first poll mostly records
+    // the pre-publish stamp as the baseline
+    timer = setTimeout(poll, 8000);
     return () => { cancelled = true; if (timer) clearTimeout(timer); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trigger]);
 
   if (phase === 'hidden') return null;

@@ -19,7 +19,7 @@ import { existsSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 
-const BASE = process.env.BASE_PATH || '/portfolio/';
+const BASE = process.env.BASE_PATH || '/';
 const PORT = Number(process.env.SMOKE_PORT || 4321);
 // SMOKE_NO_SDA=1 disables scroll-driven animations in Chromium to exercise the
 // IntersectionObserver fallback path (Tier 2 in global.css).

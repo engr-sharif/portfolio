@@ -1,62 +1,47 @@
-name: Deploy to GitHub Pages
+name: GitHub Pages redirect
 
+# The site is now built and hosted by Cloudflare Pages (https://mosharif.pages.dev,
+# connected directly to this repo). The old GitHub Pages address keeps working
+# as a redirect so every existing link, QR code and search result still lands.
+# This only needs to run when the redirect itself changes.
 on:
   push:
     branches: [main]
-  # Allow manual runs from the Actions tab.
+    paths:
+      - scripts/redirect-site.mjs
+      - .github/workflows/deploy.yml
   workflow_dispatch:
 
-# Permissions required by the official GitHub Pages deploy flow.
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Allow one concurrent deployment; don't cancel in-progress production deploys.
 concurrency:
   group: pages
   cancel-in-progress: false
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Setup Node
-        uses: actions/setup-node@v5
-        with:
-          node-version: 22  # Astro 6 requires Node >=22.12
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build Astro site
-        run: npm run build
-
-      - name: Setup Pages
-        id: pages
-        uses: actions/configure-pages@v5
-        with:
-          # Auto-enable GitHub Pages (with the "GitHub Actions" source) via the
-          # API on first run, so no manual Settings → Pages toggle is needed.
-          # Requires the `pages: write` permission set above.
-          enablement: true
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist
-
-  deploy:
-    needs: build
+  redirect:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Build redirect pages
+        run: node scripts/redirect-site.mjs
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist-redirect
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

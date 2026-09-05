@@ -152,3 +152,33 @@ describe('history + versions', () => {
     expect((await api('/api/file?path=a.md&ref=main;rm', { token })).status).toBe(400);
   });
 });
+
+describe('GET /api/deploy-status', () => {
+  const withStatuses = (statuses: unknown[]) => {
+    const orig = fakeGitHub;
+    vi.stubGlobal('fetch', vi.fn(async (input: string, init?: RequestInit) => {
+      const u = new URL(String(input));
+      if (/\/commits\/[^/]+\/status$/.test(u.pathname)) return res({ state: 'pending', sha: 'c000000', statuses });
+      return orig(String(input), init);
+    }));
+  };
+
+  it('maps the hosting app’s commit status to live / building / failed', async () => {
+    withStatuses([{ context: 'Cloudflare Pages', state: 'success', target_url: 'https://x.pages.dev', updated_at: '2026-09-05T02:00:00Z' }]);
+    expect((await api('/api/deploy-status?commit=c000000', { token })).body).toMatchObject({ state: 'live', url: 'https://x.pages.dev' });
+
+    withStatuses([{ context: 'Cloudflare Pages', state: 'pending', target_url: 'https://dash', updated_at: '2026-09-05T02:00:00Z' }]);
+    expect((await api('/api/deploy-status?commit=c000000', { token })).body).toMatchObject({ state: 'building' });
+
+    withStatuses([
+      { context: 'Cloudflare Pages', state: 'success', updated_at: '2026-09-05T01:00:00Z' },
+      { context: 'Cloudflare Pages', state: 'failure', target_url: 'https://dash/fail', updated_at: '2026-09-05T02:00:00Z' },
+    ]);
+    expect((await api('/api/deploy-status?commit=c000000', { token })).body).toMatchObject({ state: 'failed', url: 'https://dash/fail' });
+  });
+
+  it('says unknown when no hosting status exists, never guessing', async () => {
+    withStatuses([{ context: 'check', state: 'success' }]);
+    expect((await api('/api/deploy-status', { token })).body).toEqual({ state: 'unknown' });
+  });
+});

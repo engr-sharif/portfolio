@@ -18,3 +18,6 @@
 
 /data/*
   Cache-Control: public, max-age=604800
+
+/build.json
+  Cache-Control: no-store

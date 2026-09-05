@@ -115,32 +115,47 @@ export const status = () => call('/api/status');
 
 export type DeployState = 'pending' | 'building' | 'live' | 'failed' | 'unknown';
 export interface DeployStatus { state: DeployState; url?: string; at?: string }
+export interface BuildStamp { at: string; sha: string | null; branch?: string | null; host?: string }
 
-/** Has the site rebuilt since `since` (ms epoch)? Asks the Worker (which reads
- * the Actions run for the deploy branch); on any failure falls back to
- * GitHub's public deployments list so the indicator still has a signal. */
-export async function deployStatus(since: number): Promise<DeployStatus> {
+/** The site's own build stamp (src/pages/build.json.ts), fetched fresh from
+ * the origin the Studio is served from. Null when unreachable. */
+export async function siteBuild(): Promise<BuildStamp | null> {
   try {
-    const d = (await call(`/api/deploy-status?since=${since}`)) as DeployStatus;
-    if (d?.state && d.state !== 'unknown') return d;
-  } catch { /* fall through to the public API */ }
-  const t = await lastDeployTime();
-  if (t && t > since) return { state: 'live' };
-  return { state: 'unknown' };
-}
-
-/** Latest GitHub Pages deployment time (public API, no auth). Returns ms epoch or null. */
-export async function lastDeployTime(): Promise<number | null> {
-  try {
-    const r = await fetch(`https://api.github.com/repos/${REPO}/deployments?per_page=1`, {
-      headers: { Accept: 'application/vnd.github+json' },
-    });
+    const r = await fetch(`${import.meta.env.BASE_URL}build.json?t=${Date.now()}`, { cache: 'no-store' });
     if (!r.ok) return null;
-    const d = await r.json();
-    return d?.[0]?.updated_at ? new Date(d[0].updated_at).getTime() : null;
+    const b = (await r.json()) as BuildStamp;
+    return b && typeof b.at === 'string' ? b : null;
   } catch {
     return null;
   }
+}
+
+// The stamp that was live when the current publish started, keyed by trigger,
+// so "live" means "the stamp changed", immune to clock skew between the
+// author's laptop and the build machine.
+const baselines = new Map<number, BuildStamp | null>();
+
+/** Is the publish made at `since` (ms epoch) live yet?
+ *  1. The deployed stamp's sha equals the commit we made → live (exact).
+ *  2. No sha to compare (older Worker) but a newer stamp appeared → live.
+ *  3. Otherwise ask the Worker, which reads the host's commit status on
+ *     GitHub — the only place a FAILED build is reported — and fall back to
+ *     'building' while within the wait window. */
+export async function deployStatus(since: number, commit?: string | null): Promise<DeployStatus> {
+  const stamp = await siteBuild();
+  if (!baselines.has(since)) baselines.set(since, stamp); // first poll → pre-publish stamp
+  const base = baselines.get(since) ?? null;
+  const siteUrl = new URL(import.meta.env.BASE_URL, location.origin).href;
+  if (stamp) {
+    if (commit && stamp.sha && stamp.sha === commit) return { state: 'live', url: siteUrl, at: stamp.at };
+    const newer = !base || new Date(stamp.at).getTime() > new Date(base.at).getTime();
+    if (newer && (!commit || !stamp.sha)) return { state: 'live', url: siteUrl, at: stamp.at };
+  }
+  try {
+    const d = (await call(`/api/deploy-status?since=${since}${commit ? `&commit=${encodeURIComponent(commit)}` : ''}`)) as DeployStatus;
+    if (d?.state && d.state !== 'unknown') return d;
+  } catch { /* the stamp is the source of truth for success; the Worker only adds failure detail */ }
+  return { state: 'building' };
 }
 
 export interface FileResult { content: string | null; sha: string | null; ref?: string }
@@ -167,10 +182,13 @@ export interface HistoryEntry { sha: string; message: string; date: string | nul
 export const history = (path?: string, limit = 20): Promise<HistoryEntry[]> =>
   call(`/api/history?${path ? `path=${encodeURIComponent(path)}&` : ''}limit=${limit}`);
 
-export const writeFile = (path: string, content: string, message: string, sha?: string | null): Promise<{ ok: true; sha?: string }> =>
+/** `commit` is the sha of the commit the save created — hand it to
+ * onPublished so the Live indicator can match it against the deployed build. */
+export interface WriteResult { ok: true; sha?: string; commit?: string }
+export const writeFile = (path: string, content: string, message: string, sha?: string | null): Promise<WriteResult> =>
   call('/api/file', { method: 'PUT', body: JSON.stringify({ path, content, message, sha: sha || undefined }) });
 
-export const deleteFile = (path: string, message: string, sha: string) =>
+export const deleteFile = (path: string, message: string, sha: string): Promise<WriteResult> =>
   call('/api/file', { method: 'DELETE', body: JSON.stringify({ path, message, sha }) });
 
 export interface ListEntry { name: string; path: string; sha: string; type: string }

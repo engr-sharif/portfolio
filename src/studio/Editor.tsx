@@ -14,7 +14,7 @@ interface Props {
   collection: Collection;
   path: string | null;       // existing entry path, or null for "new"
   onDone: () => void;        // back to list
-  onPublished?: () => void;  // fired after a successful save (for the toast)
+  onPublished?: (commit?: string | null) => void;  // fired after a successful save (for the toast)
   onDirtyChange?: (dirty: boolean) => void; // lets the shell guard navigation
 }
 
@@ -151,8 +151,10 @@ export const Editor: FC<Props> = ({ collection, path, onDone, onPublished, onDir
   const save = async () => {
     setSaving(true); setError(''); setNotice(''); setFieldErrors({});
     try {
+      let commit: string | undefined;
       if (isFileCollection) {
-        await writeFile(collection.file!, JSON.stringify(data, null, 2) + '\n', `studio: update ${collection.label}`, sha);
+        const res = await writeFile(collection.file!, JSON.stringify(data, null, 2) + '\n', `studio: update ${collection.label}`, sha);
+        commit = res.commit; setSha(res.sha ?? null);
         if (collection.file === AI_GUIDE_PATH) invalidateAiGuide();
       } else {
         // Validate against the same Zod schema the build uses — a bad entry
@@ -174,11 +176,11 @@ export const Editor: FC<Props> = ({ collection, path, onDone, onPublished, onDir
         }
         const content = stringify({ data: clean, body });
         const res = await writeFile(p, content, `studio: ${path ? 'update' : 'create'} ${data[collection.labelField] || ''}`, sha);
-        setSha(res.sha ?? null);
+        setSha(res.sha ?? null); commit = res.commit;
       }
       setDirty(false);
       clearDraft(key);
-      onPublished?.();
+      onPublished?.(commit);
       onDone();
     } catch (e: any) {
       if (isSessionExpired(e)) setError('Your session expired. Sign in again (your edits are kept here), then Save.');
@@ -191,7 +193,7 @@ export const Editor: FC<Props> = ({ collection, path, onDone, onPublished, onDir
     if (!filePath || !sha) return;
     if (!confirm('Delete this entry? This commits a deletion to your repo.')) return;
     setSaving(true);
-    try { await deleteFile(filePath, `studio: delete ${data[collection.labelField] || ''}`, sha); clearDraft(key); onPublished?.(); onDone(); }
+    try { const res = await deleteFile(filePath, `studio: delete ${data[collection.labelField] || ''}`, sha); clearDraft(key); onPublished?.(res.commit); onDone(); }
     catch (e: any) { setError(e.message); setSaving(false); }
   };
 

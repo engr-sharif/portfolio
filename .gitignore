@@ -30,3 +30,4 @@ Thumbs.db
 
 # throwaway probe scripts
 .scratch/
+dist-redirect/
