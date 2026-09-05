@@ -5,11 +5,13 @@ import { writeFile, history, type HistoryEntry } from './api';
 import { stringify } from './frontmatter';
 import { Editor } from './Editor';
 import { PublishToast } from './PublishToast';
+import { FieldLog } from './FieldLog';
 
 type View =
   | { name: 'dashboard' }
   | { name: 'list'; collectionId: string }
-  | { name: 'edit'; collectionId: string; path: string | null };
+  | { name: 'edit'; collectionId: string; path: string | null }
+  | { name: 'fieldlog' };
 
 const SITE_URL = import.meta.env.BASE_URL; // the site's base path, whatever host it's on
 
@@ -30,6 +32,25 @@ const Studio: FC = () => {
   }, []);
 
   const onDirtyChange = useCallback((d: boolean) => { dirty.current = d; }, []);
+
+  // Offline shell for the field log: the Studio opens with no signal once it
+  // has been visited online. Scoped to /studio/ only.
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.register(`${SITE_URL}studio-sw.js`, { scope: `${SITE_URL}studio/` }).catch(() => { /* optional */ });
+    // Hand the worker every same-origin asset this page already loaded (they
+    // were fetched before it was in control), so the shell works offline
+    // after a single online visit.
+    const precache = () => navigator.serviceWorker.ready.then((reg) => {
+      const urls = new Set<string>();
+      for (const e of performance.getEntriesByType('resource')) urls.add(e.name);
+      document.querySelectorAll<HTMLElement>('script[src], link[href]').forEach((el) => urls.add((el as HTMLScriptElement).src || (el as HTMLLinkElement).href));
+      const keep = [...urls].filter((u) => u.startsWith(location.origin) && /\/_astro\/|\.(woff2?|svg|webmanifest)(\?|$)/.test(u));
+      reg.active?.postMessage({ type: 'precache', urls: keep });
+    }).catch(() => { /* optional */ });
+    const t1 = setTimeout(precache, 1500), t2 = setTimeout(precache, 6000);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
 
   /** Every navigation funnels through here so unsaved work is never lost silently. */
   const go = (v: View) => {
@@ -61,13 +82,14 @@ const Studio: FC = () => {
       </header>
 
       <Sidebar
-        active={view.name === 'list' || view.name === 'edit' ? view.collectionId : ''}
-        onNav={(id) => go(id ? { name: 'list', collectionId: id } : { name: 'dashboard' })}
+        active={view.name === 'list' || view.name === 'edit' ? view.collectionId : view.name === 'fieldlog' ? 'fieldlog' : ''}
+        onNav={(id) => go(id === 'fieldlog' ? { name: 'fieldlog' } : id ? { name: 'list', collectionId: id } : { name: 'dashboard' })}
         onLogout={onLogout}
       />
       {menuOpen && <div className="st-scrim" onClick={() => setMenuOpen(false)} />}
 
       <main className="st-main">
+        {view.name === 'fieldlog' && <FieldLog onPublished={onPublished} onOpen={(path) => go({ name: 'edit', collectionId: 'blog', path })} />}
         {view.name === 'dashboard' && <Dashboard onOpen={(id) => go({ name: 'list', collectionId: id })} onNew={(id) => go({ name: 'edit', collectionId: id, path: null })} />}
         {view.name === 'list' && (
           <CollectionList
@@ -143,6 +165,7 @@ const Sidebar: FC<{ active: string; onNav: (id: string) => void; onLogout: () =>
     </button>
     <nav className="st-side__nav" aria-label="Collections">
       <button className={`st-side__link${active === '' ? ' is-active' : ''}`} onClick={() => onNav('')}>Dashboard</button>
+      <button className={`st-side__link st-side__link--field${active === 'fieldlog' ? ' is-active' : ''}`} onClick={() => onNav('fieldlog')} aria-current={active === 'fieldlog' ? 'page' : undefined}>Field log <span className="st-side__tag">offline</span></button>
       {collections.map((c) => (
         <button key={c.id} className={`st-side__link${active === c.id ? ' is-active' : ''}`} onClick={() => onNav(c.id)} aria-current={active === c.id ? 'page' : undefined}>
           {c.label}

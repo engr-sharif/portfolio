@@ -158,6 +158,14 @@ What it can do:
   published version; pick one to see a line diff against what's in the editor
   and **Restore** it (loads into the form; nothing goes live until you Save).
   The dashboard shows the site's **recent changes**.
+- **Field log (works offline)** — a capture screen for site days with no
+  signal: title, notes, a GPS fix (or the first photo's EXIF location), photos
+  straight from the camera. Captures are stored on the device (IndexedDB) and a
+  service worker keeps `/studio/` openable offline (installable from the
+  browser's *Add to Home Screen*). **Publish** optimises the photos and commits
+  them together with the note as **one atomic commit** — a Field Notes **draft**
+  (`category: field-notes`, `draft: true`) that opens in the normal editor for
+  polishing. Locations in the note are rounded to ~1 km.
 - **Atomic saves** — reordering a collection is committed as **one** commit via
   the Git Data API (`POST /api/commit`), so the site rebuilds once and can never
   be left half-renumbered. Every save carries the file's loaded sha, so an edit

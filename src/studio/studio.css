@@ -368,3 +368,41 @@ h1 { font-family: var(--display); }
 .st-activity__sha { font-size: 0.72rem; color: var(--muted); text-decoration: none; }
 .st-activity__sha:hover { color: var(--field-bright); }
 @media (max-width: 560px) { .st-activity__item { grid-template-columns: minmax(0, 1fr) auto; } .st-activity__when { grid-column: 1 / -1; } }
+
+/* ---- field log (offline capture) ---- */
+.st-side__link--field { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.st-side__tag { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--field-bright); border: 1px solid color-mix(in srgb, var(--field-bright) 45%, transparent); border-radius: 999px; padding: 0.1em 0.5em; }
+.st-fl { display: grid; gap: 2rem; }
+.st-fl__sub { margin: 0; color: var(--muted); font-size: 0.9rem; max-width: 40rem; }
+.st-fl__net { font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 0.3em 0.8em; border-radius: 999px; border: 1px solid var(--hazard); color: var(--hazard); white-space: nowrap; }
+.st-fl__net.is-on { border-color: var(--field-bright); color: var(--field-bright); }
+.st-fl__h2 { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); margin: 0 0 0.9rem; display: flex; align-items: center; gap: 0.6rem; }
+.st-fl__count { color: var(--paper); background: var(--ink-2); border-radius: 999px; padding: 0.05em 0.6em; }
+.st-fl__form { display: grid; gap: 1rem; padding: 1.25rem; border: 1px solid var(--line); border-radius: 10px; background: var(--ink-1); }
+.st-fl__form .sf { display: grid; gap: 0.4rem; }
+.st-fl__form .sf__label { font-size: 0.85rem; color: var(--paper-soft); }
+.st-fl__hint { margin: 0; color: var(--muted); font-size: 0.78rem; }
+.st-fl__note { min-height: 8rem; resize: vertical; line-height: 1.5; }
+.st-fl__row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 640px) { .st-fl__row { grid-template-columns: 1fr; } }
+.st-fl__loc { display: grid; grid-template-columns: auto 1fr 1fr; gap: 0.4rem; align-items: center; }
+.st-fl__coord { font-family: var(--mono); font-size: 0.85rem; padding: 0.55rem 0.6rem; }
+.st-fl__photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr)); gap: 0.6rem; }
+.st-fl__thumb { position: relative; margin: 0; aspect-ratio: 1; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); background: var(--ink-0); }
+.st-fl__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.st-fl__thumb figcaption { position: absolute; left: 0; right: 0; bottom: 0; padding: 0.2rem 0.4rem; font-size: 0.62rem; color: var(--paper); background: rgba(0,0,0,0.55); }
+.st-fl__thumb-x { position: absolute; top: 0.3rem; right: 0.3rem; width: 24px; height: 24px; border-radius: 50%; border: 0; background: rgba(0,0,0,0.7); color: var(--paper); font-size: 0.7rem; }
+.st-fl__add { display: grid; place-items: center; aspect-ratio: 1; border: 1px dashed var(--line); border-radius: 8px; color: var(--field-bright); cursor: pointer; text-align: center; font-size: 0.85rem; padding: 0.5rem; transition: border-color .2s var(--ease); }
+.st-fl__add:hover, .st-fl__add:focus-within { border-color: var(--field-bright); }
+.st-fl__add input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.st-fl__actions { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.st-fl__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+.st-fl__card { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; padding: 1rem 1.2rem; border: 1px solid var(--line); border-radius: 8px; background: var(--ink-1); }
+@media (max-width: 640px) { .st-fl__card { flex-direction: column; } .st-fl__card-actions { width: 100%; } }
+.st-fl__card.is-publishing { border-color: var(--hazard); }
+.st-fl__card.is-published { opacity: 0.85; }
+.st-fl__card-main { display: grid; gap: 0.25rem; min-width: 0; }
+.st-fl__card-main strong { font-family: var(--display); }
+.st-fl__meta { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; overflow-wrap: anywhere; }
+.st-fl__preview { margin: 0.2rem 0 0; color: var(--paper-soft); font-size: 0.9rem; white-space: pre-line; }
+.st-fl__card-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; flex-shrink: 0; }

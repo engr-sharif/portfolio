@@ -1,0 +1,11 @@
+{
+  "name": "Studio — field log",
+  "short_name": "Studio",
+  "description": "Edit the site and log field captures offline.",
+  "start_url": "studio/",
+  "scope": "studio/",
+  "display": "standalone",
+  "background_color": "#0b0d0c",
+  "theme_color": "#0b0d0c",
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
