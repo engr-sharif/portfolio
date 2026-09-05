@@ -76,7 +76,7 @@ export async function listImages(dir: string): Promise<MediaItem[]> {
  * never be left half-renumbered and the site rebuilds once, not N times. Each
  * file carries the sha it was read at, so an edit made elsewhere in the
  * meantime is refused (409) instead of overwritten. */
-export async function saveOrder(paths: string[]): Promise<void> {
+export async function saveOrder(paths: string[]): Promise<string | null> {
   const changed = (
     await Promise.all(
       paths.map(async (path, i) => {
@@ -89,11 +89,11 @@ export async function saveOrder(paths: string[]): Promise<void> {
       }),
     )
   ).filter((x): x is { path: string; content: string; sha: string | null } => x !== null);
-  if (changed.length === 0) return;
+  if (changed.length === 0) return null;
 
   try {
-    await commitFiles(`studio: reorder ${changed.length} ${changed.length === 1 ? 'entry' : 'entries'}`, changed);
-    return;
+    const r = await commitFiles(`studio: reorder ${changed.length} ${changed.length === 1 ? 'entry' : 'entries'}`, changed);
+    return r.commit ?? null;
   } catch (e) {
     // A real failure (conflict, network) wrote nothing — surface it as-is.
     if (!isMissingRoute(e)) throw e;
@@ -101,11 +101,13 @@ export async function saveOrder(paths: string[]): Promise<void> {
 
   // The deployed Worker predates /api/commit: fall back to one commit per file.
   const failed: string[] = [];
+  let last: string | null = null;
   for (const c of changed) {
-    try { await writeFile(c.path, c.content, 'studio: reorder', c.sha); }
+    try { last = (await writeFile(c.path, c.content, 'studio: reorder', c.sha)).commit ?? last; }
     catch { failed.push(c.path.split('/').pop() || c.path); }
   }
   if (failed.length) throw new Error(`Saved most of the order, but these didn't update: ${failed.join(', ')}. Reload and try again.`);
+  return last;
 }
 
 /** "3 min ago" / "yesterday" / "12 Mar" — for history and activity lists. */

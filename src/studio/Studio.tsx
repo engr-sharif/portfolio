@@ -37,7 +37,8 @@ const Studio: FC = () => {
     dirty.current = false;
     setView(v); setMenuOpen(false);
   };
-  const onPublished = () => setPublishedAt(Date.now());
+  const [publishedCommit, setPublishedCommit] = useState<string | null>(null);
+  const onPublished = (commit?: string | null) => { setPublishedCommit(commit ?? null); setPublishedAt(Date.now()); };
   const onLogout = () => {
     const msg = dirty.current
       ? 'You have unsaved changes. Sign out and discard them?'
@@ -86,7 +87,7 @@ const Studio: FC = () => {
           />
         )}
       </main>
-      <PublishToast trigger={publishedAt} />
+      <PublishToast trigger={publishedAt} commit={publishedCommit} />
 
       {expired && (
         <Login
@@ -220,7 +221,7 @@ const Dashboard: FC<{ onOpen: (id: string) => void; onNew: (id: string) => void 
 };
 
 /* ----------------------------------------------------------- CollectionList */
-const CollectionList: FC<{ collection: Collection; onNew: () => void; onOpen: (path: string) => void; onPublished: () => void }> = ({ collection, onNew, onOpen, onPublished }) => {
+const CollectionList: FC<{ collection: Collection; onNew: () => void; onOpen: (path: string) => void; onPublished: (commit?: string | null) => void }> = ({ collection, onNew, onOpen, onPublished }) => {
   const [entries, setEntries] = useState<EntryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -254,7 +255,7 @@ const CollectionList: FC<{ collection: Collection; onNew: () => void; onOpen: (p
   };
   const persistOrder = async () => {
     setSavingOrder(true); setError('');
-    try { await saveOrder(entries.map((e) => e.path)); setReordering(false); onPublished(); }
+    try { const commit = await saveOrder(entries.map((e) => e.path)); setReordering(false); onPublished(commit); }
     catch (e: any) { setError(e.message); }
     finally { setSavingOrder(false); }
   };
@@ -265,8 +266,8 @@ const CollectionList: FC<{ collection: Collection; onNew: () => void; onOpen: (p
       const doc = await duplicateEntry(path, collection.labelField);
       const base = slugifyLabel(String(doc.data[collection.labelField] || 'copy'));
       const newPath = await uniqueEntryPath(collection.dir!, base);
-      await writeFile(newPath, stringify(doc), `studio: duplicate ${doc.data[collection.labelField] || ''}`);
-      onPublished();
+      const res = await writeFile(newPath, stringify(doc), `studio: duplicate ${doc.data[collection.labelField] || ''}`);
+      onPublished(res.commit);
       await load();
     } catch (e: any) { setError(e.message); }
   };

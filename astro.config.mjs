@@ -7,20 +7,22 @@ import pagefind from 'astro-pagefind';
 import tailwindcss from '@tailwindcss/vite';
 import { remarkReadingTime } from './src/lib/remark-reading-time.mjs';
 
-// DEPLOY TARGET — configurable per host, defaults to GitHub Pages:
-//   GitHub Pages (project site)  SITE_URL=https://engr-sharif.github.io  BASE_PATH=/portfolio/
-//   Cloudflare Pages / custom    SITE_URL=https://<project>.pages.dev     BASE_PATH=/
+// DEPLOY TARGET — configurable per host, defaults to Cloudflare Pages (production):
+//   Cloudflare Pages (default)   SITE_URL=https://mosharif.pages.dev     BASE_PATH=/
+//   Custom domain (later)        SITE_URL=https://<domain>               BASE_PATH=/
+//   GitHub Pages (legacy)        SITE_URL=https://engr-sharif.github.io  BASE_PATH=/portfolio/
+//                                (now serves only a redirect — see .github/workflows/deploy.yml)
 // Every internal link goes through withBase() (src/lib/path.ts) and every
 // absolute URL through Astro.site, so switching host is a two-variable change.
 // --------------------------------------------------------------------------
-const SITE_URL = process.env.SITE_URL || 'https://engr-sharif.github.io';
-const BASE_PATH = process.env.BASE_PATH || '/portfolio/';
+const SITE_URL = process.env.SITE_URL || 'https://mosharif.pages.dev';
+const BASE_PATH = process.env.BASE_PATH || '/';
 
 export default defineConfig({
   site: SITE_URL,
   base: BASE_PATH,
   output: 'static',
-  // Match GitHub Pages directory serving + our withBase('/x/') links, and keep
+  // Match static directory serving + our withBase('/x/') links, and keep
   // canonical/sitemap URLs consistent (avoids duplicate-URL SEO signals).
   trailingSlash: 'always',
   // Expressive Code must be registered before React/MDX.

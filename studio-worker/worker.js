@@ -12,7 +12,7 @@
  *   DELETE /api/file          { path, message, sha }          (delete a file)
  *   GET  /api/list?dir=…       -> [{ name, path, sha }]        (list a directory)
  *   GET  /api/status          -> { ok, repo, branch }         (auth check)
- *   GET  /api/deploy-status?since=<ms>                        (is the site live yet?)
+ *   GET  /api/deploy-status?commit=<sha>  -> { state: live|building|failed|unknown } (host's commit status)
  *   POST /api/assist          { task, text, system?, image? } (Workers AI)
  *
  * All routes except /login require: Authorization: Bearer <token>.
@@ -24,7 +24,7 @@
  * VARS (wrangler.toml [vars] or dashboard):
  *   GITHUB_REPO         e.g. "engr-sharif/portfolio"
  *   GITHUB_BRANCH       e.g. "main"
- *   ALLOWED_ORIGIN      e.g. "https://engr-sharif.github.io" — REQUIRED. Comma-separate
+ *   ALLOWED_ORIGIN      e.g. "https://mosharif.pages.dev" — REQUIRED. Comma-separate
  *                       several (e.g. add "http://localhost:4321" for local dev).
  *   AI_TEXT_MODEL / AI_VISION_MODEL   optional model overrides
  * BINDINGS:
@@ -385,22 +385,45 @@ export default {
     // --- deploy status: has a Pages deployment finished since `since` (ms)? ---
     // Lets the Studio say "Live" only when the site actually rebuilt, and
     // "failed" when the build broke — instead of guessing after a timer.
+    // --- deploy status: did the host build the commit? ---
+    // Success is confirmed by the Studio itself from the site's build stamp
+    // (/build.json). This route adds what the stamp can't say — a FAILED or
+    // in-progress build — from the commit statuses the hosting app (Cloudflare
+    // Pages' GitHub integration) posts on the commit. Best-effort: 'unknown'
+    // whenever nothing definitive is found.
     if (pathname === '/api/deploy-status' && request.method === 'GET') {
-      const since = Number(url.searchParams.get('since') || 0);
-      const runsPath = `/repos/${repo}/actions/runs?branch=${encodeURIComponent(branch)}&event=push&per_page=5`;
-      let runs = await gh(env, runsPath);
-      // A contents-only fine-grained PAT can't read Actions; the repo is public,
-      // so fall back to an unauthenticated read (60 req/h is plenty here).
-      if (!runs.ok) runs = await fetch(`${GH}${runsPath}`, { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'studio-worker' } });
-      if (!runs.ok) return json({ state: 'unknown' }, env, request);
-      const d = await runs.json();
-      const list = Array.isArray(d.workflow_runs) ? d.workflow_runs : [];
-      const after = list.filter((r) => new Date(r.created_at).getTime() >= since - 15_000);
-      if (after.length === 0) return json({ state: 'pending' }, env, request);
-      const latest = after[0];
-      if (latest.status !== 'completed') return json({ state: 'building', url: latest.html_url }, env, request);
-      if (latest.conclusion === 'success') return json({ state: 'live', url: latest.html_url, at: latest.updated_at }, env, request);
-      return json({ state: 'failed', url: latest.html_url, conclusion: latest.conclusion }, env, request);
+      const commit = url.searchParams.get('commit');
+      const ref = encodeURIComponent(isGitSha(commit) ? commit : branch);
+      const isHost = (name) => /cloudflare|pages/i.test(String(name || ''));
+      const when = (x) => new Date(x.completed_at || x.updated_at || x.started_at || x.created_at || 0).getTime();
+      // A contents-only PAT may not read checks; the repo is public, so fall
+      // back to an unauthenticated read (60 req/h is plenty here).
+      const read = async (path) => {
+        let r = await gh(env, path);
+        if (!r.ok) r = await fetch(`${GH}${path}`, { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'studio-worker' } });
+        return r.ok ? r.json() : null;
+      };
+      // 1. Check runs — this is what Cloudflare Pages' GitHub app posts
+      //    ("Cloudflare Pages": queued / in_progress / completed + conclusion).
+      const checks = await read(`/repos/${repo}/commits/${ref}/check-runs?per_page=50`);
+      const runs = (Array.isArray(checks?.check_runs) ? checks.check_runs : []).filter((c) => isHost(c.name)).sort((x, y) => when(y) - when(x));
+      if (runs.length) {
+        const c = runs[0];
+        const link = c.details_url || c.html_url;
+        if (c.status !== 'completed') return json({ state: 'building', url: link }, env, request);
+        if (c.conclusion === 'success') return json({ state: 'live', url: link, at: c.completed_at }, env, request);
+        if (c.conclusion === 'skipped' || c.conclusion === 'neutral') return json({ state: 'unknown' }, env, request);
+        return json({ state: 'failed', url: link, conclusion: c.conclusion, at: c.completed_at }, env, request);
+      }
+      // 2. Legacy commit statuses (some hosting apps post these instead).
+      const combined = await read(`/repos/${repo}/commits/${ref}/status`);
+      const statuses = (Array.isArray(combined?.statuses) ? combined.statuses : []).filter((st) => isHost(st.context)).sort((x, y) => when(y) - when(x));
+      if (statuses.length === 0) return json({ state: 'unknown' }, env, request);
+      const st = statuses[0];
+      const at = st.updated_at || st.created_at;
+      if (st.state === 'success') return json({ state: 'live', url: st.target_url, at }, env, request);
+      if (st.state === 'pending') return json({ state: 'building', url: st.target_url }, env, request);
+      return json({ state: 'failed', url: st.target_url, conclusion: st.state, at }, env, request);
     }
 
     // --- read a file ---
@@ -552,7 +575,8 @@ export default {
         body: JSON.stringify({ message: String(body.message || `studio: delete ${path}`).slice(0, 200), branch, sha: String(body.sha) }),
       });
       if (!res.ok) return json({ error: `GitHub ${res.status}` }, env, request, 502);
-      return json({ ok: true }, env, request);
+      const d = await res.json().catch(() => ({}));
+      return json({ ok: true, commit: d?.commit?.sha }, env, request);
     }
 
     // --- AI assist (Cloudflare Workers AI): polish / summarize / caption … ---

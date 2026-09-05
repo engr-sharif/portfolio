@@ -152,3 +152,37 @@ describe('history + versions', () => {
     expect((await api('/api/file?path=a.md&ref=main;rm', { token })).status).toBe(400);
   });
 });
+
+describe('GET /api/deploy-status', () => {
+  /** Serve the two GitHub signals the route reads: check runs (what the
+   * Cloudflare Pages app posts — verified live on PR #60) and commit statuses. */
+  const withSignals = (checkRuns: unknown[], statuses: unknown[] = []) => {
+    const orig = fakeGitHub;
+    vi.stubGlobal('fetch', vi.fn(async (input: string, init?: RequestInit) => {
+      const u = new URL(String(input));
+      if (/\/commits\/[^/]+\/check-runs$/.test(u.pathname)) return res({ total_count: checkRuns.length, check_runs: checkRuns });
+      if (/\/commits\/[^/]+\/status$/.test(u.pathname)) return res({ state: 'pending', sha: 'c000000', statuses });
+      return orig(String(input), init);
+    }));
+  };
+  const cf = (over: Record<string, unknown>) => ({ name: 'Cloudflare Pages', status: 'completed', conclusion: 'success', details_url: 'https://dash/deploy', started_at: '2026-09-05T02:44:40Z', completed_at: '2026-09-05T02:44:40Z', ...over });
+
+  it('maps the Cloudflare Pages check run to live / building / failed', async () => {
+    withSignals([cf({}), { name: 'check', status: 'completed', conclusion: 'failure' }]); // CI's own failure must not be mistaken for a deploy failure
+    expect((await api('/api/deploy-status?commit=c000000', { token })).body).toMatchObject({ state: 'live', url: 'https://dash/deploy', at: '2026-09-05T02:44:40Z' });
+
+    withSignals([cf({ status: 'in_progress', conclusion: null, completed_at: null })]);
+    expect((await api('/api/deploy-status?commit=c000000', { token })).body).toMatchObject({ state: 'building' });
+
+    withSignals([cf({ conclusion: 'failure', completed_at: '2026-09-05T03:00:00Z' }), cf({ completed_at: '2026-09-05T02:00:00Z' })]);
+    expect((await api('/api/deploy-status?commit=c000000', { token })).body).toMatchObject({ state: 'failed', conclusion: 'failure' });
+  });
+
+  it('falls back to a hosting commit status, and says unknown rather than guessing', async () => {
+    withSignals([], [{ context: 'Cloudflare Pages', state: 'failure', target_url: 'https://dash/fail', updated_at: '2026-09-05T02:00:00Z' }]);
+    expect((await api('/api/deploy-status', { token })).body).toMatchObject({ state: 'failed', url: 'https://dash/fail' });
+
+    withSignals([{ name: 'check', status: 'completed', conclusion: 'success' }], [{ context: 'check', state: 'success' }]);
+    expect((await api('/api/deploy-status', { token })).body).toEqual({ state: 'unknown' });
+  });
+});

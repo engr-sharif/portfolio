@@ -9,7 +9,7 @@ IntersectionObserver fallback) · GSAP for the signature moments (SplitText hero
 Flip lightbox, count-up stats) · Three.js + React Three Fiber · MapLibre GL ·
 Tailwind CSS 4 · satori-generated share cards · a strict Content-Security-Policy
 on every page · a custom Studio admin · TypeScript. Output is 100% static
-(GitHub Pages — the Studio's only backend is a small Cloudflare Worker).
+(Cloudflare Pages — the Studio's only backend is a small Cloudflare Worker).
 
 ---
 
@@ -19,21 +19,27 @@ The build is **host-agnostic**. Two environment variables decide where it lives:
 
 | Host | `SITE_URL` | `BASE_PATH` |
 |---|---|---|
-| GitHub Pages (project site, the default) | `https://engr-sharif.github.io` | `/portfolio/` |
-| Cloudflare Pages / custom domain | `https://<project>.pages.dev` | `/` |
+| **Cloudflare Pages (production, the default)** | `https://mosharif.pages.dev` | `/` |
+| Custom domain (when added) | `https://<domain>` | `/` |
+| GitHub Pages (legacy) | `https://engr-sharif.github.io` | `/portfolio/` |
+
+The legacy address now serves only a redirect (`scripts/redirect-site.mjs`,
+deployed by `.github/workflows/deploy.yml`) so old links, QR codes and search
+results land on the new home.
 
 Every internal link goes through `withBase()` (`src/lib/path.ts`), every absolute
 URL through `Astro.site`, `robots.txt` is generated from both, and the Studio,
 share cards and test scripts read the same values — so moving host is a
 two-variable change, not a search-and-replace.
 
-**Cloudflare Pages setup (one time, in the dashboard):** Workers & Pages → Create
-→ Pages → *Connect to Git* → this repo → build command `npm run build`, output
-`dist`, and add the variables `SITE_URL=https://<project>.pages.dev` and
-`BASE_PATH=/` (Node comes from `.node-version`). Every branch then gets a preview
-URL; `main` is production. Add the new origin to the Studio Worker's
-`ALLOWED_ORIGIN`. `public/_headers` supplies the security/caching headers a static
-host can't otherwise send.
+**Cloudflare Pages (already set up):** the project `mosharif` is connected to this
+repo — build command `npm run build`, output `dist`, variables
+`SITE_URL=https://mosharif.pages.dev` and `BASE_PATH=/` for Production and Preview
+(Node comes from `.node-version`). Every push to `main` goes live in ~2 minutes;
+every other branch/PR gets a preview URL. The Studio Worker's `ALLOWED_ORIGIN`
+lists the new origin. `public/_headers` supplies the security/caching headers a
+static host can't otherwise send, and `/build.json` is a per-build stamp the
+Studio polls to report *Live* truthfully.
 
 ---
 
@@ -295,11 +301,12 @@ glowing on their real coordinates.
 
 These need your own credentials/judgment — they are **not** done in this repo:
 
-1. **Base path** — already set to `/portfolio/` so the site is shared at
-   `https://engr-sharif.github.io/portfolio/`. (Only change this if you rename
-   the repo to `engr-sharif.github.io`.)
-2. **GitHub → Settings → Pages → Source = "GitHub Actions".** (The workflow in
-   `.github/workflows/deploy.yml` deploys on every push to `main`.)
+1. **Hosting** — production is Cloudflare Pages at `https://mosharif.pages.dev`
+   (`SITE_URL`/`BASE_PATH` live in the Pages project settings). To move to a
+   custom domain: Pages project → *Custom domains*, then change `SITE_URL` and
+   the Worker's `ALLOWED_ORIGIN`.
+2. **GitHub Pages** stays enabled (Source = "GitHub Actions") only to serve the
+   redirect from the old `/portfolio/` address.
 3. **Studio backend** — deploy the Cloudflare Worker and set its secrets
    (`STUDIO_PASSWORD`, `STUDIO_JWT_SECRET`, and a GitHub token). Full steps:
    [`studio-worker/README.md`](./studio-worker/README.md). **Never commit the
