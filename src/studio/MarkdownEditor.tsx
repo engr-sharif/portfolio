@@ -20,7 +20,7 @@ const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9.]+/g, '-').repl
 
 /** Turn a YouTube/Vimeo URL into a responsive embed snippet, or null if it
  * isn't a recognised video URL. */
-function videoEmbed(url: string): string | null {
+export function videoEmbed(url: string): string | null {
   const u = url.trim();
   const yt = u.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{11})/);
   if (yt) {

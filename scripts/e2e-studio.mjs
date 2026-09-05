@@ -39,7 +39,7 @@ import { mkdirSync } from 'node:fs';
 mkdirSync('.shots-e2e', { recursive: true });
 const failures = [];
 const issues = [];
-const ignorable = (s) => /raw\.githubusercontent\.com|api\.github\.com|pages\.dev/.test(s); // no egress in CI sandboxes
+const ignorable = (s) => /raw\.githubusercontent\.com|api\.github\.com|pages\.dev|cartocdn\.com/.test(s); // third-party fetches; some sandboxes have no egress
 let page;
 async function step(name, fn) {
   try { await fn(); console.log(`✓ ${name}`); }
@@ -103,6 +103,24 @@ try {
     await page.waitForSelector('.ed__dirty', { timeout: 5000 });
     await page.keyboard.press('Control+s');
     await page.waitForSelector('.toast--progress, .toast--success', { timeout: 20000 });
+    await page.waitForSelector('.ed__saved', { timeout: 20000 });
+  });
+  await step('block editor: slash menu inserts a heading, markdown view shows it', async () => {
+    await page.click('.blk-prose');
+    await page.keyboard.press('Control+End');
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('/head');
+    await page.waitForSelector('.slash__item.is-active:has-text("Heading 2")', { timeout: 5000 });
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('E2E heading');
+    await page.waitForSelector('.blk-prose h2:has-text("E2E heading")', { timeout: 5000 });
+    await page.click('.blk-tb .seg__btn:has-text("Markdown")');
+    await page.waitForSelector('.blk--source textarea', { timeout: 5000 });
+    const src = await page.inputValue('.blk--source textarea');
+    if (!src.includes('## E2E heading')) throw new Error('markdown source lacks "## E2E heading"');
+    await page.click('.blk-tb .seg__btn:has-text("Blocks")');
+    await page.waitForSelector('.blk-prose h2:has-text("E2E heading")', { timeout: 5000 });
+    await page.keyboard.press('Control+s');
     await page.waitForSelector('.ed__saved', { timeout: 20000 });
   });
   await step('history drawer diffs a past version', async () => {

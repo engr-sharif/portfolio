@@ -27,7 +27,7 @@ export interface FieldProps {
 const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9.]+/g, '-').replace(/(^-|-$)/g, '');
 const readAsDataUrl = (file: Blob) => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(new Error('Could not read that file.')); r.readAsDataURL(file); });
 
-async function uploadFile(file: File, dir: string): Promise<{ path: string; meta: ImageMeta }> {
+export async function uploadFile(file: File, dir: string): Promise<{ path: string; meta: ImageMeta }> {
   const { file: out, meta } = await processImage(file);
   const name = slugify(out.name);
   const path = `${dir}/${name}`;

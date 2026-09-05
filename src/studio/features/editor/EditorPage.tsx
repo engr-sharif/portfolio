@@ -11,7 +11,8 @@ import { useToast } from '../../ui/Toaster';
 import { Button, Callout, Confirm, IconButton, Kbd, Menu, Pill, Skeleton } from '../../ui/primitives';
 import { Field } from './Field';
 import { HistoryDrawer } from './HistoryDrawer';
-import { MarkdownEditor } from '../../MarkdownEditor';
+import { BlockEditor } from './block/BlockEditor';
+import { LocationPicker } from './LocationPicker';
 import { PreviewPane } from '../../PreviewPane';
 
 interface Props { collection: Collection; path: string | null; onDirtyChange?: (d: boolean) => void }
@@ -146,8 +147,12 @@ export const EditorPage: FC<Props> = ({ collection, path, onDirtyChange }) => {
     } catch (e: any) { setHistory(false); setError(e?.message || 'That version could not be read.'); }
   };
 
-  const mainFields = useMemo(() => collection.fields.filter((f) => !isSide(f)), [collection]);
+  // Projects carry lat/lng (+ a label): those become a map picker card.
+  const hasGeo = useMemo(() => ['lat', 'lng'].every((n) => collection.fields.some((f) => f.name === n)), [collection]);
+  const GEO = new Set(['lat', 'lng', 'location']);
+  const mainFields = useMemo(() => collection.fields.filter((f) => !isSide(f) && !(hasGeo && GEO.has(f.name))), [collection, hasGeo]); // eslint-disable-line react-hooks/exhaustive-deps
   const sideFields = useMemo(() => collection.fields.filter(isSide), [collection]);
+  const locationField = collection.fields.find((f) => f.name === 'location');
   const title = isFile ? collection.label : (data[collection.labelField] || (path ? collection.label : `New ${collection.label.replace(/s$/, '').toLowerCase()}`));
   const status = collection.statusField ? (collection.statusField === 'draft' ? (data.draft ? 'draft' : 'live') : (data.published ? 'live' : 'draft')) : null;
   const errorCount = Object.keys(fieldErrors).length;
@@ -194,11 +199,18 @@ export const EditorPage: FC<Props> = ({ collection, path, onDirtyChange }) => {
           {hasBody && (
             <section className="ed__card">
               <span className="sf__label">{collection.bodyLabel}</span>
-              <MarkdownEditor value={body} onChange={setBodyDirty} mediaDir={collection.mediaDir} />
+              <BlockEditor value={body} onChange={setBodyDirty} mediaDir={collection.mediaDir} />
             </section>
           )}
         </div>
         <aside className="ed__aside">
+          {hasGeo && (
+            <section className="ed__card ed__card--side">
+              <h2 className="ed__cardtitle">Location</h2>
+              <LocationPicker lat={typeof data.lat === 'number' ? data.lat : undefined} lng={typeof data.lng === 'number' ? data.lng : undefined} onChange={(lat, lng) => { setData((d) => ({ ...d, lat, lng })); setDirty(true); }} />
+              {locationField && <Field field={locationField} value={data.location} onChange={(v) => set('location', v)} error={fieldErrors.location} />}
+            </section>
+          )}
           {sideFields.length > 0 && (
             <section className="ed__card ed__card--side">
               <h2 className="ed__cardtitle">Publishing</h2>
