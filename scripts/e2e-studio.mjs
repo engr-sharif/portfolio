@@ -35,13 +35,15 @@ await new Promise((res, rej) => {
   server.on('exit', (c) => rej(new Error(`preview server exited early (code ${c})`)));
 }).catch((e) => { console.error(e.message); shutdown(2); });
 
+import { mkdirSync } from 'node:fs';
+mkdirSync('.shots-e2e', { recursive: true });
 const failures = [];
 const issues = [];
 const ignorable = (s) => /raw\.githubusercontent\.com|api\.github\.com|pages\.dev/.test(s); // no egress in CI sandboxes
 let page;
 async function step(name, fn) {
   try { await fn(); console.log(`✓ ${name}`); }
-  catch (e) { failures.push(`${name}: ${String(e?.message || e).split('\n')[0]}`); console.log(`✗ ${name}`); try { await page?.screenshot({ path: `e2e-fail-${name.replace(/\W+/g, '-')}.png` }); } catch { /* fine */ } }
+  catch (e) { failures.push(`${name}: ${String(e?.message || e).split('\n')[0]}`); console.log(`✗ ${name}`); try { await page?.screenshot({ path: `.shots-e2e/${name.replace(/\W+/g, '-')}.png` }); } catch { /* fine */ } }
 }
 
 try {
