@@ -19,8 +19,9 @@ import { withBase } from '../lib/path';
 // refused, containing the blast radius of injected markdown.
 type Directive = Parameters<NonNullable<typeof Astro.csp>['insertDirective']>[0];
 const directive = (d: string) => Astro.csp?.insertDirective(d as Directive);
-directive("connect-src 'self' https://*.workers.dev https://api.github.com https://raw.githubusercontent.com");
-directive("img-src 'self' data: blob: https://raw.githubusercontent.com");
+// (+ CARTO basemaps for the location picker's map tiles, same as the public site's map)
+directive("connect-src 'self' https://*.workers.dev https://api.github.com https://raw.githubusercontent.com https://*.basemaps.cartocdn.com https://basemaps.cartocdn.com");
+directive("img-src 'self' data: blob: https://raw.githubusercontent.com https://*.basemaps.cartocdn.com https://basemaps.cartocdn.com");
 directive("media-src 'self' blob: https://raw.githubusercontent.com");
 directive("style-src-attr 'unsafe-inline'");
 directive('frame-src https://www.youtube-nocookie.com https://player.vimeo.com');

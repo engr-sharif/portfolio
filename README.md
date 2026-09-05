@@ -150,6 +150,14 @@ CMS, no OAuth dance. Desktop and phone; installable; opens offline.
 - **Collection tables** with search, status filter, **drag-to-reorder** (mouse,
   touch or keyboard) saved as **one commit** on drop with *Undo*, one-click
   status pills, and **bulk publish / unpublish / delete** (one commit each).
+- **Block editor** (TipTap/ProseMirror) for the body: type **`/`** for blocks
+  (headings, lists, quote, code, image, video, divider), select text for an
+  inline menu, **drop or paste images** straight into the text, an AI assist
+  menu (polish / grammar / summarize / expand), and a **Markdown** toggle to
+  the raw source. The file stays clean markdown: every real post round-trips
+  with identical rendered HTML (tested), and raw embeds are kept byte-exact.
+- **Location picker** — projects get a map card (click to pin, drag, or type
+  lat/lng) instead of two bare number fields.
 - **Editor** with a publish sidebar, live preview, **⌘S** to save, local drafts
   that survive a closed tab, a **History** drawer with a line diff and *Restore*,
   and image fields that accept **drag-and-drop** uploads with sortable galleries.
