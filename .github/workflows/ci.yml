@@ -52,6 +52,12 @@ jobs:
           PLAYWRIGHT_CHROMIUM: /usr/bin/google-chrome
           SMOKE_NO_SDA: '1'
           SMOKE_THEME: light
+      # The Studio must open with no signal (field log): one online visit, then
+      # an offline reload must render from the service worker's cache.
+      - name: Smoke test (Studio offline shell)
+        run: npm run smoke:studio
+        env:
+          PLAYWRIGHT_CHROMIUM: /usr/bin/google-chrome
 
       - name: Guard — no admin leftovers
         run: |

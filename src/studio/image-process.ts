@@ -22,7 +22,10 @@ const isImage = (f: File) => f.type.startsWith('image/') || isHeic(f);
 const canResize = (f: File) =>
   isImage(f) && !/svg|gif/i.test(f.type) && !/\.(svg|gif)$/i.test(f.name);
 
-async function readMeta(file: File): Promise<ImageMeta> {
+/** EXIF GPS + capture date only (no re-encode). Exported for the field log,
+ * which reads metadata at capture time and defers the heavy processing to
+ * publish time so it works with no signal. */
+export async function readImageMeta(file: File): Promise<ImageMeta> {
   const meta: ImageMeta = {};
   if (!isImage(file)) return meta;
   try {
@@ -41,7 +44,7 @@ async function readMeta(file: File): Promise<ImageMeta> {
 }
 
 export async function processImage(file: File): Promise<Processed> {
-  const meta = await readMeta(file);
+  const meta = await readImageMeta(file);
   if (!canResize(file)) return { file, meta };
 
   let source: Blob = file;

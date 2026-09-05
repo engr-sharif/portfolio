@@ -12,7 +12,8 @@
     "check": "astro check",
     "test": "vitest run",
     "test:watch": "vitest",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "smoke:studio": "node scripts/smoke-studio.mjs"
   },
   "dependencies": {
     "@astrojs/react": "^5.0.6",
