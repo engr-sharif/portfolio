@@ -632,3 +632,31 @@ li.ProseMirror-selectednode:after { content: ""; position: absolute; left: -32px
 @keyframes ProseMirror-cursor-blink { to { visibility: hidden; } }
 .ProseMirror-focused .ProseMirror-gapcursor { display: block; }
 .tippy-box[data-animation=fade][data-state=hidden] { opacity: 0; }
+
+/* ==========================================================================
+   Media library, shortcuts sheet
+   ========================================================================== */
+.seg--wrap { flex-wrap: wrap; }
+.bulkbar--inline { margin-left: auto; padding: 0.35rem 0.6rem; }
+.mediagrid-wrap { position: relative; min-height: 14rem; border-radius: var(--r-lg); transition: box-shadow 0.15s; }
+.mediagrid-wrap.is-over { box-shadow: 0 0 0 3px var(--accent-soft), 0 0 0 1px var(--accent); }
+.mediagrid-drop { display: none; position: absolute; inset: 0; z-index: 2; align-items: center; justify-content: center; gap: 0.5rem; border-radius: var(--r-lg); background: color-mix(in srgb, var(--bg) 80%, transparent); color: var(--accent); font-weight: 600; pointer-events: none; }
+.mediagrid-wrap.is-over .mediagrid-drop { display: flex; }
+.mediagrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); gap: 0.75rem; }
+.mcard { display: grid; gap: 0.35rem; }
+.mcard__pick { position: relative; display: block; width: 100%; aspect-ratio: 4 / 3; padding: 0; border: 2px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--panel); cursor: pointer; transition: border-color 0.15s, transform 0.15s var(--ease); }
+.mcard__pick:hover { border-color: var(--line-2); transform: translateY(-1px); }
+.mcard.is-selected .mcard__pick { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.mcard__pick img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mcard__file { display: grid; place-items: center; width: 100%; height: 100%; color: var(--muted); }
+.mcard__check { position: absolute; top: 0.4rem; left: 0.4rem; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line-2); background: color-mix(in srgb, var(--bg) 80%, transparent); color: transparent; transition: all 0.15s; }
+.mcard__check.is-on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.mcard__meta { display: flex; align-items: center; justify-content: space-between; gap: 0.3rem; min-width: 0; }
+.mcard__name { font-family: var(--mono); font-size: 0.7rem; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mcard__actions { display: inline-flex; flex-shrink: 0; }
+.keys { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 560px) { .keys { grid-template-columns: 1fr; } }
+.keys__group { margin: 0; display: grid; gap: 0.5rem; }
+.keys__row { display: grid; grid-template-columns: 5.5rem 1fr; gap: 0.6rem; align-items: baseline; }
+.keys__row dt { display: flex; gap: 0.2rem; }
+.keys__row dd { margin: 0; color: var(--text-2); font-size: 0.9rem; }

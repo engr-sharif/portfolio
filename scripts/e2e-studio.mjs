@@ -157,6 +157,26 @@ try {
     const v = await page.inputValue('#f-name');
     if (!v) throw new Error('name field empty');
   });
+  await step('media library: bulk upload is one commit, then delete', async () => {
+    await page.goto(`${ORIGIN}${BASE}studio/media/blog/`, { waitUntil: 'networkidle' });
+    await page.waitForSelector('.mediapg', { timeout: 20000 });
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+    await page.setInputFiles('[data-testid=media-input]', [{ name: 'e2e-pixel-a.png', mimeType: 'image/png', buffer: png }, { name: 'e2e-pixel-b.png', mimeType: 'image/png', buffer: png }]);
+    await page.waitForSelector('.toast--success:has-text("Uploaded 2 files")', { timeout: 30000 });
+    await page.waitForSelector('[data-testid=media-item] .mcard__name:has-text("e2e-pixel-a.png")', { timeout: 20000 });
+    await page.click('[data-testid=media-item]:has-text("e2e-pixel-a.png") .mcard__pick');
+    await page.click('[data-testid=media-item]:has-text("e2e-pixel-b.png") .mcard__pick');
+    await page.click('.bulkbar button:has-text("Delete")');
+    await page.click('.dlg__foot button:has-text("Delete")');
+    await page.waitForSelector('.toast--success:has-text("Deleted 2 files")', { timeout: 30000 });
+    await page.waitForSelector('[data-testid=media-item] .mcard__name:has-text("e2e-pixel-a.png")', { state: 'detached', timeout: 20000 });
+  });
+  await step('“?” opens the shortcuts sheet', async () => {
+    await page.keyboard.press('Shift+Slash');
+    await page.waitForSelector('.keys', { timeout: 5000 });
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('.keys', { state: 'detached', timeout: 5000 });
+  });
   await step('mobile drawer opens', async () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`${ORIGIN}${BASE}studio/`, { waitUntil: 'networkidle' });
