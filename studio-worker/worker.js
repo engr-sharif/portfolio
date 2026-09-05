@@ -393,23 +393,37 @@ export default {
     // whenever nothing definitive is found.
     if (pathname === '/api/deploy-status' && request.method === 'GET') {
       const commit = url.searchParams.get('commit');
-      const ref = isGitSha(commit) ? commit : branch;
-      const statusPath = `/repos/${repo}/commits/${encodeURIComponent(ref)}/status`;
-      let res = await gh(env, statusPath);
-      // A contents-only PAT may not read statuses; the repo is public, so
-      // fall back to an unauthenticated read (60 req/h is plenty here).
-      if (!res.ok) res = await fetch(`${GH}${statusPath}`, { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'studio-worker' } });
-      if (!res.ok) return json({ state: 'unknown' }, env, request);
-      const d = await res.json();
-      const hosted = (Array.isArray(d.statuses) ? d.statuses : []).filter((st) => /cloudflare|pages/i.test(String(st.context || '')));
-      if (hosted.length === 0) return json({ state: 'unknown' }, env, request);
-      // newest first
-      hosted.sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime());
-      const latest = hosted[0];
-      const at = latest.updated_at || latest.created_at;
-      if (latest.state === 'success') return json({ state: 'live', url: latest.target_url, at }, env, request);
-      if (latest.state === 'pending') return json({ state: 'building', url: latest.target_url }, env, request);
-      return json({ state: 'failed', url: latest.target_url, conclusion: latest.state, at }, env, request);
+      const ref = encodeURIComponent(isGitSha(commit) ? commit : branch);
+      const isHost = (name) => /cloudflare|pages/i.test(String(name || ''));
+      const when = (x) => new Date(x.completed_at || x.updated_at || x.started_at || x.created_at || 0).getTime();
+      // A contents-only PAT may not read checks; the repo is public, so fall
+      // back to an unauthenticated read (60 req/h is plenty here).
+      const read = async (path) => {
+        let r = await gh(env, path);
+        if (!r.ok) r = await fetch(`${GH}${path}`, { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'studio-worker' } });
+        return r.ok ? r.json() : null;
+      };
+      // 1. Check runs — this is what Cloudflare Pages' GitHub app posts
+      //    ("Cloudflare Pages": queued / in_progress / completed + conclusion).
+      const checks = await read(`/repos/${repo}/commits/${ref}/check-runs?per_page=50`);
+      const runs = (Array.isArray(checks?.check_runs) ? checks.check_runs : []).filter((c) => isHost(c.name)).sort((x, y) => when(y) - when(x));
+      if (runs.length) {
+        const c = runs[0];
+        const link = c.details_url || c.html_url;
+        if (c.status !== 'completed') return json({ state: 'building', url: link }, env, request);
+        if (c.conclusion === 'success') return json({ state: 'live', url: link, at: c.completed_at }, env, request);
+        if (c.conclusion === 'skipped' || c.conclusion === 'neutral') return json({ state: 'unknown' }, env, request);
+        return json({ state: 'failed', url: link, conclusion: c.conclusion, at: c.completed_at }, env, request);
+      }
+      // 2. Legacy commit statuses (some hosting apps post these instead).
+      const combined = await read(`/repos/${repo}/commits/${ref}/status`);
+      const statuses = (Array.isArray(combined?.statuses) ? combined.statuses : []).filter((st) => isHost(st.context)).sort((x, y) => when(y) - when(x));
+      if (statuses.length === 0) return json({ state: 'unknown' }, env, request);
+      const st = statuses[0];
+      const at = st.updated_at || st.created_at;
+      if (st.state === 'success') return json({ state: 'live', url: st.target_url, at }, env, request);
+      if (st.state === 'pending') return json({ state: 'building', url: st.target_url }, env, request);
+      return json({ state: 'failed', url: st.target_url, conclusion: st.state, at }, env, request);
     }
 
     // --- read a file ---
