@@ -1,0 +1,27 @@
+---
+/**
+ * Every Studio deep route the build can know about becomes a real static page
+ * (the same shell; the client router takes over), so reloading
+ * /studio/c/projects/ or /studio/c/blog/e/<slug>/ works on any static host.
+ * Entries created after this build are covered by Cloudflare's _redirects
+ * until the next build — which every publish triggers anyway.
+ */
+import StudioPage from '../../studio/StudioPage.astro';
+import { collections } from '../../studio/schema';
+
+export function getStaticPaths() {
+  const files = Object.keys(import.meta.glob('/src/content/**/*.{md,mdx}'));
+  const routes: string[] = ['field-log'];
+  for (const c of collections) {
+    if (c.kind === 'file') { routes.push(`file/${c.id}`); continue; }
+    routes.push(`c/${c.id}`, `c/${c.id}/new`);
+    for (const f of files) {
+      if (!f.startsWith(`/${c.dir}/`)) continue;
+      const slug = (f.split('/').pop() || '').replace(/\.mdx?$/, '');
+      routes.push(`c/${c.id}/e/${slug}`);
+    }
+  }
+  return routes.map((route) => ({ params: { route } }));
+}
+---
+<StudioPage />

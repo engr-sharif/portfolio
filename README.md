@@ -141,35 +141,31 @@ download link (see `src/lib/resume.ts`).
 ## Editing in the browser (`/studio` — the Studio)
 
 `/studio` is a **custom-built admin** ("the Studio") — a React app under
-`src/studio/` that edits content live and commits straight back to the repo
-through a small Cloudflare Worker (`studio-worker/`, password-protected). No
-third-party CMS, no GitHub OAuth dance. It works on desktop and mobile.
+`src/studio/` that edits content and commits straight back to the repo through a
+small Cloudflare Worker (`studio-worker/`, password-protected). No third-party
+CMS, no OAuth dance. Desktop and phone; installable; opens offline.
 
-What it can do:
-- **Edit any collection** — projects, blog, tools — and the **Site Settings**
-  singleton (name, bio, social links, SEO title/description, social-share image).
-- **Markdown editor** with a formatting toolbar, drag-and-drop images, a
-  **video** button (paste a YouTube/Vimeo link, or upload a short MP4), and a
-  **live preview** toggle (side-by-side on desktop, swaps in on mobile).
-- **Media** — image upload + a media library to reuse existing assets.
-- **Headshot** and **résumé PDF** upload, **reorder / duplicate / search**
-  entries, and an **unsaved-changes guard**.
-- **Version history** — every entry has a **History** drawer listing each
-  published version; pick one to see a line diff against what's in the editor
-  and **Restore** it (loads into the form; nothing goes live until you Save).
-  The dashboard shows the site's **recent changes**.
-- **Field log (works offline)** — a capture screen for site days with no
-  signal: title, notes, a GPS fix (or the first photo's EXIF location), photos
-  straight from the camera. Captures are stored on the device (IndexedDB) and a
-  service worker keeps `/studio/` openable offline (installable from the
-  browser's *Add to Home Screen*). **Publish** optimises the photos and commits
-  them together with the note as **one atomic commit** — a Field Notes **draft**
-  (`category: field-notes`, `draft: true`) that opens in the normal editor for
-  polishing. Locations in the note are rounded to ~1 km.
-- **Atomic saves** — reordering a collection is committed as **one** commit via
-  the Git Data API (`POST /api/commit`), so the site rebuilds once and can never
-  be left half-renumbered. Every save carries the file's loaded sha, so an edit
-  made elsewhere in the meantime is refused instead of overwritten.
+**Studio 2.0 ("Field Desk")** — dense, keyboard-first, drag-and-drop:
+- **⌘K command palette** — jump anywhere, create anything, find any loaded entry.
+- **Collection tables** with search, status filter, **drag-to-reorder** (mouse,
+  touch or keyboard) saved as **one commit** on drop with *Undo*, one-click
+  status pills, and **bulk publish / unpublish / delete** (one commit each).
+- **Editor** with a publish sidebar, live preview, **⌘S** to save, local drafts
+  that survive a closed tab, a **History** drawer with a line diff and *Restore*,
+  and image fields that accept **drag-and-drop** uploads with sortable galleries.
+- **Truthful publish toast** — tracks the site's build stamp until the deployed
+  commit is the one you saved; reports a failed build with the log link.
+- **Demo mode** (`/studio/?mock=1`, password `mock`) — an in-memory copy of the
+  site seeded from the repo, so anyone can try it; the e2e suite runs on it.
+- **Field log** (offline capture → one-commit Field Notes draft), light/dark
+  theme, error boundaries with recovery, TanStack Query cache with optimistic
+  reorders, real static pages for every deep route (plus `_redirects` on
+  Cloudflare for routes newer than the build).
+
+Structure: `src/studio/app` (App, routes, TanStack Query hooks, mock Worker),
+`src/studio/ui` (primitives, toasts, palette, error boundary),
+`src/studio/features/*` (shell, auth, dashboard, collection, editor). The
+Worker API is unchanged.
 
 ### Image pipeline (automatic on upload)
 Every uploaded photo is processed in the browser before it's committed

@@ -1,0 +1,49 @@
+---
+/**
+ * The Studio shell page. Rendered for /studio/ and for every known deep route
+ * (see src/pages/studio/[...route].astro) so hard reloads and shared links work
+ * on any static host; Cloudflare's _redirects covers routes created after the
+ * last build, and the service worker covers offline.
+ */
+import App from './app/App.tsx';
+import './studio.css';
+import { site } from '../lib/site';
+import { withBase } from '../lib/path';
+
+// Content-Security-Policy for the admin, on top of the site-wide baseline in
+// astro.config.mjs (Astro hashes its own island scripts). The Studio talks to
+// exactly three origins: its Cloudflare Worker (API + AI), GitHub's raw
+// content (media previews) and GitHub's REST API. Inline STYLE ATTRIBUTES are
+// allowed (drag-and-drop transforms and skeleton sizes are set as element
+// styles); inline scripts, third-party scripts and off-site form posts stay
+// refused, containing the blast radius of injected markdown.
+type Directive = Parameters<NonNullable<typeof Astro.csp>['insertDirective']>[0];
+const directive = (d: string) => Astro.csp?.insertDirective(d as Directive);
+directive("connect-src 'self' https://*.workers.dev https://api.github.com https://raw.githubusercontent.com");
+directive("img-src 'self' data: blob: https://raw.githubusercontent.com");
+directive("media-src 'self' blob: https://raw.githubusercontent.com");
+directive("style-src-attr 'unsafe-inline'");
+directive('frame-src https://www.youtube-nocookie.com https://player.vimeo.com');
+directive("form-action 'self'");
+---
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Studio — {site.name}</title>
+    <link rel="icon" href={withBase('favicon.svg')} type="image/svg+xml" />
+    <link rel="manifest" href={withBase('studio.webmanifest')} />
+    <meta name="theme-color" content="#0d1110" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Studio" />
+  </head>
+  <body>
+    <div id="studio-root">
+      <App client:only="react" />
+    </div>
+    <noscript>The Studio admin requires JavaScript.</noscript>
+  </body>
+</html>
