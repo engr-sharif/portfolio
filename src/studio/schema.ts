@@ -35,6 +35,8 @@ export interface Collection {
   mediaDir?: string;
   labelField: string;          // which field titles an entry in lists
   statusField?: string;        // boolean that gates visibility (published/draft)
+  route?: string;              // where an entry lives on the site: route + slug + '/'
+  clearance?: boolean;         // publishing needs the four-point clearance checklist
   fields: Field[];
   bodyLabel?: string;          // folder entries carry a markdown body
 }
@@ -52,6 +54,8 @@ export const collections: Collection[] = [
     mediaDir: 'src/assets/covers',
     labelField: 'title',
     statusField: 'published',
+    route: '/projects/',
+    clearance: true,
     bodyLabel: 'Write-up',
     fields: [
       { name: 'title', label: 'Title', type: 'text', required: true },
@@ -95,6 +99,7 @@ export const collections: Collection[] = [
     mediaDir: 'src/assets/blog',
     labelField: 'title',
     statusField: 'draft',
+    route: '/notes/',
     bodyLabel: 'Post',
     fields: [
       { name: 'title', label: 'Title', type: 'text', required: true },
@@ -123,6 +128,7 @@ export const collections: Collection[] = [
     mediaDir: 'src/assets/tools',
     labelField: 'name',
     statusField: 'published',
+    route: '/tools/',
     bodyLabel: 'Write-up',
     fields: [
       { name: 'name', label: 'Name', type: 'text', required: true },

@@ -252,3 +252,25 @@ export function rawRepoUrl(repoPath: string): string {
   const p = repoPath.replace(/^\//, '');
   return `https://raw.githubusercontent.com/${REPO}/${BRANCH}/${p}`;
 }
+
+/* ---------------------------------------------------------------- preview */
+export interface PreviewResult extends CommitResult { branch: string }
+/** Commit files to the Worker's preview branch (reset to the live site first).
+ * The live site is untouched. */
+export const sendPreview = (message: string, files: CommitFile[]): Promise<PreviewResult> =>
+  call('/api/preview', { method: 'POST', body: JSON.stringify({ message, files }) });
+
+/** Build state of any commit, from the host's checks (no site stamp). */
+export async function commitBuildState(commit: string): Promise<DeployStatus> {
+  try { return (await call(`/api/deploy-status?commit=${encodeURIComponent(commit)}`)) as DeployStatus; }
+  catch { return { state: 'unknown' }; }
+}
+
+/** Where Cloudflare Pages serves a branch: https://<branch>.<project>.pages.dev.
+ * Null on other hosts (localhost, a custom domain) where it can't be derived. */
+export function branchOrigin(branch: string, host = location.host): string | null {
+  if (!/\.pages\.dev$/.test(host)) return null;
+  const project = host.split('.').slice(-3).join('.');
+  const alias = branch.toLowerCase().replace(/[^a-z0-9-]+/g, '-').slice(0, 28).replace(/-+$/, '');
+  return `https://${alias}.${project}`;
+}

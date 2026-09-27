@@ -1,7 +1,7 @@
 import { useEffect, useState, type FC, type ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
-import { LayoutDashboard, MapPin, Search, Plus, ExternalLink, LogOut, Moon, Sun, Menu as MenuIcon, X, PanelLeftClose, PanelLeftOpen, Wifi, WifiOff, FlaskConical, Images } from 'lucide-react';
+import { LayoutDashboard, MapPin, Search, Plus, ExternalLink, LogOut, Moon, Sun, Menu as MenuIcon, X, PanelLeftClose, PanelLeftOpen, Wifi, WifiOff, FlaskConical, Images, EyeOff } from 'lucide-react';
 import { collections } from '../../schema';
 import { siteBuild, isMock } from '../../api';
 import { timeAgo } from '../../studio-lib';
@@ -63,6 +63,7 @@ export const Shell: FC<ShellProps> = ({ children, theme, onToggleTheme, onOpenPa
           <NavLink href="/media" icon={<Images size={17} />} label="Media" />
           <div className="nav__group">Site</div>
           {files.map((c) => <NavLink key={c.id} href={`/file/${c.id}`} icon={collectionIcon(c.id, 17)} label={c.label} />)}
+          <NavLink href="/watch-list" icon={<EyeOff size={17} />} label="Watch list" />
         </nav>
         <div className="sd__foot">
           <div className="status">

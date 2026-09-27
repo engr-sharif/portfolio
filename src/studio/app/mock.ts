@@ -141,6 +141,13 @@ export async function mockFetch(input: string, init: RequestInit = {}): Promise<
     const commit = record(String(body.message || 'studio: update'), changes);
     return json({ ok: true, commit, head: commit, files: writes.map((w: { path: string; content: string }) => ({ path: w.path, sha: hash(w.content) })), deleted: [...changes].filter(([, v]) => v === null).map(([k]) => k) });
   }
+  if (path === '/api/preview' && method === 'POST') {
+    const writes = Array.isArray(body.files) ? body.files : [];
+    if (!writes.length) return json({ error: 'Nothing to preview' }, 400);
+    // the live branch is untouched; the preview lives on its own branch
+    const commit = `preview${Math.random().toString(16).slice(2, 10)}`.padEnd(40, '0');
+    return json({ ok: true, commit, head: commit, branch: 'preview', files: writes.map((w: { path: string; content: string }) => ({ path: w.path, sha: hash(w.content) })) });
+  }
   if (path === '/api/history' && method === 'GET') {
     const p = url.searchParams.get('path');
     const limit = Math.min(Number(url.searchParams.get('limit')) || 20, 50);

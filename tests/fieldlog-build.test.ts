@@ -62,3 +62,33 @@ describe('helpers', () => {
     expect(excerpt('')).toBe('');
   });
 });
+
+describe('buildFieldNote with a voice memo and clips', () => {
+  const withMedia = { ...capture, memo: { ext: 'webm', peaks: '0,128,255', transcript: ' Seams look tight. ' }, clips: [{ ext: 'mp4' }, { ext: 'mov' }] };
+
+  it('puts the memo in the frontmatter, where the notes page plays it', () => {
+    const built = buildFieldNote(withMedia);
+    const doc = parse(built.content);
+    expect(validateEntry('blog', doc.data)).toEqual({});
+    expect(built.memoPath).toBe('public/media/audio/2026-09-05-cell-4-liner-seams-north-slope.webm');
+    expect(doc.data.audio).toBe('/media/audio/2026-09-05-cell-4-liner-seams-north-slope.webm');
+    expect(doc.data.audioPeaks).toBe('0,128,255');
+    expect(doc.data.transcript).toBe('Seams look tight.');
+  });
+
+  it('adds each clip as a silent loop with its poster', () => {
+    const built = buildFieldNote(withMedia);
+    expect(built.clipPaths[1]).toEqual({ clip: 'public/media/loops/2026-09-05-cell-4-liner-seams-north-slope-clip-2.mov', poster: 'public/media/loops/2026-09-05-cell-4-liner-seams-north-slope-clip-2-poster.jpg' });
+    const { body } = parse(built.content);
+    expect(body).toContain('## Clips');
+    expect(body.match(/<video class="loop" data-loop muted/g)).toHaveLength(2);
+    expect(body).toContain('src="/media/loops/2026-09-05-cell-4-liner-seams-north-slope-clip-1.mp4"');
+  });
+
+  it('leaves notes without media exactly as before', () => {
+    const built = buildFieldNote(capture);
+    expect(built.memoPath).toBeUndefined();
+    expect(built.clipPaths).toEqual([]);
+    expect(parse(built.content).data.audio).toBeUndefined();
+  });
+});

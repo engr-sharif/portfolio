@@ -13,6 +13,7 @@
  *   GET  /api/list?dir=…       -> [{ name, path, sha }]        (list a directory)
  *   GET  /api/status          -> { ok, repo, branch }         (auth check)
  *   GET  /api/deploy-status?commit=<sha>  -> { state: live|building|failed|unknown } (host's commit status)
+ *   POST /api/preview   {files,message} -> commit to the preview branch (reset to live first)
  *
  * All routes except /login require: Authorization: Bearer <token>.
  *
@@ -23,6 +24,7 @@
  * VARS (wrangler.toml [vars] or dashboard):
  *   GITHUB_REPO         e.g. "engr-sharif/portfolio"
  *   GITHUB_BRANCH       e.g. "main"
+ *   PREVIEW_BRANCH      optional, default "preview" — the Studio's unlisted preview
  *   ALLOWED_ORIGIN      e.g. "https://mosharif.pages.dev" — REQUIRED. Comma-separate
  *                       several (e.g. add "http://localhost:4321" for local dev).
  *
@@ -161,6 +163,24 @@ function safeRepoPath(p) {
 
 async function readJson(request) {
   try { return await request.json(); } catch { return null; }
+}
+
+/** Validate the `files` of a commit request → { writes, seen } or { error, status }. */
+function parseWrites(files) {
+  const seen = new Set();
+  const writes = [];
+  let chars = 0;
+  for (const f of files) {
+    const path = safeRepoPath(f?.path);
+    if (!path || typeof f.content !== 'string') return { error: 'Every file needs a valid path and string content', status: 400 };
+    if (seen.has(path)) return { error: `Duplicate path in commit: ${path}`, status: 400 };
+    seen.add(path);
+    chars += f.content.length;
+    if (chars > MAX_COMMIT_CHARS) return { error: 'That commit is too large.', status: 413 };
+    if (f.sha != null && !isGitSha(f.sha)) return { error: `Bad sha for ${path}`, status: 400 };
+    writes.push({ path, content: f.content, encoding: f.encoding === 'base64' ? 'base64' : 'utf-8', sha: f.sha || null });
+  }
+  return { writes, seen };
 }
 
 async function gh(env, path, init = {}) {
@@ -452,19 +472,9 @@ export default {
       const deletes = Array.isArray(body?.deletes) ? body.deletes : [];
       if (files.length + deletes.length === 0) return json({ error: 'Nothing to commit' }, env, request, 400);
       if (files.length + deletes.length > MAX_COMMIT_FILES) return json({ error: `Too many files in one commit (max ${MAX_COMMIT_FILES}).` }, env, request, 400);
-      const seen = new Set();
-      const writes = [];
-      let chars = 0;
-      for (const f of files) {
-        const path = safeRepoPath(f?.path);
-        if (!path || typeof f.content !== 'string') return json({ error: 'Every file needs a valid path and string content' }, env, request, 400);
-        if (seen.has(path)) return json({ error: `Duplicate path in commit: ${path}` }, env, request, 400);
-        seen.add(path);
-        chars += f.content.length;
-        if (chars > MAX_COMMIT_CHARS) return json({ error: 'That commit is too large.' }, env, request, 413);
-        if (f.sha != null && !isGitSha(f.sha)) return json({ error: `Bad sha for ${path}` }, env, request, 400);
-        writes.push({ path, content: f.content, encoding: f.encoding === 'base64' ? 'base64' : 'utf-8', sha: f.sha || null });
-      }
+      const parsed = parseWrites(files);
+      if (parsed.error) return json({ error: parsed.error }, env, request, parsed.status);
+      const { writes, seen } = parsed;
       const removals = [];
       for (const d of deletes) {
         const path = safeRepoPath(typeof d === 'string' ? d : d?.path);
@@ -479,6 +489,46 @@ export default {
       const message = String(body.message || `studio: update ${writes.length + removals.length} files`).slice(0, 500);
       const out = await atomicCommit(env, repo, branch, { message, writes, removals, expectedHead });
       return json(out.body, env, request, out.status);
+    }
+
+    // --- unlisted preview: one change on top of the live site, on its own branch ---
+    // Resets the preview branch to the live branch, then commits the files
+    // there. Cloudflare Pages builds it at the branch alias
+    // (https://preview.<project>.pages.dev), where unpublished entries show and
+    // nothing is indexed. The live branch is never touched.
+    if (pathname === '/api/preview' && request.method === 'POST') {
+      if (rateLimited(request, 'preview', 20, 10 * 60 * 1000)) {
+        return json({ error: 'Too many previews in a short time. Wait a few minutes and try again.' }, env, request, 429);
+      }
+      const previewBranch = env.PREVIEW_BRANCH || 'preview';
+      if (previewBranch === branch) return json({ error: 'PREVIEW_BRANCH must differ from GITHUB_BRANCH.' }, env, request, 500);
+      const body = await readJson(request);
+      const files = Array.isArray(body?.files) ? body.files : [];
+      if (files.length === 0) return json({ error: 'Nothing to preview' }, env, request, 400);
+      if (files.length > MAX_COMMIT_FILES) return json({ error: `Too many files in one preview (max ${MAX_COMMIT_FILES}).` }, env, request, 400);
+      const parsed = parseWrites(files);
+      if (parsed.error) return json({ error: parsed.error }, env, request, parsed.status);
+
+      const live = await gh(env, `/repos/${repo}/git/ref/heads/${encodeURIComponent(branch)}`);
+      if (!live.ok) return json({ error: `GitHub ${live.status} while reading the live branch` }, env, request, 502);
+      const liveHead = (await live.json()).object?.sha;
+      if (!isGitSha(liveHead)) return json({ error: 'GitHub returned no branch head' }, env, request, 502);
+      let reset = await gh(env, `/repos/${repo}/git/refs/heads/${encodeURIComponent(previewBranch)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ sha: liveHead, force: true }),
+      });
+      if (reset.status === 422 || reset.status === 404) {
+        reset = await gh(env, `/repos/${repo}/git/refs`, {
+          method: 'POST',
+          body: JSON.stringify({ ref: `refs/heads/${previewBranch}`, sha: liveHead }),
+        });
+      }
+      if (!reset.ok) return json({ error: `GitHub ${reset.status} while preparing the preview branch` }, env, request, 502);
+
+      const writes = parsed.writes.map((w) => ({ ...w, sha: null })); // the branch was just reset; nothing to race
+      const message = String(body.message || 'studio: preview').slice(0, 500);
+      const out = await atomicCommit(env, repo, previewBranch, { message, writes, removals: [] });
+      return json({ ...out.body, branch: previewBranch }, env, request, out.status);
     }
 
     // --- upload binary (image / pdf / video) ---

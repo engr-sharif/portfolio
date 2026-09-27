@@ -43,7 +43,14 @@ export function videoMeta(file: Blob): Promise<{ duration: number; width: number
     const url = URL.createObjectURL(file);
     v.preload = 'metadata';
     v.muted = true;
-    v.onloadedmetadata = () => { res({ duration: v.duration, width: v.videoWidth, height: v.videoHeight }); URL.revokeObjectURL(url); };
+    const done = () => { res({ duration: v.duration, width: v.videoWidth, height: v.videoHeight }); URL.revokeObjectURL(url); };
+    v.onloadedmetadata = () => {
+      if (Number.isFinite(v.duration)) return done();
+      // Browser-recorded WebM carries no duration in its header ("Infinity");
+      // seeking past the end makes the browser scan for the real one.
+      v.ontimeupdate = () => { v.ontimeupdate = null; if (Number.isFinite(v.duration)) done(); else { URL.revokeObjectURL(url); rej(new Error('Couldn’t tell how long that clip is. Export it as an MP4.')); } };
+      v.currentTime = Number.MAX_SAFE_INTEGER;
+    };
     v.onerror = () => { URL.revokeObjectURL(url); rej(new Error('This browser can’t read that video. Export it as an MP4 (H.264).')); };
     v.src = url;
   });

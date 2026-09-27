@@ -16,6 +16,7 @@ import Rail from '../components/site/Rail.astro';
 import Search from '../components/site/Search.astro';
 import { withBase } from '../lib/path';
 import { site } from '../lib/site';
+import { IS_PREVIEW, SHOW_UNPUBLISHED } from '../lib/build-env';
 
 export interface Props {
   title?: string;
@@ -61,7 +62,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href;
 const ogImage = /^https?:\/\//.test(image) ? image : new URL(withBase(image), Astro.site).href;
 // Preview deployments (any branch but main on Cloudflare Pages) stay out of
 // search engines: they exist for review, not for readers.
-const isPreview = !!process.env.CF_PAGES_BRANCH && process.env.CF_PAGES_BRANCH !== 'main';
+const isPreview = IS_PREVIEW;
 
 const personLd = {
   '@context': 'https://schema.org',
@@ -148,6 +149,9 @@ if (Astro.csp) {
       </main>
       <Footer />
     </div>
+    {SHOW_UNPUBLISHED && (
+      <p class="stamp" role="note"><span class="stamp__k">Unlisted preview</span> Drafts are shown. Not the live site.</p>
+    )}
     <Search />
     <script>
       import '../scripts/site';

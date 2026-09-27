@@ -5,13 +5,13 @@ import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from '@tiptap/markdown';
 import Placeholder from '@tiptap/extension-placeholder';
-import type { Editor, Range } from '@tiptap/core';
+import type { Editor } from '@tiptap/core';
 import { Bold, Italic, Code, Link2, Heading2, Heading3, List, ListOrdered, Quote, SquareCode, Image as ImageIcon, Film, Minus, Undo2, Redo2, FileCode2, Pilcrow, Type, Loader2 } from 'lucide-react';
 import { HtmlBlock, RepoImage, createSlash, type SlashItem, type SlashState } from './extensions';
 import { uploadFile } from '../Field';
 import { MarkdownEditor, videoEmbed } from '../../../MarkdownEditor';
 import { storeLoop, loopHtml } from '../../../media-upload';
-import { Button, Dialog, IconButton, Input } from '../../../ui/primitives';
+import { Button, Dialog, Input } from '../../../ui/primitives';
 
 /**
  * Block editor for the markdown body. TipTap/ProseMirror in the browser, clean

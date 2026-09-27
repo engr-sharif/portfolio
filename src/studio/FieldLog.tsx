@@ -1,20 +1,26 @@
 import { useEffect, useMemo, useRef, useState, type FC } from 'react';
 import { getCollection } from './schema';
 import { listEntries, uniqueEntryPath, timeAgo } from './studio-lib';
-import { commitFiles, uploadImage, writeFile, isMissingRoute, isLoggedIn } from './api';
+import { uploadImage, writeFile, isMissingRoute, isLoggedIn } from './api';
 import { processImage, readImageMeta, roundCoord } from './image-process';
 import { buildFieldNote, fieldNoteSlug } from './fieldlog-build';
-import { listCaptures, saveCapture, deleteCapture, newId, storageInfo, type Capture, type CapturePhoto } from './fieldlog-store';
+import { listCaptures, saveCapture, deleteCapture, newId, storageInfo, type Capture, type CapturePhoto, type CaptureClip, type CaptureMemo } from './fieldlog-store';
+import { LIMITS, videoMeta, posterFrom, audioPeaks, audioExt, readB64, fmtBytes as fmtSize } from './media';
+import { commitInBatches, type BatchFile } from './media-upload';
+import { scrubVideo } from './video-scrub';
+import { useRecorder, clock } from './use-recorder';
+import { RecordingMeter } from './features/editor/MediaFields';
 
 /**
  * Field log — capture on site with no signal, publish when back in range.
  *
- * Captures (title, note, GPS fix, photos) are written to IndexedDB on this
- * device the moment you tap Save; nothing needs the network. Publish turns a
- * capture into a Field Notes DRAFT: photos are optimised in the browser and
- * committed together with the markdown as ONE atomic commit (the Worker's
- * /api/commit), so a note can never land without its photos. The draft then
- * opens in the normal editor for polishing before it goes live.
+ * Captures (title, note, GPS fix, photos, a voice memo, short clips) are
+ * written to IndexedDB on this device the moment you tap Save; nothing needs
+ * the network. Publish turns a capture into a Field Notes DRAFT: photos are
+ * optimised and stripped of EXIF, clips have their GPS blanked and get a
+ * poster frame, the memo gets its waveform — all in the browser — and the
+ * files are committed with the note LAST, so a note never lands without the
+ * media it shows. The draft then opens in the normal editor for polishing.
  */
 interface Props { onPublished: (commit?: string | null) => void; onOpen: (path: string) => void }
 
@@ -41,8 +47,17 @@ export const FieldLog: FC<Props> = ({ onPublished, onOpen }) => {
   const [fix, setFix] = useState<{ lat: number; lng: number; accuracy?: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [photos, setPhotos] = useState<CapturePhoto[]>([]);
+  const [memo, setMemo] = useState<CaptureMemo | null>(null);
+  const [clips, setClips] = useState<CaptureClip[]>([]);
   const [saving, setSaving] = useState(false);
+  const [publishingAll, setPublishingAll] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  const clipInput = useRef<HTMLInputElement>(null);
+  const mic = useRecorder(({ blob, seconds }) => setMemo({ blob, type: blob.type, seconds }), 15 * 60 * 1000);
+  const memoUrl = useMemo(() => (memo ? URL.createObjectURL(memo.blob) : ''), [memo]);
+  useEffect(() => () => { if (memoUrl) URL.revokeObjectURL(memoUrl); }, [memoUrl]);
+  const clipUrls = useMemo(() => new Map(clips.map((c) => [c.id, URL.createObjectURL(c.blob)])), [clips]);
+  useEffect(() => () => { for (const u of clipUrls.values()) URL.revokeObjectURL(u); }, [clipUrls]);
 
   const refresh = () => listCaptures().then(setCaptures).catch((e) => { setCaptures([]); setError(e?.message || 'Could not open the capture store.'); });
 
@@ -96,17 +111,33 @@ export const FieldLog: FC<Props> = ({ onPublished, onOpen }) => {
     if (fileInput.current) fileInput.current.value = '';
   };
 
-  const canSave = title.trim() || note.trim() || photos.length;
+  const addClips = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setError('');
+    const added: CaptureClip[] = [];
+    for (const f of Array.from(files)) {
+      if (f.size > LIMITS.loopBytes) { setError(`“${f.name}” is ${fmtSize(f.size)}; a clip can be ${fmtSize(LIMITS.loopBytes)}. Record a shorter one, or put it on YouTube.`); continue; }
+      try {
+        const { duration } = await videoMeta(f);
+        if (duration > LIMITS.loopSeconds + 0.5) { setError(`“${f.name}” runs ${Math.round(duration)} s; a clip can be ${LIMITS.loopSeconds} s. Trim it, or put it on YouTube.`); continue; }
+        added.push({ id: newId(), name: f.name, type: f.type || 'video/mp4', size: f.size, blob: f, duration });
+      } catch (e: any) { setError(e?.message || `Couldn’t read “${f.name}”.`); }
+    }
+    setClips((c) => [...c, ...added]);
+    if (clipInput.current) clipInput.current.value = '';
+  };
+
+  const canSave = title.trim() || note.trim() || photos.length || memo || clips.length;
   const save = async () => {
     if (!canSave) return;
     setSaving(true); setError('');
     try {
       const c: Capture = {
         id: newId(), createdAt: new Date().toISOString(), title: title.trim(), note: note.trim(), project: project || undefined,
-        lat: fix?.lat, lng: fix?.lng, accuracy: fix?.accuracy, photos, status: 'saved',
+        lat: fix?.lat, lng: fix?.lng, accuracy: fix?.accuracy, photos, memo: memo ?? undefined, clips, status: 'saved',
       };
       await saveCapture(c);
-      setTitle(''); setNote(''); setProject(''); setFix(null); setPhotos([]);
+      setTitle(''); setNote(''); setProject(''); setFix(null); setPhotos([]); setMemo(null); setClips([]);
       await refresh(); storageInfo().then(setStorage);
     } catch (e: any) { setError(e?.message || 'Could not save on this device.'); }
     finally { setSaving(false); }
@@ -131,23 +162,36 @@ export const FieldLog: FC<Props> = ({ onPublished, onOpen }) => {
         photoDefs.push({ ext: extOf(out.name, out.type), takenAt: p.takenAt });
         processed.push({ path: '', base64: stripDataUrl(await readAsDataUrl(out)) });
       }
-      const built = buildFieldNote({ title: c.title, note: c.note, createdAt: c.createdAt, lat: c.lat, lng: c.lng, project: c.project, photos: photoDefs }, { slug });
+      const memoPeaks = c.memo ? await audioPeaks(c.memo.blob).then((r) => r.peaks).catch(() => undefined) : undefined;
+      const clipFiles = [] as { clip: Blob; poster: Blob; ext: string }[];
+      for (const k of c.clips ?? []) {
+        const file = new File([k.blob], k.name, { type: k.type });
+        const [{ file: clean }, poster] = await Promise.all([scrubVideo(file), posterFrom(file)]);
+        clipFiles.push({ clip: clean, poster, ext: /webm/.test(k.type) ? 'webm' : /quicktime/.test(k.type) || /\.mov$/i.test(k.name) ? 'mov' : 'mp4' });
+      }
+      const built = buildFieldNote({
+        title: c.title, note: c.note, createdAt: c.createdAt, lat: c.lat, lng: c.lng, project: c.project, photos: photoDefs,
+        memo: c.memo ? { ext: audioExt(c.memo.blob), peaks: memoPeaks } : undefined,
+        clips: clipFiles.map((k) => ({ ext: k.ext })),
+      }, { slug });
       built.photoPaths.forEach((pp, i) => { processed[i].path = pp; });
+      const media: BatchFile[] = processed.map((p) => ({ path: p.path, content: p.base64, encoding: 'base64' }));
+      if (c.memo && built.memoPath) media.push({ path: built.memoPath, content: await readB64(c.memo.blob), encoding: 'base64' });
+      for (const [i, k] of clipFiles.entries()) {
+        media.push({ path: built.clipPaths[i].clip, content: await readB64(k.clip), encoding: 'base64' });
+        media.push({ path: built.clipPaths[i].poster, content: await readB64(k.poster), encoding: 'base64' });
+      }
       const message = `studio: field log — ${built.data.title}`;
       let commit: string | null | undefined;
       try {
-        const r = await commitFiles(message, [
-          ...processed.map((p) => ({ path: p.path, content: p.base64, encoding: 'base64' as const })),
-          { path: built.path, content: built.content },
-        ]);
-        commit = r.commit;
+        commit = await commitInBatches(message, [...media, { path: built.path, content: built.content }]);
       } catch (e) {
         if (!isMissingRoute(e)) throw e;
-        // Older Worker: one upload per photo, then the note.
-        for (const p of processed) await uploadImage(p.path, `data:image/jpeg;base64,${p.base64}`, `studio: field log photo`);
+        // Older Worker: one upload per file, then the note.
+        for (const m of media) await uploadImage(m.path, `data:application/octet-stream;base64,${m.content}`, 'studio: field log media');
         commit = (await writeFile(built.path, built.content, message)).commit;
       }
-      await mark({ status: 'published', publishedPath: built.path, commit: commit || undefined, photos: [] }); // drop blobs: they live in the repo now
+      await mark({ status: 'published', publishedPath: built.path, commit: commit || undefined, photos: [], memo: undefined, clips: [] }); // drop blobs: they live in the repo now
       onPublished(commit);
     } catch (e: any) {
       await mark({ status: 'saved', error: e?.message || 'Publish failed. The capture is still on this device.' });
@@ -160,6 +204,16 @@ export const FieldLog: FC<Props> = ({ onPublished, onOpen }) => {
   };
 
   const pending = captures?.filter((c) => c.status !== 'published') ?? [];
+  const publishAll = async () => {
+    setPublishingAll(true);
+    try { for (const c of pending.filter((x) => x.status === 'saved')) await publish(c); }
+    finally { setPublishingAll(false); }
+  };
+  const mediaSummary = (c: Capture) => [
+    c.photos.length ? `${c.photos.length} photo${c.photos.length === 1 ? '' : 's'}` : '',
+    c.clips?.length ? `${c.clips.length} clip${c.clips.length === 1 ? '' : 's'}` : '',
+    c.memo ? `${clock(c.memo.seconds)} memo` : '',
+  ].filter(Boolean).join(' · ') || 'text only';
   const done = captures?.filter((c) => c.status === 'published') ?? [];
 
   return (
@@ -174,7 +228,10 @@ export const FieldLog: FC<Props> = ({ onPublished, onOpen }) => {
 
       {error && <div className="st-error" role="alert">{error}</div>}
       {online && pending.length > 0 && (
-        <div className="st-notice"><span>You're online — {pending.length} capture{pending.length === 1 ? '' : 's'} ready to publish as Field Notes drafts.</span></div>
+        <div className="st-notice">
+          <span>You're online — {pending.length} capture{pending.length === 1 ? '' : 's'} ready to publish as Field Notes drafts.</span>
+          {pending.length > 1 && <button type="button" className="st-btn st-btn--primary" onClick={publishAll} disabled={publishingAll}>{publishingAll ? 'Publishing…' : `Publish all ${pending.length}`}</button>}
+        </div>
       )}
 
       <section className="st-fl__form" aria-labelledby="st-fl-new">
@@ -221,7 +278,38 @@ export const FieldLog: FC<Props> = ({ onPublished, onOpen }) => {
               <span>＋ Camera / photos</span>
             </label>
           </div>
-          <p className="st-fl__hint">Photos are kept full-size on this device and optimised (HEIC → JPEG, 2400 px) when you publish.</p>
+          <p className="st-fl__hint">Photos are kept full-size on this device and optimised (HEIC → JPEG, 2400 px, location removed) when you publish.</p>
+        </div>
+
+        <div className="st-fl__row">
+          <div className="sf st-fl__grow">
+            <span className="sf__label">Voice memo</span>
+            {mic.recording ? (
+              <div className="st-fl__memo"><RecordingMeter seconds={mic.seconds} level={mic.level} /><button type="button" className="st-btn st-btn--primary" onClick={mic.stop}>Stop</button></div>
+            ) : memo ? (
+              <div className="st-fl__memo"><audio controls preload="metadata" src={memoUrl} /><button type="button" className="st-btn st-btn--ghost" onClick={() => setMemo(null)} aria-label="Remove the voice memo">✕</button></div>
+            ) : (
+              <div className="st-fl__memo"><button type="button" className="st-btn st-btn--toggle" onClick={mic.start}>● Record a memo</button></div>
+            )}
+            {mic.error ? <p className="sf__err">{mic.error}</p> : <p className="st-fl__hint">Say what you’d write. It records offline and becomes the note’s audio.</p>}
+          </div>
+          <div className="sf st-fl__grow">
+            <span className="sf__label">Clips</span>
+            <div className="st-fl__photos">
+              {clips.map((k) => (
+                <figure key={k.id} className="st-fl__thumb">
+                  <video src={clipUrls.get(k.id)} muted playsInline preload="metadata" />
+                  <button type="button" className="st-fl__thumb-x" onClick={() => setClips((cs) => cs.filter((x) => x.id !== k.id))} aria-label={`Remove ${k.name}`}>✕</button>
+                  <figcaption className="u-mono">{Math.round(k.duration)} s · {fmtBytes(k.size)}</figcaption>
+                </figure>
+              ))}
+              <label className="st-fl__add">
+                <input ref={clipInput} type="file" accept="video/*" capture="environment" multiple onChange={(e) => addClips(e.target.files)} />
+                <span>＋ Clip</span>
+              </label>
+            </div>
+            <p className="st-fl__hint">Up to {LIMITS.loopSeconds} s each, shown silent and looping. Location is removed before upload.</p>
+          </div>
         </div>
 
         <div className="st-fl__actions">
@@ -239,7 +327,7 @@ export const FieldLog: FC<Props> = ({ onPublished, onOpen }) => {
             <li key={c.id} className={`st-fl__card is-${c.status}`}>
               <div className="st-fl__card-main">
                 <strong>{c.title || 'Untitled capture'}</strong>
-                <span className="st-fl__meta u-mono">{timeAgo(c.createdAt)} · {c.photos.length} photo{c.photos.length === 1 ? '' : 's'}{c.lat != null ? ` · ${c.lat.toFixed(2)}, ${c.lng?.toFixed(2)}` : ''}{c.project ? ` · ${c.project}` : ''}</span>
+                <span className="st-fl__meta u-mono">{timeAgo(c.createdAt)} · {mediaSummary(c)}{c.lat != null ? ` · ${c.lat.toFixed(2)}, ${c.lng?.toFixed(2)}` : ''}{c.project ? ` · ${c.project}` : ''}</span>
                 {c.note && <p className="st-fl__preview">{c.note.length > 160 ? `${c.note.slice(0, 160)}…` : c.note}</p>}
                 {c.error && <p className="sf__err">{c.error}</p>}
               </div>

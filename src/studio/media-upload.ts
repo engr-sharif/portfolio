@@ -5,6 +5,7 @@
  */
 import { commitFiles, uploadImage, isMissingRoute, freeNames } from './api';
 import { LIMITS, checkSize, videoMeta, posterFrom, readB64, youtubeId } from './media';
+import { scrubVideo } from './video-scrub';
 
 const slug = (s: string) => s.toLowerCase().replace(/\.[^.]+$/, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 48) || 'clip';
 
@@ -19,9 +20,36 @@ export async function commitMedia(message: string, files: { path: string; blob: 
   }
 }
 
+/** The Worker takes up to 20 MB of payload per commit; stay under it. */
+const COMMIT_BUDGET = 18 * 1024 * 1024;
+export interface BatchFile { path: string; content: string; encoding?: 'utf-8' | 'base64' }
+
+/**
+ * Commit files in as few commits as fit the Worker's size limit, in order.
+ * Put the file that references the others LAST: media land first, and the
+ * note appears only once everything it points at is in the repo. Returns the
+ * final commit.
+ */
+export async function commitInBatches(message: string, files: BatchFile[], budget = COMMIT_BUDGET): Promise<string | undefined> {
+  const batches: BatchFile[][] = [[]];
+  let size = 0;
+  for (const f of files) {
+    if (size + f.content.length > budget && batches[batches.length - 1].length) { batches.push([]); size = 0; }
+    batches[batches.length - 1].push(f);
+    size += f.content.length;
+  }
+  let commit: string | undefined;
+  for (const [i, b] of batches.entries()) {
+    const r = await commitFiles(batches.length > 1 ? `${message} (${i + 1}/${batches.length})` : message, b.map((f) => ({ ...f, encoding: f.encoding ?? 'utf-8' })));
+    commit = r.commit;
+  }
+  return commit;
+}
+
 /**
  * Check, poster and store a short silent loop in public/media/loops — clip and
- * poster in one commit. Returns site paths ("/media/loops/…").
+ * poster in one commit, with the phone's GPS blanked from the clip first.
+ * Returns site paths ("/media/loops/…").
  */
 export async function storeLoop(file: File, stage: (s: string) => void = () => {}): Promise<{ src: string; poster: string }> {
   stage('Checking…');
@@ -30,12 +58,14 @@ export async function storeLoop(file: File, stage: (s: string) => void = () => {
   if (meta.duration > LIMITS.loopSeconds + 0.5) throw new Error(`That clip runs ${Math.round(meta.duration)} s; a loop can be ${LIMITS.loopSeconds} s at most. Trim it, or put longer video on YouTube.`);
   stage('Taking a poster frame…');
   const still = await posterFrom(file);
+  stage('Removing location data…');
+  const { file: clean } = await scrubVideo(file);
   const base = slug(file.name);
   const ext = /webm/.test(file.type) || /\.webm$/i.test(file.name) ? 'webm' : 'mp4';
   const [clip, poster] = await freeNames('public/media/loops', [`${base}.${ext}`, `${base}-poster.jpg`]);
   stage('Uploading…');
   await commitMedia(`studio: add loop ${clip}`, [
-    { path: `public/media/loops/${clip}`, blob: file },
+    { path: `public/media/loops/${clip}`, blob: clean },
     { path: `public/media/loops/${poster}`, blob: still },
   ]);
   return { src: `/media/loops/${clip}`, poster: `/media/loops/${poster}` };

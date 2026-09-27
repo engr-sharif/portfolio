@@ -1,6 +1,6 @@
 /**
  * Offline store for field-log captures. IndexedDB (not localStorage) because
- * captures carry photo blobs. Everything stays on this device until the
+ * captures carry photo, voice-memo and clip blobs. Everything stays on this device until the
  * author publishes; a published capture keeps a record (with the repo path)
  * until they remove it.
  */
@@ -14,6 +14,10 @@ export interface CapturePhoto {
   lng?: number;
   takenAt?: string;
 }
+/** A voice memo recorded on site. */
+export interface CaptureMemo { blob: Blob; type: string; seconds: number }
+/** A short silent clip (checked for length and size when added). */
+export interface CaptureClip { id: string; name: string; type: string; size: number; blob: Blob; duration: number }
 export type CaptureStatus = 'saved' | 'publishing' | 'published' | 'error';
 export interface Capture {
   id: string;
@@ -25,6 +29,8 @@ export interface Capture {
   lng?: number;
   accuracy?: number;      // metres, from the device fix
   photos: CapturePhoto[];
+  memo?: CaptureMemo;
+  clips?: CaptureClip[];
   status: CaptureStatus;
   publishedPath?: string; // repo path of the draft once published
   commit?: string;

@@ -1,4 +1,5 @@
 import { getCollection, type CollectionEntry } from 'astro:content';
+import { SHOW_UNPUBLISHED } from './build-env';
 
 export type Project = CollectionEntry<'projects'>;
 
@@ -6,7 +7,7 @@ const statusOrder = { active: 0, proposed: 1, complete: 2 } as const;
 
 /** Published projects only (confidentiality gate), sorted by status then order. */
 export async function getProjects(): Promise<Project[]> {
-  const all = await getCollection('projects', ({ data }) => data.published);
+  const all = await getCollection('projects', ({ data }) => data.published || SHOW_UNPUBLISHED);
   return all.sort((a, b) => {
     const s = statusOrder[a.data.status] - statusOrder[b.data.status];
     if (s !== 0) return s;

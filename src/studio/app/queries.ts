@@ -9,6 +9,7 @@ import type { Collection } from '../schema';
 import { readFile, writeFile, deleteFile, commitFiles, history, listDir, type HistoryEntry, type FileResult } from '../api';
 import { listEntries, getStats, saveOrder, duplicateEntry, uniqueEntryPath, listImages, contentIndex, type EntryRow, type CollStat, type MediaItem, type UsageSource } from '../studio-lib';
 import { parse, stringify } from '../frontmatter';
+import { EMPTY_WATCHLIST, type WatchList } from '../confidentiality';
 
 export const keys = {
   entries: (id: string) => ['entries', id] as const,
@@ -117,5 +118,30 @@ export function useBulk(collection: Collection) {
       return r.commit;
     },
     onSuccess: () => inv(collection.id),
+  });
+}
+
+/* ------------------------------------------------------------- watch list */
+export const WATCHLIST_PATH = 'src/content/settings/watchlist.json';
+
+/** The hashed watch list (and its blob sha, for a conflict-safe save). */
+export const useWatchList = () =>
+  useQuery<{ list: WatchList; sha: string | null }>({
+    queryKey: keys.entry(WATCHLIST_PATH),
+    queryFn: async () => {
+      const f = await readFile(WATCHLIST_PATH);
+      let list = EMPTY_WATCHLIST;
+      try { if (f.content) list = { ...EMPTY_WATCHLIST, ...JSON.parse(f.content) }; } catch { /* a broken file reads as empty; saving repairs it */ }
+      return { list, sha: f.sha };
+    },
+    staleTime: 60_000,
+  });
+
+export function useSaveWatchList() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ list, sha, message }: { list: WatchList; sha: string | null; message: string }) =>
+      writeFile(WATCHLIST_PATH, JSON.stringify(list, null, 2) + '\n', message, sha),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.entry(WATCHLIST_PATH) }),
   });
 }

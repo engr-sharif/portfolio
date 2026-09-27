@@ -46,9 +46,21 @@ async function step(name, fn) {
   catch (e) { failures.push(`${name}: ${String(e?.message || e).split('\n')[0]}`); console.log(`✗ ${name}`); try { await page?.screenshot({ path: `.shots-e2e/${name.replace(/\W+/g, '-')}.png` }); } catch { /* fine */ } }
 }
 
+/** ⌘S, then accept the confidentiality read if it asks. */
+async function saveThroughChecks() {
+  await page.keyboard.press('Control+s');
+  const dlg = page.locator('.dlg__panel:has-text("before it goes live")');
+  const outcome = await Promise.race([
+    dlg.waitFor({ timeout: 20000 }).then(() => 'dialog'),
+    page.waitForSelector('.ed__saved', { timeout: 20000 }).then(() => 'saved'),
+  ]);
+  if (outcome === 'dialog') await page.click('.dlg__foot button:has-text("publish")');
+  await page.waitForSelector('.ed__saved', { timeout: 20000 });
+}
+
 try {
-  browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM || undefined, args: ['--no-sandbox'] });
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 860 } });
+  browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM || undefined, args: ['--no-sandbox', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--autoplay-policy=no-user-gesture-required'] });
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 860 }, permissions: ['microphone'] });
   page = await ctx.newPage();
   page.on('pageerror', (e) => issues.push(`pageerror: ${e.message}`));
   page.on('console', (m) => { const src = m.location()?.url || ''; if (m.type() === 'error' && !ignorable(m.text()) && !ignorable(src)) issues.push(`console: ${m.text().slice(0, 300)}${src ? ` @ ${src}` : ''}`); });
@@ -101,9 +113,38 @@ try {
     await page.waitForSelector('#f-title', { timeout: 20000 });
     await page.fill('#f-title', (await page.inputValue('#f-title')) + ' (e2e)');
     await page.waitForSelector('.ed__dirty', { timeout: 5000 });
+    // a live project published before the checklist: saving is refused until it's cleared
     await page.keyboard.press('Control+s');
+    await page.waitForSelector('.callout--danger:has-text("clearance")', { timeout: 5000 });
+    while (await page.locator('.golive__item:not(.is-on)').count()) await page.locator('.golive__item:not(.is-on)').first().click();
+    await page.waitForSelector('.golive__publish:not(.is-locked)', { timeout: 5000 });
+    await saveThroughChecks();
     await page.waitForSelector('.toast--progress, .toast--success', { timeout: 20000 });
+  });
+  await step('clearance: un-ticking an item takes the project offline', async () => {
+    await page.locator('.golive__item').first().click();
+    await page.waitForSelector('#f-published[aria-checked="false"]', { timeout: 5000 });
+    await page.waitForSelector('.ed__actions button:has-text("Save draft")', { timeout: 5000 });
+    if (await page.isEnabled('#f-published')) throw new Error('Published can be switched on while not cleared');
+    await page.locator('.golive__item').first().click();
+    await page.click('#f-published');
+    await page.waitForSelector('.ed__actions button:has-text("Save & publish")', { timeout: 5000 });
+  });
+  await step('confidentiality: a lab result is flagged, shown in context, then published', async () => {
+    await page.click('.blk-prose');
+    await page.keyboard.press('Control+End');
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('Peak TCE reached 1,250 µg/L in the shallow zone.');
+    await page.waitForSelector('.golive .finding:has-text("1,250 µg/L")', { timeout: 5000 });
+    await page.keyboard.press('Control+s');
+    await page.waitForSelector('.dlg__panel .finding mark:has-text("1,250 µg/L")', { timeout: 5000 });
+    await page.click('.dlg__foot button:has-text("publish")');
     await page.waitForSelector('.ed__saved', { timeout: 20000 });
+    await page.waitForSelector('.golive .finding:has-text("1,250 µg/L")', { state: 'detached', timeout: 5000 });
+  });
+  await step('preview link builds an unlisted copy without touching the live site', async () => {
+    await page.click('.ed__actions button:has-text("Preview link")');
+    await page.waitForSelector('.toast:has-text("Building a preview")', { timeout: 20000 });
   });
   await step('block editor: slash menu inserts a heading, markdown view shows it', async () => {
     await page.click('.blk-prose');
@@ -120,8 +161,7 @@ try {
     if (!src.includes('## E2E heading')) throw new Error('markdown source lacks "## E2E heading"');
     await page.click('.blk-tb .seg__btn:has-text("Blocks")');
     await page.waitForSelector('.blk-prose h2:has-text("E2E heading")', { timeout: 5000 });
-    await page.keyboard.press('Control+s');
-    await page.waitForSelector('.ed__saved', { timeout: 20000 });
+    await saveThroughChecks();
   });
   await step('media fields: YouTube link previews, a voice note uploads with its waveform', async () => {
     const yt = page.getByLabel('Video (YouTube)', { exact: true });
@@ -140,8 +180,7 @@ try {
     await audioField.locator('audio.mf-media__audio').waitFor({ timeout: 20000 });
     const name = await audioField.locator('.imgfield__name').textContent();
     if (name !== 'e2e-field-note.wav') throw new Error(`stored as ${name}`);
-    await page.keyboard.press('Control+s');
-    await page.waitForSelector('.ed__saved', { timeout: 20000 });
+    await saveThroughChecks();
   });
   await step('history drawer diffs a past version', async () => {
     await page.click('button:has-text("History")');
@@ -173,6 +212,39 @@ try {
     await page.goto(`${ORIGIN}${BASE}studio/field-log/`, { waitUntil: 'networkidle' }); // a real static page: reloads work on any host
     await page.waitForSelector('.st-fl', { timeout: 20000 });
   });
+  await step('field log: a voice memo and a clip save offline, then publish as one draft', async () => {
+    await page.fill('.st-fl__form input.sf__input', 'E2E memo capture');
+    await page.click('button:has-text("Record a memo")');
+    await page.waitForSelector('.st-fl__memo .mf-rec', { timeout: 10000 });
+    await page.waitForTimeout(1500);
+    await page.click('.st-fl__memo button:has-text("Stop")');
+    await page.waitForSelector('.st-fl__memo audio', { timeout: 10000 });
+    // a one-second WebM made in the page (canvas → MediaRecorder), handed to the clip input
+    await page.evaluate(async () => {
+      const c = Object.assign(document.createElement('canvas'), { width: 64, height: 48 });
+      const g = c.getContext('2d');
+      const rec = new MediaRecorder(c.captureStream(15), { mimeType: 'video/webm' });
+      const parts = [];
+      rec.ondataavailable = (e) => parts.push(e.data);
+      const done = new Promise((r) => { rec.onstop = r; });
+      rec.start(100);
+      for (let i = 0; i < 12; i++) { g.fillStyle = `hsl(${i * 30} 70% 50%)`; g.fillRect(0, 0, 64, 48); await new Promise((r) => setTimeout(r, 80)); }
+      rec.stop(); await done;
+      const dt = new DataTransfer();
+      dt.items.add(new File(parts, 'e2e-clip.webm', { type: 'video/webm' }));
+      const input = document.querySelector('.st-fl__add input[accept="video/*"]');
+      input.files = dt.files;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await page.waitForSelector('.st-fl__thumb video', { timeout: 10000 });
+    await page.click('button:has-text("Save on this device")');
+    const card = page.locator('.st-fl__card:has-text("E2E memo capture")');
+    await card.waitFor({ timeout: 10000 });
+    const meta = await card.locator('.st-fl__meta').textContent();
+    if (!/1 clip/.test(meta || '') || !/memo/.test(meta || '')) throw new Error(`card says: ${meta}`);
+    await card.locator('button:has-text("Publish draft")').click();
+    await page.waitForSelector('.st-fl__card.is-published:has-text("E2E memo capture")', { timeout: 30000 });
+  });
   await step('site settings editor loads a JSON file', async () => {
     await page.goto(`${ORIGIN}${BASE}studio/file/site/`, { waitUntil: 'networkidle' });
     await page.waitForSelector('.ed #f-name', { timeout: 20000 });
@@ -192,6 +264,20 @@ try {
     await page.click('.dlg__foot button:has-text("Delete")');
     await page.waitForSelector('.toast--success:has-text("Deleted 2 files")', { timeout: 30000 });
     await page.waitForSelector('[data-testid=media-item] .mcard__name:has-text("e2e-pixel-a.png")', { state: 'detached', timeout: 20000 });
+  });
+  await step('watch list: add a name (stored hashed), check it, and the editor flags it', async () => {
+    await page.goto(`${ORIGIN}${BASE}studio/watch-list/`, { waitUntil: 'networkidle' });
+    await page.waitForSelector('.wl__num', { timeout: 20000 });
+    await page.fill('#wl-term', 'Clearlake Oaks');
+    await page.click('.wl__row button:has-text("Add")');
+    await page.waitForSelector('.toast--success:has-text("Added to the watch list")', { timeout: 20000 });
+    await page.waitForFunction(() => document.querySelector('.wl__num')?.textContent === '1', null, { timeout: 20000 });
+    await page.fill('#wl-term', 'CLEARLAKE oaks');
+    await page.click('.wl__row button:has-text("Check")');
+    await page.waitForSelector('.wl__result.is-on', { timeout: 5000 });
+    await page.click('.sd a.nav__link:has-text("Projects")'); // in-app: the demo worker lives in this page
+    await page.locator('[data-testid=entry-row]:has-text("Sulphur Bank") .tbl__open').first().click();
+    await page.waitForSelector('.golive .finding:has-text("Name on your watch list")', { timeout: 20000 });
   });
   await step('“?” opens the shortcuts sheet', async () => {
     await page.keyboard.press('Shift+Slash');

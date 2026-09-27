@@ -5,11 +5,12 @@
  * together). Companion values — a loop's poster, a recording's waveform — are
  * written to their sibling fields through onSibling.
  */
-import { useEffect, useRef, useState, type FC, type ReactNode } from 'react';
+import { useEffect, useState, type FC, type ReactNode } from 'react';
 import { Film, Mic, Square, Upload, X, Link2 } from 'lucide-react';
 import type { Field as FieldDef } from '../../schema';
 import { rawRepoUrl, freeName } from '../../api';
-import { LIMITS, checkSize, audioPeaks, audioExt, recorderType, youtubeId, youtubeCanonical, fmtBytes } from '../../media';
+import { LIMITS, checkSize, audioPeaks, audioExt, youtubeId, youtubeCanonical, fmtBytes } from '../../media';
+import { useRecorder, clock } from '../../use-recorder';
 import { storeLoop, commitMedia } from '../../media-upload';
 import { Button, Input } from '../../ui/primitives';
 
@@ -107,10 +108,6 @@ export const AudioField: FC<MediaFieldProps> = ({ field, value, onChange, onSibl
   const [busy, setBusy] = useState('');
   const [msg, setMsg] = useState('');
   const [local, setLocal] = useState('');
-  const [rec, setRec] = useState<{ started: number; level: number } | null>(null);
-  const [now, setNow] = useState(0);
-  const mr = useRef<MediaRecorder | null>(null);
-  const stopTimer = useRef<number>(0);
   const val = String(value ?? '');
   const peaksField = field.peaksField || 'audioPeaks';
   useEffect(() => () => { if (local) URL.revokeObjectURL(local); }, [local]);
@@ -131,57 +128,27 @@ export const AudioField: FC<MediaFieldProps> = ({ field, value, onChange, onSibl
       setMsg(e?.name === 'EncodingError' ? 'This browser can’t read that audio file. Try M4A or MP3.' : e?.message || 'Upload failed.');
     } finally { setBusy(''); }
   };
+  const mic = useRecorder(({ blob }) => {
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+    void store(blob, `voice-note-${stamp}`);
+  });
 
-  const start = async () => {
-    setMsg('');
-    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') { setMsg('This browser can’t record audio. Upload a file instead.'); return; }
-    let stream: MediaStream;
-    try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
-    catch { setMsg('Microphone access was refused. Allow it in the browser’s site settings, or upload a file.'); return; }
-    const type = recorderType();
-    const recorder = new MediaRecorder(stream, { ...(type ? { mimeType: type } : {}), audioBitsPerSecond: 64000 });
-    const chunks: Blob[] = [];
-    // level meter
-    const ctx = new AudioContext();
-    const an = ctx.createAnalyser(); an.fftSize = 512;
-    ctx.createMediaStreamSource(stream).connect(an);
-    const buf = new Uint8Array(an.fftSize);
-    let raf = 0;
-    const meter = () => { an.getByteTimeDomainData(buf); let m = 0; for (const b of buf) m = Math.max(m, Math.abs(b - 128)); setRec((r) => (r ? { ...r, level: m / 128 } : r)); setNow(Date.now()); raf = requestAnimationFrame(meter); };
-    recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
-    recorder.onstop = () => {
-      cancelAnimationFrame(raf); clearTimeout(stopTimer.current);
-      stream.getTracks().forEach((t) => t.stop()); ctx.close();
-      setRec(null);
-      const blob = new Blob(chunks, { type: recorder.mimeType || type || 'audio/webm' });
-      const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
-      void store(blob, `voice-note-${stamp}`);
-    };
-    mr.current = recorder;
-    recorder.start(1000);
-    setRec({ started: Date.now(), level: 0 });
-    meter();
-    stopTimer.current = window.setTimeout(() => recorder.state === 'recording' && recorder.stop(), 10 * 60 * 1000);
-  };
-  const stop = () => { if (mr.current?.state === 'recording') mr.current.stop(); };
-
-  const secs = rec ? Math.floor((now - rec.started) / 1000) : 0;
   return (
-    <Shell field={field} error={error} msg={msg}>
+    <Shell field={field} error={error} msg={msg || mic.error}>
       <div className="mf-media">
-        {val ? <audio className="mf-media__audio" controls preload="metadata" src={local || rawRepoUrl(fromPublic(val))} /> : <span className="mf-media__empty">{rec ? <span className="mf-rec"><span className="mf-rec__dot" /> Recording {Math.floor(secs / 60)}:{String(secs % 60).padStart(2, '0')}<span className="mf-rec__meter"><i style={{ transform: `scaleX(${Math.min(1, (rec.level || 0) * 2.2)})` }} /></span></span> : 'No audio'}</span>}
+        {val ? <audio className="mf-media__audio" controls preload="metadata" src={local || rawRepoUrl(fromPublic(val))} /> : <span className="mf-media__empty">{mic.recording ? <RecordingMeter seconds={mic.seconds} level={mic.level} /> : 'No audio'}</span>}
         <div className="mf-media__side">
           {val && <code className="imgfield__name">{val.split('/').pop()}</code>}
           <div className="sf__row-actions">
-            {rec
-              ? <Button size="sm" variant="primary" icon={<Square size={13} />} onClick={stop}>Stop and save</Button>
-              : <Button size="sm" icon={<Mic size={14} />} onClick={start} disabled={!!busy}>{val ? 'Record again' : 'Record'}</Button>}
-            {!rec && (
+            {mic.recording
+              ? <Button size="sm" variant="primary" icon={<Square size={13} />} onClick={mic.stop}>Stop and save</Button>
+              : <Button size="sm" icon={<Mic size={14} />} onClick={mic.start} disabled={!!busy}>{val ? 'Record again' : 'Record'}</Button>}
+            {!mic.recording && (
               <label className="btn btn--secondary btn--sm"><Upload size={14} aria-hidden /><span className="btn__label">{busy || 'Upload a file'}</span>
                 <input type="file" accept="audio/*,.m4a,.mp3,.wav,.ogg,.webm" hidden disabled={!!busy} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void store(f, f.name); }} />
               </label>
             )}
-            {val && !rec && <Button size="sm" variant="ghost" icon={<X size={14} />} onClick={() => { onChange(''); onSibling?.(peaksField, ''); }}>Remove</Button>}
+            {val && !mic.recording && <Button size="sm" variant="ghost" icon={<X size={14} />} onClick={() => { onChange(''); onSibling?.(peaksField, ''); }}>Remove</Button>}
           </div>
           <p className="sf__hint">Record straight from your phone, or upload up to {fmtBytes(LIMITS.audioBytes)}. The waveform is drawn for you.</p>
         </div>
@@ -189,3 +156,8 @@ export const AudioField: FC<MediaFieldProps> = ({ field, value, onChange, onSibl
     </Shell>
   );
 };
+
+/** "● Recording 0:42" with a live input level. */
+export const RecordingMeter: FC<{ seconds: number; level: number }> = ({ seconds, level }) => (
+  <span className="mf-rec" role="status"><span className="mf-rec__dot" aria-hidden /> Recording {clock(seconds)}<span className="mf-rec__meter" aria-hidden><i style={{ transform: `scaleX(${Math.min(1, level * 2.2)})` }} /></span></span>
+);

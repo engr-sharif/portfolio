@@ -12,6 +12,7 @@ import { Dashboard } from '../features/dashboard/Dashboard';
 import { CollectionPage } from '../features/collection/CollectionPage';
 import { EditorPage } from '../features/editor/EditorPage';
 import { MediaPage } from '../features/media/MediaPage';
+import { WatchListPage } from '../features/watchlist/WatchListPage';
 import { Shortcuts } from '../ui/Shortcuts';
 import { FieldLog } from '../FieldLog';
 
@@ -45,6 +46,7 @@ const Routes: FC<{ onDirty: (d: boolean) => void }> = ({ onDirty }) => {
         <Route path="/file/:id"><EditorRoute onDirty={onDirty} /></Route>
         <Route path="/field-log"><FieldLogRoute /></Route>
         <Route path="/media"><MediaPage /></Route>
+        <Route path="/watch-list"><WatchListPage /></Route>
         <Route path="/media/:dir"><MediaRoute /></Route>
         <Route><Redirect to="/" /></Route>
       </Switch>

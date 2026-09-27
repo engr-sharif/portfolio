@@ -15,11 +15,12 @@ const env = {
 const REPO = '/repos/o/r';
 
 type Blob = { path: string; sha: string };
-let git: { head: string; commits: Record<string, { tree: string; message: string; parents: string[] }>; trees: Record<string, Blob[]>; blobs: Record<string, string>; blobCalls: number; n: number };
+let git: { head: string; preview: string | null; commits: Record<string, { tree: string; message: string; parents: string[] }>; trees: Record<string, Blob[]>; blobs: Record<string, string>; blobCalls: number; n: number };
 
 function resetGit() {
   git = {
     head: 'c000000',
+    preview: null,
     commits: { c000000: { tree: 't0', message: 'init', parents: [] } },
     trees: { t0: [{ path: 'src/content/projects/a.md', sha: 'aaaaaaa' }, { path: 'src/content/projects/b.md', sha: 'bbbbbbb' }, { path: 'src/content/projects/c.md', sha: 'ccccccc' }] },
     blobs: {}, blobCalls: 0, n: 1,
@@ -34,6 +35,16 @@ async function fakeGitHub(input: string, init: RequestInit = {}) {
   const m = (init.method || 'GET').toUpperCase();
   const body = init.body ? JSON.parse(String(init.body)) : {};
   if (p === `${REPO}/git/ref/heads/main`) return res({ object: { sha: git.head } });
+  if (p === `${REPO}/git/ref/heads/preview`) return git.preview ? res({ object: { sha: git.preview } }) : res({ message: 'Not Found' }, 404);
+  if (p === `${REPO}/git/refs/heads/preview` && m === 'PATCH') {
+    if (!git.preview) return res({ message: 'Reference does not exist' }, 422);
+    if (!body.force && !git.commits[body.sha].parents.includes(git.preview)) return res({ message: 'Update is not a fast forward' }, 422);
+    git.preview = body.sha; return res({ object: { sha: body.sha } });
+  }
+  if (p === `${REPO}/git/refs` && m === 'POST') {
+    if (body.ref !== 'refs/heads/preview') return res({ message: 'unexpected ref' }, 422);
+    git.preview = body.sha; return res({ ref: body.ref, object: { sha: body.sha } }, 201);
+  }
   let mt = p.match(new RegExp(`^${REPO}/git/commits/(\\w+)$`));
   if (mt && m === 'GET') return git.commits[mt[1]] ? res({ tree: { sha: git.commits[mt[1]].tree } }) : res({}, 404);
   mt = p.match(new RegExp(`^${REPO}/git/trees/(\\w+)$`));
@@ -199,5 +210,34 @@ describe('safeRepoPath (via GET /api/file)', () => {
       const r = await api(`/api/file?path=${encodeURIComponent(p)}`, { token });
       expect(r.status, p).toBe(400);
     }
+  });
+});
+
+describe('POST /api/preview', () => {
+  const preview = (files: unknown[]) => api('/api/preview', { method: 'POST', token, body: JSON.stringify({ message: 'studio: preview A', files }) });
+
+  it('creates the preview branch from the live head and commits there, never on main', async () => {
+    const r = await preview([{ path: 'src/content/projects/a.md', content: 'A draft', sha: 'aaaaaaa' }]);
+    expect(r.status).toBe(200);
+    expect(r.body.branch).toBe('preview');
+    expect(git.head).toBe('c000000');                 // live branch untouched
+    expect(git.preview).toBe(r.body.commit);
+    expect(git.commits[git.preview!].parents).toEqual(['c000000']);
+    const tree = git.trees[git.commits[git.preview!].tree];
+    expect(git.blobs[tree.find((b) => b.path === 'src/content/projects/a.md')!.sha]).toBe('A draft');
+  });
+
+  it('resets an old preview to the live site first, so previews never pile up', async () => {
+    await preview([{ path: 'src/content/projects/a.md', content: 'first' }]);
+    const r = await preview([{ path: 'src/content/projects/b.md', content: 'second' }]);
+    expect(git.commits[r.body.commit].parents).toEqual(['c000000']);
+    const tree = git.trees[git.commits[r.body.commit].tree];
+    expect(tree.find((b) => b.path === 'src/content/projects/a.md')!.sha).toBe('aaaaaaa'); // the first preview is gone
+  });
+
+  it('validates input and needs a session', async () => {
+    expect((await preview([])).status).toBe(400);
+    expect((await preview([{ path: '../x', content: '' }])).status).toBe(400);
+    expect((await api('/api/preview', { method: 'POST', body: JSON.stringify({ files: [{ path: 'a.md', content: '1' }] }) })).status).toBe(401);
   });
 });
