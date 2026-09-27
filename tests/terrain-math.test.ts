@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { perspective, lookAt, multiply, project, invert, unprojectToGround } from '../src/scripts/terrain/math';
+import { perspective, lookAt, multiply, project, invert, unprojectToGround } from '../src/scripts/ground/math';
 
 /** The coordinate lens is only honest if screen → ground inverts ground → screen. */
 describe('terrain projection', () => {

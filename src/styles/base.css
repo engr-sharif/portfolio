@@ -147,6 +147,15 @@ a:not([class]):hover { color: var(--ink); }
   animation-duration: 520ms;
   animation-timing-function: var(--ease-out);
 }
+/* The home page's ground flies into a report's key map (and back): cropped,
+   never stretched, a touch slower than the other morphs. */
+::view-transition-group(ground) {
+  animation-duration: 680ms;
+  animation-timing-function: cubic-bezier(0.2, 0.75, 0.15, 1);
+  overflow: clip;
+}
+::view-transition-old(ground),
+::view-transition-new(ground) { height: 100%; width: 100%; object-fit: cover; }
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*),
   ::view-transition-old(*),

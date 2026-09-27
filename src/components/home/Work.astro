@@ -1,13 +1,16 @@
 ---
 /**
- * 2.0 Selected work — the featured case studies, each opening on its figure:
- * a cleared photo when there is one, otherwise a site-location figure drawn
- * from the terrain. Never a placeholder.
+ * 2.0 Selected work — each project on a sheet of its own, standing over its
+ * site: while a sheet is on screen the map is that site's real ground up
+ * close (40 km across, centred on the rounded position, with the precision
+ * ring drawn). Between sheets the camera lifts off and flies to the next.
+ * Without WebGL the sheet carries its own figure instead.
  */
 import { getFeatured, getProjects, dateRange } from '../../lib/projects';
 import { getImage } from '../../lib/images';
 import { withBase } from '../../lib/path';
 import { publicPosition } from '../../lib/atlas';
+import { patchFor } from '../../lib/sites';
 import SectionHead from '../ui/SectionHead.astro';
 import Figure from '../ui/Figure.astro';
 import Locator from '../ui/Locator.astro';
@@ -18,27 +21,37 @@ const total = (await getProjects()).length;
 ---
 <section class="sec work" id="work" data-stratum="Selected work" data-code="CL" data-pattern="lith-clay" aria-labelledby="work-title">
   <div class="wrap">
-    <SectionHead no="2.0" id="work-title" title="Selected work" intro="Each project is written up like a report: the setting, my role, what I did and what came of it." />
+    <div class="panel work__head">
+      <SectionHead no="2.0" id="work-title" title="Selected work" intro="Each project is written up like a report: the setting, my role, what I did and what came of it." />
+    </div>
     <ol class="work__list">
       {featured.map((p, i) => {
         const d = p.data;
         const cover = getImage(d.coverImage);
         const href = withBase(`/projects/${p.id}/`);
         const pos = publicPosition(d);
+        const patch = patchFor(d);
+        const name = d.title.replace(/ — .*$/, '');
+        const stage = pos
+          ? { 'data-ground': 'close', 'data-slug': p.id, 'data-index': String(i), 'data-fig': `Fig. 2.${i + 1}`, 'data-caption': `${name} · ${patch ? Math.round((patch.north - patch.south) * 111.32) : 40} km around the site, position to ~${patch?.radiusKm ?? 1} km` }
+          : { 'data-ground': 'plan', 'data-fig': `Fig. 2.${i + 1}`, 'data-caption': `${name} · several sites` };
         return (
-          <li class="work__item" data-reveal>
-            <a class="work__fig" href={href} tabindex="-1" aria-hidden="true">
-              {cover ? (
-                <Figure image={cover} alt={d.coverAlt || `${d.title}, ${d.siteType}`} aspect="4 / 3" sizes="(min-width: 64rem) 58vw, 92vw" widths={[640, 960, 1280, 1600]} vt={`fig-${p.id}`} marked />
-              ) : pos ? (
-                <Locator lat={pos.lat} lng={pos.lng} name={d.title.replace(/ — .*$/, '')} place={d.location} vt={`fig-${p.id}`} caption={`${d.location ?? 'California'}. Position rounded to about 1 km.`} />
-              ) : null}
-            </a>
-            <div class="work__text">
+          <li class="work__item">
+            <div class="window" aria-hidden="true" {...stage}></div>
+            <article class="panel work__panel" {...stage}>
               <p class="work__no mono">2.{i + 1}</p>
               <p class="label">{d.siteType}</p>
               <h3 class="work__title" style={`view-transition-name: title-${p.id}`}><a href={href}>{d.title}</a></h3>
               <p class="work__summary">{d.summary}</p>
+              {cover ? (
+                <a class="work__fig" href={href} tabindex="-1" aria-hidden="true">
+                  <Figure image={cover} alt={d.coverAlt || `${d.title}, ${d.siteType}`} aspect="16 / 10" sizes="(min-width: 64rem) 40vw, 92vw" widths={[480, 720, 960, 1280]} vt={`fig-${p.id}`} marked />
+                </a>
+              ) : pos ? (
+                <a class="work__fig work__still" href={href} tabindex="-1" aria-hidden="true">
+                  <Locator lat={pos.lat} lng={pos.lng} name={name} place={d.location} caption={`${d.location ?? 'California'}. Position rounded to about ${patch?.radiusKm ?? 1} km.`} />
+                </a>
+              ) : null}
               <dl class="work__facts">
                 <div><dt class="label">Role</dt><dd>{d.role}</dd></div>
                 <div><dt class="label">Dates</dt><dd class="mono">{dateRange(d.startDate, d.endDate, d.status)}</dd></div>
@@ -46,33 +59,35 @@ const total = (await getProjects()).length;
                 <div><dt class="label">Status</dt><dd><Status status={d.status} /></dd></div>
               </dl>
               <a class="go" href={href}>Read the report <span class="arrow" aria-hidden="true">→</span></a>
-            </div>
+            </article>
           </li>
         );
       })}
     </ol>
-    <p class="work__all"><a class="btn btn--line" href={withBase('/projects/')}>All {total} projects <span class="arrow" aria-hidden="true">→</span></a></p>
+    <div class="panel work__foot">
+      <p><a class="btn btn--line" href={withBase('/projects/')}>All {total} projects <span class="arrow" aria-hidden="true">→</span></a></p>
+    </div>
   </div>
 </section>
 
 <style>
-  .work__list { list-style: none; padding: 0; display: grid; gap: clamp(4rem, 2.8rem + 5vw, 8rem); }
-  .work__item { display: grid; gap: var(--s-6); }
-  .work__fig { display: block; text-decoration: none; color: inherit; }
-  .work__text { display: grid; align-content: start; gap: var(--s-3); }
+  .work__list { list-style: none; padding: 0; display: grid; }
+  .work__item { display: grid; }
+  .work__panel { display: grid; align-content: start; gap: var(--s-3); }
   .work__no { color: var(--cinnabar-ink); }
   .work__title { font-size: clamp(1.875rem, 1.4rem + 1.5vw, 2.75rem); font-weight: 530; letter-spacing: -0.028em; line-height: 1.02; margin-block: var(--s-1) var(--s-2); }
   .work__title a { text-decoration: none; }
   .work__title a:hover { color: var(--cinnabar-ink); }
   .work__summary { font-family: var(--f-text); font-size: var(--t-body); line-height: var(--lh-text); color: var(--ink-2); max-width: 46ch; }
+  .work__fig { display: block; text-decoration: none; color: inherit; margin-top: var(--s-4); }
   .work__facts { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-4) var(--s-5); margin: var(--s-4) 0 var(--s-5); padding-top: var(--s-4); border-top: 1px solid var(--rule); }
   .work__facts > div { display: grid; gap: 0.3rem; align-content: start; }
   .work__facts dd { margin: 0; font-size: 0.9375rem; line-height: 1.35; }
-  .work__text > .go { justify-self: start; }
-  .work__all { margin-top: clamp(3rem, 2rem + 3vw, 5rem); }
+  .work__panel > .go { justify-self: start; }
+  /* the live close-up replaces the drawn locator */
+  :global(.ground-live) .work__still { display: none; }
   @media (min-width: 64rem) {
-    .work__item { grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); align-items: start; }
-    .work__fig { grid-column: 1 / span 7; }
-    .work__text { grid-column: 8 / span 5; position: sticky; top: calc(var(--nav-h) + var(--s-6)); }
+    .work__item { padding-block: 22vh; }
+    .work__item:first-child { padding-top: 12vh; }
   }
 </style>

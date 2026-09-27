@@ -1,15 +1,20 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import MapChapter from '../components/home/MapChapter.astro';
+import Ground from '../components/home/Ground.astro';
+import Opening from '../components/home/Opening.astro';
+import Atlas from '../components/home/Atlas.astro';
 import Work from '../components/home/Work.astro';
 import Tools from '../components/home/Tools.astro';
 import Notes from '../components/home/Notes.astro';
 import Field from '../components/home/Field.astro';
 import AboutBrief from '../components/home/AboutBrief.astro';
 import Contact from '../components/home/Contact.astro';
+import '../components/home/ground.css';
 ---
-<BaseLayout rail railLabel="Boring B-1">
-  <MapChapter />
+<BaseLayout rail railLabel="Boring B-1" bodyClass="has-ground">
+  <Ground />
+  <Opening />
+  <Atlas />
   <Work />
   <Tools />
   <Notes />
