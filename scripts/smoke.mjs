@@ -131,10 +131,17 @@ for (const route of routes) {
     if (applied !== THEME) problems.push(`theme not applied: expected ${THEME}, got ${applied}`);
   }
 
-  // The home page's terrain must boot (or fall back to its still relief).
+  // The home page's ground must boot (or fall back to its still relief), and
+  // the camera must follow the page: scroll to the section and it cuts open.
   if (route === '') {
-    const live = await page.evaluate(() => { const t = document.querySelector('[data-terrain]'); return t ? (t.classList.contains('is-live') || t.classList.contains('is-static')) : false; });
-    if (!live) problems.push('terrain did not start (no is-live / is-static)');
+    await page.waitForFunction(() => { const t = document.querySelector('[data-ground-root]'); return t && (t.classList.contains('is-live') || t.classList.contains('is-static')); }, null, { timeout: 15000 }).catch(() => {});
+    const state = await page.evaluate(() => { const t = document.querySelector('[data-ground-root]'); return t ? (t.classList.contains('is-live') ? 'live' : t.classList.contains('is-static') ? 'static' : 'none') : 'missing'; });
+    if (state === 'missing' || state === 'none') problems.push(`ground did not start (${state})`);
+    if (state === 'live') {
+      await page.evaluate(() => document.querySelector('.window--wide')?.scrollIntoView({ block: 'center' }));
+      const cut = await page.waitForFunction(() => [...document.querySelectorAll('.ground-sec')].some((e) => Number(getComputedStyle(e).opacity) > 0.5), null, { timeout: 8000 }).then(() => true).catch(() => false);
+      if (!cut) problems.push('scrolling to the section did not open it (no section labels shown)');
+    }
   }
 
   const hasCsp = await page.$('meta[http-equiv="content-security-policy" i]');

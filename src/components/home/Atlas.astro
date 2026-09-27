@@ -1,0 +1,89 @@
+---
+/**
+ * 1.0 Where the work is — the site index. Each row is a stop: as it reaches
+ * the middle of the screen the camera flies to that site and flags it.
+ */
+import { withBase } from '../../lib/path';
+import { getAtlasPoints } from '../../lib/atlas';
+import { getProjects } from '../../lib/projects';
+import Status from '../ui/Status.astro';
+import SectionHead from '../ui/SectionHead.astro';
+
+const { projects: points } = await getAtlasPoints();
+const all = await getProjects();
+const unmapped = all.filter((p) => !points.some((x) => x.slug === p.id));
+---
+<section class="sec atlas" id="atlas" data-stratum="Where the work is" data-code="SM" data-pattern="lith-silty-sand" aria-labelledby="atlas-title">
+  <div class="wrap">
+    <div class="panel">
+      <div data-ground="plan" data-fig="Fig. 1.0" data-caption={`Plan view · ${points.length} sites`}>
+        <SectionHead no="1.0" id="atlas-title" title="Where the work is" />
+        <p class="atlas__intro">Every project sits on its real coordinates, rounded to about a kilometre. Scroll and the map goes to each one; select a row to read the report.</p>
+      </div>
+      <div class="window" aria-hidden="true" data-ground="plan" data-fig="Fig. 1.0" data-caption={`Plan view · ${points.length} sites`}></div>
+      <ol class="rows atlas__list">
+        {points.map((p, i) => (
+          <li data-station={p.slug} data-ground="site" data-slug={p.slug} data-fig={`Site ${String(i + 1).padStart(2, '0')}`} data-caption={`${p.title.replace(/ — .*$/, '')} · ${p.location}`}>
+            <a class="atlas__row" href={withBase(`/projects/${p.slug}/`)}>
+              <span class="atlas__no mono">{String(i + 1).padStart(2, '0')}</span>
+              <span class="atlas__main">
+                <span class="atlas__title">{p.title}</span>
+                <span class="atlas__meta">{p.location} · {p.siteType}</span>
+                <span class="atlas__side">
+                  <Status status={p.status} />
+                  <span class="mono atlas__dates">{p.dates}</span>
+                  <span class="mono atlas__ll">{p.lat.toFixed(2)}° N {Math.abs(p.lng).toFixed(2)}° W</span>
+                </span>
+              </span>
+            </a>
+          </li>
+        ))}
+        {unmapped.map((p) => (
+          <li>
+            <a class="atlas__row" href={withBase(`/projects/${p.id}/`)}>
+              <span class="atlas__no mono" aria-label="Not mapped">—</span>
+              <span class="atlas__main">
+                <span class="atlas__title">{p.data.title}</span>
+                <span class="atlas__meta">Several sites, not mapped · {p.data.siteType}</span>
+                <span class="atlas__side"><Status status={p.data.status} /></span>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </div>
+</section>
+
+<style>
+  .atlas__intro { font-family: var(--f-text); font-size: var(--t-body); color: var(--ink-2); max-width: 44ch; margin-block: var(--s-5) var(--s-6); }
+  .atlas__row {
+    display: grid;
+    grid-template-columns: 2.5rem minmax(0, 1fr);
+    gap: 0.25rem var(--s-4);
+    padding: 1.2rem 0 1.25rem;
+    text-decoration: none;
+    position: relative;
+  }
+  .atlas__row::before {
+    content: '';
+    position: absolute; left: -1rem; top: 1.1rem; bottom: 1.1rem;
+    width: 2px; background: var(--cinnabar);
+    transform: scaleY(0); transform-origin: top;
+    transition: transform var(--d-2) var(--ease-out);
+  }
+  li.is-on > .atlas__row::before, .atlas__row:hover::before, .atlas__row:focus-visible::before { transform: scaleY(1); }
+  .atlas__no { color: var(--ink-3); padding-top: 0.25rem; transition: color var(--d-1) var(--ease); }
+  li.is-on .atlas__no { color: var(--cinnabar-ink); }
+  .atlas__main { display: grid; gap: 0.35rem; }
+  .atlas__title { font-size: var(--t-h4); font-weight: 580; letter-spacing: -0.01em; line-height: 1.2; transition: color var(--d-1) var(--ease); }
+  .atlas__row:hover .atlas__title { color: var(--cinnabar-ink); }
+  .atlas__meta { color: var(--ink-2); font-size: 0.9375rem; }
+  .atlas__side { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); align-items: center; margin-top: 0.35rem; }
+  .atlas__dates, .atlas__ll { color: var(--ink-3); font-size: 0.75rem; }
+  /* wide: each site gets a stop of its own */
+  @media (min-width: 64rem) {
+    .atlas__list > li[data-station] { min-height: 26vh; display: grid; align-content: center; }
+    .atlas__title { font-size: clamp(1.375rem, 1rem + 0.8vw, 1.75rem); }
+  }
+</style>

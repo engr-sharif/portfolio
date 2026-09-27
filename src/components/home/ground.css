@@ -1,0 +1,171 @@
+/* ==========================================================================
+   The ground — the home page's map layer and the sheets that sit on it.
+
+   .ground   fixed under everything: canvas, projected overlays, readout
+   .panel    a sheet of paper: solid, over the left of the screen on wide
+             screens (full width on phones), feathered into the map
+   .window   an opening where the map is the subject: phones get one per
+             stage; .window--wide (the section) opens on every screen
+   The page's own content never catches the pointer where it's transparent,
+   so the map underneath can be hovered and dragged.
+   ========================================================================== */
+
+.has-ground main { position: relative; z-index: 1; pointer-events: none; }
+.has-ground main :where(a, button, input, textarea, select, label, summary, dialog, [tabindex], .panel, .section-key, figure) { pointer-events: auto; }
+.has-ground .foot { position: relative; z-index: 1; background: var(--ground); }
+.has-ground .sec { padding-top: clamp(10rem, 6rem + 12vw, 18rem); }
+
+/* ------------------------------------------------------------------ layer */
+.ground {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  view-transition-name: ground;
+  background: var(--ground-2);
+  overflow: hidden;
+}
+.ground__canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: pan-y; }
+@media (pointer: fine) {
+  .ground__canvas { cursor: crosshair; }
+  .ground.is-dragging .ground__canvas { cursor: grabbing; }
+}
+.ground__still { position: absolute; inset: 14% 6% 12% 52%; opacity: 0; transition: opacity var(--d-3) var(--ease); }
+.ground.is-static .ground__still { opacity: 0.9; }
+@media (max-width: 63.99rem) { .ground__still { inset: 12% 10% 46% 10%; } }
+.ground__overlay { position: absolute; inset: 0; pointer-events: none; }
+.ground__north { position: absolute; top: calc(var(--nav-h) + 1rem); right: var(--gutter); width: 1.15rem; fill: var(--ink-2); }
+.ground__north text { font-family: var(--f-mono); font-size: 9px; fill: var(--ink-2); }
+
+/* the readout: what you're looking at, where, and at what scale */
+.ground__hud {
+  position: absolute;
+  right: var(--gutter);
+  bottom: 1.1rem;
+  margin: 0;
+  display: grid;
+  justify-items: end;
+  gap: 0.35rem;
+  max-width: min(34rem, 44vw);
+  text-align: right;
+  pointer-events: none;
+}
+.ground__cap { font-family: var(--f-text); font-size: 0.9375rem; color: var(--ink-2); padding: 0.15rem 0.45rem; background: var(--scrim); }
+.ground__cap .fig__no { margin-right: 0.35rem; }
+.ground__meta { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 0.35rem 1rem; font-size: 0.6875rem; color: var(--ink-3); font-variant-numeric: tabular-nums; padding: 0.15rem 0.45rem; background: var(--scrim); }
+.ground__meta .is-lens { color: var(--cinnabar-ink); }
+.ground__scale { display: inline-flex; align-items: center; gap: 0.4rem; }
+.ground__scale i { display: block; height: 0.35rem; border: 1px solid var(--ink-2); border-top: 0; transition: width 120ms linear; background: linear-gradient(90deg, var(--ink-2) 50%, transparent 50%) bottom / 100% 2px no-repeat; }
+.ground:not(.is-live) .ground__meta { display: none; }
+@media (max-width: 63.99rem) { .ground__hud, .ground__north { display: none; } }
+
+/* ----------------------------------------------------------------- sheets */
+.panel { position: relative; isolation: isolate; padding-block: var(--s-8); container-type: inline-size; }
+.panel::before {
+  content: '';
+  position: absolute; z-index: -1;
+  top: 0; bottom: 0;
+  left: -100vw; right: calc(-1 * var(--gutter));
+  background: var(--ground);
+}
+@media (min-width: 64rem) {
+  .panel { width: 50%; padding-right: var(--s-6); }
+  .panel::before { right: 0; }
+  .panel::after {
+    content: '';
+    position: absolute; z-index: -1;
+    top: 0; bottom: 0; left: 100%;
+    width: clamp(3rem, 7vw, 8rem);
+    background: linear-gradient(to right, var(--ground), color-mix(in srgb, var(--ground) 0%, transparent));
+    pointer-events: none;
+  }
+  .panel--full { width: auto; padding-right: 0; }
+  .panel--full::before { right: -100vw; }
+  .panel--full::after { display: none; }
+}
+/* sheets stacked in one section read as one sheet */
+.panel + .panel { padding-top: 0; }
+
+/* ---------------------------------------------------------------- windows */
+.window { display: none; pointer-events: none; }
+@media (max-width: 63.99rem) {
+  .window { display: block; height: 62svh; margin-inline: calc(-1 * var(--gutter)); }
+  .panel .window { margin-block: var(--s-6); }
+  .panel:has(.window)::before { display: none; }
+  .panel:has(.window) > :not(.window) { position: relative; }
+  .panel:has(.window) > :not(.window)::before { content: ''; position: absolute; z-index: -1; inset: calc(-1 * var(--s-4)) calc(-1 * var(--gutter)); background: var(--ground); }
+  .window--hero { height: 58svh; }
+}
+.window--wide { display: grid; align-items: end; height: max(34rem, 96svh); padding-bottom: var(--s-7); }
+@media (max-width: 63.99rem) { .window--wide { height: 78svh; margin-inline: 0; } }
+
+/* ------------------------------------------------------ projected overlays */
+.ground .stake {
+  position: absolute; left: 0; top: 0;
+  text-decoration: none;
+  color: var(--ink);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+.ground .stake__pole {
+  position: absolute; left: 0; bottom: 0;
+  width: 1.5px; height: calc(1.9rem * var(--grow, 1));
+  background: var(--ink);
+}
+.ground .stake__flag {
+  position: absolute; left: 1.5px; bottom: calc(1.9rem * var(--grow, 1) - 0.55rem);
+  width: 0.75rem; height: 0.55rem;
+  background: var(--ink-3);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+.ground .stake--active .stake__flag { background: var(--cinnabar); }
+.ground .stake__label {
+  position: absolute; left: 1rem; bottom: calc(1.9rem * var(--grow, 1) - 0.75rem);
+  display: flex; gap: 0.4rem; align-items: baseline;
+  white-space: nowrap;
+  font-size: 0.75rem; font-weight: 600;
+  padding: 0.15rem 0.4rem;
+  background: var(--scrim);
+}
+.ground .stake__label b { font-family: var(--f-mono); font-weight: 500; color: var(--cinnabar-ink); }
+.ground .stake__label span { display: none; }
+.ground .stake.is-hi .stake__label span, .ground .stake:hover .stake__label span { display: inline; }
+.ground .stake.is-hi .stake__pole { background: var(--cinnabar); }
+.ground .stake.is-hi .stake__label { font-size: 0.875rem; padding: 0.25rem 0.5rem; border-left: 2px solid var(--cinnabar); }
+
+/* Sacramento, where I'm based */
+.ground-home { position: absolute; left: 0; top: 0; opacity: 0; will-change: transform, opacity; }
+.ground-home__dot { position: absolute; left: -4px; top: -4px; width: 8px; height: 8px; border-radius: 50%; background: var(--cinnabar); }
+.ground-home__ring { position: absolute; left: -14px; top: -14px; width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--cinnabar); }
+.ground-home__label { position: absolute; left: 1.1rem; top: -0.75rem; white-space: nowrap; font-size: 0.8125rem; font-weight: 600; padding: 0.2rem 0.5rem; background: var(--scrim); border-left: 2px solid var(--cinnabar); }
+@media (prefers-reduced-motion: no-preference) {
+  .ground-home__ring { animation: home-pulse 2.6s var(--ease-out) infinite; }
+}
+@keyframes home-pulse { from { transform: scale(0.4); opacity: 1; } to { transform: scale(2.2); opacity: 0; } }
+
+/* labels on the section: A / A′ at the ends, each boring, the water table */
+.ground-sec { position: absolute; left: 0; top: 0; opacity: 0; white-space: nowrap; font-size: 0.75rem; color: var(--ink-2); will-change: transform, opacity; }
+.ground-sec--end { font-family: var(--f-display); font-size: 1.375rem; font-weight: 600; color: var(--ink); translate: -50% -100%; }
+.ground-sec--boring { translate: -50% calc(-100% - 0.4rem); padding: 0.15rem 0.4rem; background: var(--scrim); font-weight: 560; color: var(--ink); }
+.ground-sec--boring b { font-family: var(--f-mono); font-weight: 500; color: var(--cinnabar-ink); }
+@media (max-width: 40rem) { .ground-sec--boring span { display: none; } }
+.ground-sec--water { translate: -50% 0.2rem; color: var(--water); font-family: var(--f-mono); font-size: 0.6875rem; }
+.ground-sec--water i { font-style: normal; }
+
+/* photos standing at their site */
+.ground-photo {
+  position: absolute; left: 0; top: 0;
+  width: 6.5rem; aspect-ratio: 4 / 3;
+  margin: calc(-6.5rem * 3 / 8) 0 0 -3.25rem;
+  padding: 3px 3px 10px;
+  background: var(--ground);
+  box-shadow: 0 1px 0 var(--rule-2), 0 6px 18px rgb(0 0 0 / 0.18);
+  opacity: 0;
+  transform-origin: 50% 100%;
+  will-change: transform, opacity;
+  transition: box-shadow var(--d-2) var(--ease);
+}
+.ground-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.ground-photo.is-on { box-shadow: 0 0 0 1.5px var(--cinnabar), 0 10px 26px rgb(0 0 0 / 0.26); }
+
+/* no WebGL: the sheets carry their own figures and the map is a still */
+.ground-static .ground__overlay { display: none; }

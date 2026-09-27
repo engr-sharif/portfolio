@@ -19,8 +19,12 @@ export interface Props {
   zoom?: number;
   compact?: boolean;
   vt?: string;
+  /** JSON for a live 3D close-up (src/scripts/ground/keymap.ts) that takes
+   * over the regional panel when WebGL is available; the drawing stays as the
+   * still and the fallback. */
+  live?: string;
 }
-const { lat, lng, name, place, no, caption, zoom = 4, compact = false, vt } = Astro.props;
+const { lat, lng, name, place, no, caption, zoom = 4, compact = false, vt, live } = Astro.props;
 const { u, v } = toUV(lat, lng);
 const relief = `--relief-url: url('${withBase('/data/ca-relief.svg')}')`;
 
@@ -66,6 +70,13 @@ const fmt = (n: number, pos: string, neg: string) => `${Math.abs(n).toFixed(2)}Â
       <div class="locator__zoom" style={`width: ${zoom * 100}%; aspect-ratio: ${VIEW_W} / ${VIEW_H}; transform: translate(${(-u * 100).toFixed(3)}%, ${(-v * 100).toFixed(3)}%)`}>
         <div class="relief" style={relief}></div>
       </div>
+      {live && (
+        <div class="locator__live" data-keymap data-cfg={live}>
+          <canvas class="locator__canvas" role="img" aria-label={`${name}: the ground around the site in 3D, from real elevation. Drag to turn it.`}></canvas>
+          <div class="locator__ov" aria-hidden="true"></div>
+          <span class="locator__hud mono" aria-hidden="true" data-keymap-hud></span>
+        </div>
+      )}
       <span class="locator__cross" aria-hidden="true"></span>
       <div class="locator__label">
         <span class="locator__name">{name}</span>
@@ -87,6 +98,18 @@ const fmt = (n: number, pos: string, neg: string) => `${Math.abs(n).toFixed(2)}Â
 
 <style>
   .locator { container-type: inline-size; }
+  /* the live close-up: arrives from the home page's ground and settles on the site */
+  .locator__live { position: absolute; inset: 0; opacity: 0; transition: opacity var(--d-3) var(--ease); view-transition-name: ground; }
+  .locator__live:global(.is-live) { opacity: 1; }
+  .locator__canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: pan-y; }
+  @media (pointer: fine) { .locator__canvas { cursor: grab; } .locator__live:global(.is-dragging) .locator__canvas { cursor: grabbing; } }
+  .locator__ov { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  .locator__region:has(.locator__live:global(.is-live)) :is(.locator__zoom, .locator__cross, .locator__scale) { opacity: 0; }
+  .locator__hud { position: absolute; right: 0.75rem; bottom: 0.7rem; font-size: 0.625rem; color: var(--ink-3); padding: 0.1rem 0.35rem; background: var(--scrim); pointer-events: none; }
+  .locator__ov :global(.stake) { position: absolute; left: 0; top: 0; opacity: 0; color: var(--ink); text-decoration: none; }
+  .locator__ov :global(.stake__pole) { position: absolute; left: 0; bottom: 0; width: 1.5px; height: 1.9rem; background: var(--cinnabar); }
+  .locator__ov :global(.stake__flag) { position: absolute; left: 1.5px; bottom: 1.35rem; width: 0.75rem; height: 0.55rem; background: var(--cinnabar); clip-path: polygon(0 0, 100% 50%, 0 100%); }
+  .locator__ov :global(.stake__label) { display: none; }
   .locator__sheet {
     display: grid;
     grid-template-columns: minmax(0, 0.82fr) minmax(0, 1fr);
@@ -112,7 +135,7 @@ const fmt = (n: number, pos: string, neg: string) => `${Math.abs(n).toFixed(2)}Â
     line-height: 1.15;
     color: var(--water);
   }
-  .locator__tick { position: absolute; left: -0.25rem; transform: translate(-100%, -50%); font-size: 0.625rem; color: var(--ink-3); white-space: nowrap; }
+  .locator__tick { position: absolute; left: 0.3rem; transform: translateY(-50%); font-size: 0.625rem; color: var(--ink-3); white-space: nowrap; padding: 0 0.2rem; background: var(--ground-2); }
   .locator__tick--x { top: auto; bottom: -1.1rem; left: auto; transform: translateX(-50%); }
   @media (max-width: 40rem) { .locator__tick { display: none; } }
 

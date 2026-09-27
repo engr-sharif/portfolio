@@ -13,6 +13,8 @@ import { getImage } from '../../lib/images';
 import { getCaption } from '../../lib/captions';
 import { publicPosition } from '../../lib/atlas';
 import { withBase } from '../../lib/path';
+import { patchFor } from '../../lib/sites';
+import groundMeta from '../../data/ca-ground.json';
 
 export async function getStaticPaths() {
   const projects = await getProjects();
@@ -42,6 +44,13 @@ const openNo = locNo ? '2' : '1';
 const firstGallery = Number(openNo) + 1;
 const privacyNote = d.privacy === 'region' ? 'about 50 km' : d.privacy === 'town' ? 'about 10 km' : 'about 1 km';
 const cleared = d.clearance?.date ? new Date(d.clearance.date) : null;
+// the live key map: this site's close-up on the same ground as the home page
+const patch = patchFor(d);
+const live = pos && patch ? JSON.stringify({
+  groundUrl: withBase('/data/ca-ground.webp'), bbox: groundMeta.bbox,
+  station: { slug: project.id, lat: pos.lat, lng: pos.lng, label: shortTitle, place: d.location ?? '', status: d.status, no: '', href: withBase(`/projects/${project.id}/`) },
+  site: { slug: project.id, url: withBase(`/data/site/${project.id}.webp`), ...patch },
+}) : undefined;
 ---
 <BaseLayout title={`${d.title} — Mohammad Sharif`} description={d.summary} ogType="article" rail railLabel="Report">
   <article class="report">
@@ -60,7 +69,7 @@ const cleared = d.clearance?.date ? new Date(d.clearance.date) : null;
         ]} /></div>
         {locNo && pos && (
           <div class="phead__key">
-            <Locator lat={pos.lat} lng={pos.lng} name={shortTitle} place={d.location} no={locNo} compact caption={`Key map. Position shown to ${privacyNote}.`} />
+            <Locator lat={pos.lat} lng={pos.lng} name={shortTitle} place={d.location} no={locNo} compact live={live} caption={`Key map. Position shown to ${privacyNote}; drag to turn the ground.`} />
           </div>
         )}
       </header>
@@ -69,7 +78,7 @@ const cleared = d.clearance?.date ? new Date(d.clearance.date) : null;
         {cover ? (
           <Figure image={cover} alt={d.coverAlt || getCaption(d.coverImage) || `${d.title}, ${d.siteType}`} no={openNo} caption={getCaption(d.coverImage) || d.siteType} group="report" eager aspect="16 / 9" vt={`fig-${project.id}`} sizes="(min-width: 90rem) 1300px, 94vw" widths={[800, 1200, 1600, 2000]} marked />
         ) : pos ? (
-          <Locator lat={pos.lat} lng={pos.lng} name={shortTitle} place={d.location} no="1" vt={`fig-${project.id}`} caption={`Site location. The position is shown to ${privacyNote}, rounded for confidentiality.`} />
+          <Locator lat={pos.lat} lng={pos.lng} name={shortTitle} place={d.location} no="1" vt={`fig-${project.id}`} live={live} caption={`Site location. The position is shown to ${privacyNote}, rounded for confidentiality.`} />
         ) : null}
       </div>
 
@@ -168,6 +177,9 @@ const cleared = d.clearance?.date ? new Date(d.clearance.date) : null;
     </div>
   </article>
 </BaseLayout>
+<script>
+  import '../../scripts/ground/keymap';
+</script>
 
 <style>
   .report__kicker { display: flex; flex-wrap: wrap; gap: var(--s-3) var(--s-5); align-items: center; margin-bottom: var(--s-5); }

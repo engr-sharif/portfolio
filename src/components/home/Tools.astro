@@ -1,7 +1,10 @@
 ---
 /**
- * 3.0 Built for the field — the software, shown as figures: a short loop
- * when one exists, otherwise a schematic of what the tool does.
+ * 3.0 Built for the field — opens on the ground cut open: a section along
+ * 38.6° N through the valley and the Sierra, strata drawn in the same
+ * lithology symbols as the depth rail, the water table, and a boring at each
+ * site near the line. Then the software, shown as figures: a short loop when
+ * one exists, otherwise a schematic of what the tool does.
  */
 import { getTools } from '../../lib/tools';
 import { withBase } from '../../lib/path';
@@ -13,7 +16,27 @@ const tools = await getTools();
 ---
 <section class="sec tools" id="tools" data-stratum="Built for the field" data-code="SP" data-pattern="lith-sand" aria-labelledby="tools-title">
   <div class="wrap">
-    <SectionHead no="3.0" id="tools-title" title="Built for the field" intro="Software I wrote because a job on site needed it. Each one started as a specific, slightly annoying problem." />
+    <div class="panel">
+      <SectionHead no="3.0" id="tools-title" title="Built for the field" intro="Software I wrote because a job on site needed it. Each one started as a specific, slightly annoying problem." />
+    </div>
+  </div>
+  <div class="window window--wide" data-ground="section" data-fig="Fig. 3.0" data-caption="Section A–A′ along 38.6° N, looking north">
+    <div class="wrap">
+      <figure class="section-key" aria-label="Legend for the section">
+        <figcaption class="section-key__title"><span class="fig__no">Fig. 3.0</span> Section A–A′ along 38.6° N, looking north. The land surface is real; the strata beneath are schematic.</figcaption>
+        <ul class="section-key__list">
+          <li><i class="k k--sand"></i>Valley fill, sand</li>
+          <li><i class="k k--clay"></i>Silt and clay</li>
+          <li><i class="k k--gravel"></i>Gravel</li>
+          <li><i class="k k--rock"></i>Bedrock</li>
+          <li><i class="k k--water"></i>Water table</li>
+          <li><i class="k k--boring"></i>Boring at a project site</li>
+        </ul>
+      </figure>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="panel panel--full">
     <ul class="tools__grid" data-reveal="stagger">
       {tools.map((t, i) => (
         <li class="tool">
@@ -29,6 +52,7 @@ const tools = await getTools();
         </li>
       ))}
     </ul>
+    </div>
   </div>
 </section>
 
@@ -58,4 +82,19 @@ const tools = await getTools();
   .tool__link:hover .tool__name { color: var(--cinnabar-ink); }
   .tool__sum { font-family: var(--f-text); font-size: 1.0625rem; line-height: 1.5; color: var(--ink-2); }
   .tool__tech { color: var(--ink-3); font-size: 0.75rem; }
+  .tools :global(.panel--full) { padding-block: var(--s-8) var(--section); }
+
+  /* the section's legend: a key in the corner of the drawing */
+  .section-key { margin: 0; display: grid; gap: var(--s-3); max-width: 36rem; padding: var(--s-4) var(--s-5); background: var(--scrim); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border-left: 2px solid var(--cinnabar); pointer-events: auto; }
+  .section-key__title { font-family: var(--f-text); font-size: 0.9375rem; line-height: 1.45; color: var(--ink-2); }
+  .section-key__list { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.35rem var(--s-5); font-size: 0.8125rem; color: var(--ink-2); }
+  @media (min-width: 40rem) { .section-key__list { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .section-key__list li { display: flex; align-items: center; gap: 0.5rem; }
+  .k { width: 1.4rem; height: 0.8rem; flex: none; display: inline-block; color: var(--ink-2); }
+  .k--sand { background: radial-gradient(circle, currentColor 0.8px, transparent 1.2px) 0 0 / 4px 4px; }
+  .k--clay { background: repeating-linear-gradient(to bottom, transparent 0 2px, currentColor 2px 3px); }
+  .k--gravel { background: radial-gradient(circle, transparent 1.6px, currentColor 1.8px 2.4px, transparent 2.6px) 0 0 / 7px 7px; }
+  .k--rock { background: linear-gradient(currentColor 0 0) 0 0 / 5px 4px; opacity: 0.8; background-image: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 6px); height: 0.6rem; }
+  .k--water { height: 2px; background: var(--water); }
+  .k--boring { width: 3px; height: 0.9rem; background: var(--cinnabar); margin-inline: 0.55rem; }
 </style>

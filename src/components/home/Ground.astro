@@ -1,0 +1,65 @@
+---
+/**
+ * The ground the home page stands on: California on real elevation, fixed
+ * under the whole page. Content sits on sheets over the left of the screen;
+ * the map shows through the rest and through the open gaps between sections.
+ * src/scripts/ground/home.ts moves the camera as you read.
+ *
+ * Everything the map shows goes through the same privacy rounding as the rest
+ * of the site: project positions via publicPosition(), close-ups centred on
+ * them, photos placed at their project's public position (or their own GPS
+ * rounded to ~10 km).
+ */
+import { getImage as optimise } from 'astro:assets';
+import { withBase } from '../../lib/path';
+import { getAtlasPoints } from '../../lib/atlas';
+import { groundPhotos } from '../../lib/ground';
+import { getProjects } from '../../lib/projects';
+import { getImage } from '../../lib/images';
+import { getCaption } from '../../lib/captions';
+import { patchFor } from '../../lib/sites';
+import meta from '../../data/ca-ground.json';
+
+const { projects: points } = await getAtlasPoints();
+const projects = await getProjects();
+const stations = points.map((p, i) => ({
+  slug: p.slug, lat: p.lat, lng: p.lng, label: p.title.replace(/ — .*$/, ''), place: p.location, status: p.status,
+  no: String(i + 1).padStart(2, '0'), href: withBase(`/projects/${p.slug}/`),
+}));
+const sites = projects
+  .map((p) => ({ slug: p.id, patch: patchFor(p.data) }))
+  .filter((x) => x.patch)
+  .map(({ slug, patch }) => ({ slug, url: withBase(`/data/site/${slug}.webp`), ...patch! }));
+
+const photos = (await Promise.all((await groundPhotos()).map(async (g) => {
+  if (!g.place) return null;
+  const thumb = await optimise({ src: getImage(g.image)!, width: 240, format: 'webp', quality: 70 });
+  return { src: thumb.src, caption: g.caption || getCaption(g.image) || '', lat: g.place.lat, lng: g.place.lng, href: 'slug' in g.place && g.place.slug ? withBase(`/projects/${g.place.slug}/`) : undefined };
+}))).filter(Boolean);
+
+const config = {
+  groundUrl: withBase('/data/ca-ground.webp'),
+  bbox: meta.bbox,
+  stations, sites, photos,
+  section: { lat: 38.6 },
+  home: { lat: 38.58, lng: -121.49, label: 'Sacramento · based here' },
+};
+---
+<div class="ground" data-ground-root>
+  <div class="ground__still relief" style={`--relief-url: url('${withBase('/data/ca-relief.svg')}')`} aria-hidden="true"></div>
+  <canvas class="ground__canvas" role="img" aria-label="California drawn in points on real elevation. The view follows the page: the whole state, each project site up close, a cross-section of the ground, and Sacramento."></canvas>
+  <div class="ground__overlay" data-ground-overlay aria-hidden="true"></div>
+  <svg class="ground__north" viewBox="0 0 20 34" aria-hidden="true"><path d="M10 1 16.5 21 10 16.5 3.5 21Z" /><text x="10" y="32" text-anchor="middle">N</text></svg>
+  <p class="ground__hud" aria-hidden="true">
+    <span class="ground__cap"><span class="fig__no" data-hud-fig>Fig. 0</span> <span data-hud-caption>California on real elevation</span></span>
+    <span class="ground__meta mono">
+      <span data-hud-coords></span>
+      <span class="ground__scale"><i data-hud-bar></i><span data-hud-km></span></span>
+      <span data-hud-exag></span>
+    </span>
+  </p>
+</div>
+<script type="application/json" id="ground-data" set:html={JSON.stringify(config).replace(/</g, '\\u003c')}></script>
+<script>
+  import '../../scripts/ground/home';
+</script>

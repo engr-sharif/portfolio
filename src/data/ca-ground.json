@@ -1,0 +1,40 @@
+{
+  "bbox": {
+    "west": -124.6,
+    "east": -113.9,
+    "south": 32.3,
+    "north": 42.15
+  },
+  "width": 384,
+  "height": 432,
+  "metersMax": 4400,
+  "zoom": 8,
+  "lakes": [
+    "Clear Lake",
+    "Clear Lake Reservoir",
+    "Eagle Lake",
+    "Goose Lake",
+    "Honey Lake",
+    "Isabella Lake",
+    "Laguna Salada",
+    "Lake Almanor",
+    "Lake Berryessa",
+    "Lake Havasu",
+    "Lake Mead",
+    "Lake Mohave",
+    "Lake Oroville",
+    "Lake Tahoe",
+    "Lower Klamath Lake",
+    "Millerton Lake",
+    "Mono Lake",
+    "Pyramid Lake",
+    "Rye Patch Reservoir",
+    "Salton Sea",
+    "San Luis Reservoir",
+    "Shasta Lake",
+    "Trinity Lake",
+    "Walker Lake"
+  ],
+  "credits": "Elevation: Mapzen Terrarium (SRTM, NED, GMTED). Boundary: Natural Earth via PublicaMundi. Lakes: Natural Earth.",
+  "generated": "2026-09-27"
+}

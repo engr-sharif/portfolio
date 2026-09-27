@@ -77,8 +77,8 @@ export function invert(m: Mat4): Mat4 | null {
   return o;
 }
 
-/** Screen point → where it meets the ground plane (y = 0), or null. */
-export function unprojectToGround(inv: Mat4, sx: number, sy: number, w: number, h: number) {
+/** Screen point → where it meets the horizontal plane y = planeY (default the datum), or null. */
+export function unprojectToGround(inv: Mat4, sx: number, sy: number, w: number, h: number, planeY = 0) {
   const nx = (sx / w) * 2 - 1, ny = 1 - (sy / h) * 2;
   const at = (z: number) => {
     const x = inv[0] * nx + inv[4] * ny + inv[8] * z + inv[12];
@@ -90,7 +90,21 @@ export function unprojectToGround(inv: Mat4, sx: number, sy: number, w: number, 
   const p0 = at(-1), p1 = at(1);
   const dy = p1[1] - p0[1];
   if (Math.abs(dy) < 1e-6) return null;
-  const t = -p0[1] / dy;
+  const t = (planeY - p0[1]) / dy;
   if (t < 0) return null;
   return { x: p0[0] + (p1[0] - p0[0]) * t, z: p0[2] + (p1[2] - p0[2]) * t };
 }
+
+/** Off-axis projection: the frame's centre moves by (sx, sy) in NDC, so a
+ * subject can sit in the open part of the screen while the camera still
+ * looks straight at it. */
+export function shifted(m: Mat4, sx: number, sy: number): Mat4 {
+  const o = new Float32Array(m);
+  o[8] = -sx; o[9] = -sy;
+  return o;
+}
+
+export const smoother = (t: number) => { t = clamp(t); return t * t * t * (t * (t * 6 - 15) + 10); };
+
+/** Frame-rate independent approach: move `a` toward `b` with time constant 1/k seconds. */
+export const damp = (a: number, b: number, k: number, dt: number) => b + (a - b) * Math.exp(-k * dt);

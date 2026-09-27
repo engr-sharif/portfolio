@@ -7,6 +7,8 @@ const hasForm = !!site.contactFormKey?.trim();
 ---
 <section class="sec contact" id="contact" data-stratum="Contact" data-code="BR" data-pattern="lith-rock" aria-labelledby="contact-title">
   <div class="wrap">
+    <div class="window" aria-hidden="true" data-ground="state" data-fig="Fig. 7.0" data-caption="California · based in Sacramento"></div>
+    <div class="panel" data-ground="state" data-fig="Fig. 7.0" data-caption="California · based in Sacramento">
     <SectionHead no="7.0" id="contact-title" title="Hiring for field or remediation work?" />
     <div class="contact__grid">
       <div class="contact__left">
@@ -34,6 +36,7 @@ const hasForm = !!site.contactFormKey?.trim();
         </div>
       </form>
     </div>
+    </div>
   </div>
 </section>
 
@@ -49,9 +52,5 @@ const hasForm = !!site.contactFormKey?.trim();
   .contact__status { font-family: var(--f-text); color: var(--ink-2); }
   .contact__status[data-tone='ok'] { color: var(--ink); }
   .contact__status[data-tone='err'] { color: var(--cinnabar-ink); }
-  @media (min-width: 64rem) {
-    .contact__grid { grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); }
-    .contact__left { grid-column: 1 / span 5; }
-    .contact__form { grid-column: 7 / span 6; }
-  }
+
 </style>

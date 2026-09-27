@@ -5,9 +5,19 @@ The portfolio of **Mohammad "Nawaz" Sharif**, Environmental Engineer (EIT), at
 publishes it from (including from the field, offline).
 
 The design direction is **Ground Truth**: the site reads like an engineer's
-report set, built from real survey data. California is drawn from real
-elevation data. Every project is a numbered report with a title block, a key
-map and figures. The page margin is a boring log that tracks how far you've
+report set, built from real survey data. The home page stands on California,
+drawn from real elevation data. The map sits under the whole page, and the
+camera travels as you read:
+
+- It rises out of the opening.
+- It flies to each site in the index, then descends onto each project's own
+  40 km of terrain.
+- It cuts the ground open into a geological section for the tools.
+- It turns among the field photos standing where they were taken, then pulls
+  back to Sacramento.
+
+Every project is a numbered report with a title block, a live 3D key map and
+figures. The page margin is a boring log that tracks how far you've
 read, and the 404 hits refusal.
 
 **Stack:** Astro 7 (static output) · hand-written WebGL2 · CSS scroll-driven
@@ -171,11 +181,11 @@ src/
   layouts/          BaseLayout: fonts, theme, CSP-hashed inline script, rail, search
   components/
     site/           nav, footer, depth rail (boring log), search
-    home/           the map chapter (opening + atlas), work, tools, notes, field, about, contact
+    home/           the ground layer, opening, atlas, work, tools, notes, field, about, contact (+ ground.css)
     ui/             title block, figure + lightbox, locator (key map), state map, status
     media/          YouTube facade, loop, audio player
-  scripts/          vanilla TS, lazy-loaded per feature; terrain/ is the WebGL renderer
-  lib/              content queries, terrain maths, privacy rounding, share cards, build env
+  scripts/          vanilla TS, lazy-loaded per feature; ground/ is the WebGL engine, the home choreography and the key map
+  lib/              content queries, terrain maths, privacy rounding (privacy.ts), site close-ups (sites.ts), share cards, build env
   styles/           tokens, base, layout, components
   studio/           the Studio (React): app/, ui/, features/*, media + confidentiality modules
 studio-worker/      the Cloudflare Worker (paste worker.js into the dashboard)
@@ -183,16 +193,45 @@ scripts/            terrain build, smoke/e2e suites, screenshots, redirect site
 tests/              vitest
 ```
 
-**The terrain.** `scripts/build-terrain.mjs` turns Mapzen Terrarium elevation
-tiles (SRTM, NED, GMTED) and a Natural Earth boundary into
-`public/data/ca-terrain.png`: 192 × 216 cells, with elevation in R, sea in G
-and "inside California" in A. `src/scripts/terrain/` draws it as a WebGL2
-point cloud. The camera follows the reading position on the home page (an
-oblique opening view, then plan view, then a fly-to for each site), and the
-readout shows the latitude and longitude under the pointer (screen-to-ground
-unprojection). The same data renders the dot-relief SVG behind every map
-figure (`/data/ca-relief.svg`). Without WebGL, or if the context is lost,
-the figure falls back to that static relief.
+**The ground.**
+
+Data:
+
+- `scripts/build-ground.mjs` bakes California from Mapzen Terrarium
+  elevation tiles (SRTM, NED, GMTED), a Natural Earth boundary and Natural
+  Earth lakes. The output is `public/data/ca-ground.webp`: 384 × 432 cells,
+  with elevation in whole metres (R·256 + G) and flags for sea, lake,
+  California and neighbouring land. The sea is flood-filled from the map
+  edge, so Death Valley stays land.
+- Each project's close-up is baked at build time by
+  `src/pages/data/site/[slug].webp.ts`. It covers 40 km around the project's
+  public (rounded) position, sampled from ~120 m tiles, and is always at
+  least four times wider than the rounding. If the tiles can't be fetched,
+  the build writes a placeholder and that site keeps the statewide ground.
+- `scripts/build-terrain.mjs` still bakes the smaller `ca-terrain.png` behind
+  the flat dot-relief figures.
+
+`src/scripts/ground/` holds the engine:
+
+- `world.ts` holds the geometry: point clouds, hillshade, and the schematic
+  section with borings and water table.
+- `shaders.ts` draws water as the cartographer's horizontal hatch.
+- `engine.ts` is one WebGL2 canvas with damped camera goals, the torch and
+  coordinate lens under the cursor, drag to orbit, and HTML overlays
+  (stakes, borings, photo cards) projected each frame. It draws only while
+  something moves.
+- `home.ts` is the choreography. Elements marked `data-ground="<stage>"` are
+  anchors, and the pose and scene are blended between the two either side of
+  mid-screen, with an arc on long hops.
+- `keymap.ts` runs the live key map on report pages. The home ground morphs
+  into it through a shared `view-transition-name`.
+
+Fallbacks and settings:
+
+- Without WebGL, or if the context is lost, the home page shows the still
+  relief, and the sheets carry their own locator figures.
+- Under reduced motion, each stage is a finished still.
+- Phones get lighter point density and a window onto the map at each stage.
 
 **Motion.** Reveals are CSS scroll-driven animations (`animation-timeline:
 view()`) with an IntersectionObserver fallback. Page-to-page morphs (a project

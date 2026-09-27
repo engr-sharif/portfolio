@@ -2,7 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import SectionHead from '../../components/ui/SectionHead.astro';
 import { withBase } from '../../lib/path';
-import terrain from '../../data/ca-terrain.json';
+import ground from '../../data/ca-ground.json';
 
 const swatches = [
   { name: 'Datum', role: 'The page', field: '#edede7', lab: '#111311' },
@@ -51,7 +51,7 @@ const built = new Date().toISOString().slice(0, 10);
     <section class="sec">
       <SectionHead no="3.0" title="Data and maps" />
       <div class="prose unnumbered">
-        <p>The terrain on the home page and every locator figure come from one 192 × 216 heightmap of California baked from public elevation tiles. {terrain.credits} Project positions are rounded to about a kilometre, or more where a project asks for it, before they reach any page.</p>
+        <p>The ground under the home page is California at {ground.width} × {ground.height}, baked from public elevation tiles with the lakes marked; each project’s close-up is a further 40 km of real terrain around its site, baked at build time. {ground.credits} The strata in the cross-section are schematic; the land surface above them is real. Project positions are rounded to about a kilometre, or more where a project asks for it, before they reach any page, and every close-up is centred on that rounded position.</p>
         <p>The map lettering follows USGS convention: water in italic serif, sites in semibold with a stake.</p>
       </div>
     </section>
@@ -59,7 +59,7 @@ const built = new Date().toISOString().slice(0, 10);
     <section class="sec">
       <SectionHead no="4.0" title="Build" />
       <div class="prose unnumbered">
-        <p>Pages are rendered to static HTML with Astro and served by Cloudflare Pages. Public pages ship no framework JavaScript: the terrain is a few hundred lines of hand-written WebGL2 that runs only while it’s on screen, and motion uses CSS scroll-driven animation and native view transitions. Every moment has a finished, still version for readers who prefer reduced motion.</p>
+        <p>Pages are rendered to static HTML with Astro and served by Cloudflare Pages. Public pages ship no framework JavaScript: the ground is hand-written WebGL2 that draws only while something is moving, and motion uses CSS scroll-driven animation and native view transitions. Every moment has a finished, still version for readers who prefer reduced motion.</p>
         <p>A strict Content-Security-Policy covers every page. Nothing is embedded from a third party until you ask for it: videos load YouTube only after you press play.</p>
         <p>The content is edited in a private Studio I built, which commits to the site’s repository. Photos are resized and stripped of location data in the browser before they’re uploaded.</p>
       </div>
