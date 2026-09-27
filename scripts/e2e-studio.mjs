@@ -251,6 +251,11 @@ try {
     const v = await page.inputValue('#f-name');
     if (!v) throw new Error('name field empty');
   });
+  await step('career & credentials editor loads the profile', async () => {
+    await page.goto(`${ORIGIN}${BASE}studio/file/profile/`, { waitUntil: 'networkidle' });
+    await page.waitForSelector('.ed :text("Career log")', { timeout: 20000 });
+    await page.waitForSelector('.ed input[value="B.S., Environmental Engineering"]', { timeout: 20000 });
+  });
   await step('media library: bulk upload is one commit, then delete', async () => {
     await page.goto(`${ORIGIN}${BASE}studio/media/blog/`, { waitUntil: 'networkidle' });
     await page.waitForSelector('.mediapg', { timeout: 20000 });

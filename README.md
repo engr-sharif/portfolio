@@ -1,45 +1,21 @@
 # engr-sharif portfolio
 
-Personal portfolio + live project dashboard for **Mohammad "Nawaz" Sharif**,
-Environmental Engineer (EIT). Static site, GPU-light motion, and a browser admin
-so projects, photos, and text can be updated without touching code.
+The portfolio of **Mohammad "Nawaz" Sharif**, Environmental Engineer (EIT), at
+<https://mosharif.pages.dev>, and the **Studio**, the browser admin he
+publishes it from (including from the field, offline).
 
-**Stack:** Astro · React islands · CSS scroll-driven animations (with an
-IntersectionObserver fallback) · GSAP for the signature moments (SplitText hero,
-Flip lightbox, count-up stats) · Three.js + React Three Fiber · MapLibre GL ·
-Tailwind CSS 4 · satori-generated share cards · a strict Content-Security-Policy
-on every page · a custom Studio admin · TypeScript. Output is 100% static
-(Cloudflare Pages — the Studio's only backend is a small Cloudflare Worker).
+The design direction is **Ground Truth**: the site reads like an engineer's
+report set, built from real survey data. California is drawn from real
+elevation data. Every project is a numbered report with a title block, a key
+map and figures. The page margin is a boring log that tracks how far you've
+read, and the 404 hits refusal.
 
----
-
-## Hosting: deploy target & `base` path
-
-The build is **host-agnostic**. Two environment variables decide where it lives:
-
-| Host | `SITE_URL` | `BASE_PATH` |
-|---|---|---|
-| **Cloudflare Pages (production, the default)** | `https://mosharif.pages.dev` | `/` |
-| Custom domain (when added) | `https://<domain>` | `/` |
-| GitHub Pages (legacy) | `https://engr-sharif.github.io` | `/portfolio/` |
-
-The legacy address now serves only a redirect (`scripts/redirect-site.mjs`,
-deployed by `.github/workflows/deploy.yml`) so old links, QR codes and search
-results land on the new home.
-
-Every internal link goes through `withBase()` (`src/lib/path.ts`), every absolute
-URL through `Astro.site`, `robots.txt` is generated from both, and the Studio,
-share cards and test scripts read the same values — so moving host is a
-two-variable change, not a search-and-replace.
-
-**Cloudflare Pages (already set up):** the project `mosharif` is connected to this
-repo — build command `npm run build`, output `dist`, variables
-`SITE_URL=https://mosharif.pages.dev` and `BASE_PATH=/` for Production and Preview
-(Node comes from `.node-version`). Every push to `main` goes live in ~2 minutes;
-every other branch/PR gets a preview URL. The Studio Worker's `ALLOWED_ORIGIN`
-lists the new origin. `public/_headers` supplies the security/caching headers a
-static host can't otherwise send, and `/build.json` is a per-build stamp the
-Studio polls to report *Live* truthfully.
+**Stack:** Astro 7 (static output) · hand-written WebGL2 · CSS scroll-driven
+animations and cross-document View Transitions · Archivo, Newsreader and
+IBM Plex Mono, self-hosted · satori share cards · a strict
+Content-Security-Policy. The public site ships **no framework JavaScript**;
+the Studio is a React app backed by a small Cloudflare Worker. Hosted on
+Cloudflare Pages.
 
 ---
 
@@ -47,290 +23,210 @@ Studio polls to report *Live* truthfully.
 
 ```bash
 npm install
-npm run dev        # http://localhost:4321
-npm run build      # production build → dist/
-npm run preview    # serve the production build locally
+npm run dev            # http://localhost:4321
+npm run build          # production build → dist/
+npm run preview        # serve dist/ (Astro 7 runs it as a background daemon; `astro preview stop` ends it)
 ```
 
-Node 20+ recommended.
+Node 22 (`.node-version`).
+
+### Checks (all run in CI on every push)
+
+| Command | What it proves |
+|---|---|
+| `npm test` | Unit tests: schemas, frontmatter round-trips, the Worker's commit and preview routes, the confidentiality scan, video location scrub, terrain projection maths, media helpers |
+| `npm run check` | TypeScript and Astro diagnostics |
+| `npm run smoke` | Every page type in headless Chromium: no CSP violations, console errors, horizontal overflow or reveals left invisible. CI runs it twice, dark with scroll-driven animations and light without |
+| `npm run smoke:studio` | The Studio renders, registers its service worker and opens offline |
+| `npm run e2e:studio` | The Studio end to end against an in-memory Worker: editing, ⌘S, clearance, the confidentiality check, preview links, media fields, voice-note upload, field-log memo and clip, the watch list, bulk actions, history |
+
+`node scripts/shots.mjs` saves design-review screenshots of every page (both
+themes, desktop and phone) to `.shots/`.
 
 ---
 
-## How to add a project (no code)
+## Hosting
 
-Each project is one Markdown file in `src/content/projects/`. Either edit via the
-Studio at `/studio` (see below) or add a file directly:
+Cloudflare Pages project **`mosharif`**, connected to this repo: build
+`npm run build`, output `dist`, variables `SITE_URL=https://mosharif.pages.dev`
+and `BASE_PATH=/`. A push to `main` is live in about two minutes.
 
-```md
----
-title: "New Project"
-client: "Client / Site"
-siteType: "Site characterization"
-status: "active"          # active | complete | proposed
-role: "Field & sampling support"
-startDate: "2025-01"      # YYYY-MM
-endDate: "2025-06"        # optional
-summary: "One-line public summary."
-techniques: ["XRF scanning", "Grid sampling"]
-coverImage: "myproject.jpg"   # filename in src/assets/covers/
-gallery: ["field-01.jpg"]     # optional, filenames in src/assets/gallery/
-featured: false
-order: 5
-published: false          # ← stays hidden until you confirm it's public-safe
----
+- **Every other branch** gets its own preview URL. Preview builds are
+  `noindex` and `robots.txt` disallows everything (`src/lib/build-env.ts`).
+- **The `preview` branch** is the Studio's *unlisted preview*. Its build also
+  shows unpublished entries and stamps each page "Unlisted preview", at
+  `https://preview.mosharif.pages.dev`.
+- `public/_headers` sets the security and caching headers. The Studio gets
+  its own policy, with camera, microphone and location allowed for itself.
+- `public/_redirects` sends the old `/blog/…` addresses to `/notes/…` and
+  serves the Studio's deep links.
+- `/build.json` is a per-build stamp the Studio polls, so it only says *Live*
+  once the site has actually rebuilt.
+- The old GitHub Pages address serves only a redirect
+  (`scripts/redirect-site.mjs`, `.github/workflows/deploy.yml`).
 
-Markdown write-up here (public, high-level only).
-```
-
-> **Confidentiality:** a project only appears on the site when `published: true`.
-> Leave it `false` until every site/client detail is cleared for public sharing.
-
-## How to add a blog post
-
-Write from the Studio (`/studio` → **Blog** → New Post) or add a file directly at
-`src/content/blog/<slug>.md`:
-
-```md
----
-title: "My Post"
-description: "One-line summary (used for the card + SEO, < 200 chars)."
-pubDate: 2026-05-29
-coverImage: "my-cover.jpg"   # filename in src/assets/blog/ (optional)
-coverAlt: "Describe the image"
-tags: ["XRF", "Field methods"]
-category: "technical"        # field-notes | technical | professional
-relatedProject: "sulphur-bank-mercury-mine"   # optional, links to a project
-draft: true                  # ← stays hidden on the live site until false
----
-
-## A heading
-Markdown body. `##`/`###` headings auto-build the table of contents. Code
-blocks get syntax highlighting + a copy button automatically.
-```
-
-> **Heads up:** the CMS has no separate review step — **Save = publish**. The
-> `draft` flag is the gate: leave it `true` until the post is ready, then flip
-> it to `false`. Reading time is computed automatically; the post appears on
-> `/blog/`, its tag pages, the RSS feed (`/rss.xml`), and the sitemap.
-
-## How to add gallery media
-
-**From the browser (recommended):** go to **`/studio` → Field Gallery → Photos →
-Add Photo**, upload an image, and write a short alt-text description. Drag to
-reorder. Saving commits the photo to `src/assets/gallery/` and the optimized,
-lazy-loaded masonry gallery rebuilds automatically.
-
-**Or by hand:** drop image files into **`src/assets/gallery/`** and push — if the
-CMS photo list is empty, the gallery auto-globs that folder as a fallback. Cover
-images live in `src/assets/covers/` and blog images in `src/assets/blog/`.
-
-Keep uploads reasonably small (phone photos are fine; avoid 10MB+ originals).
-
-**Video:** GitHub is a poor video host (100 MB/file limit, no CDN). Do **not**
-commit large raw video. Add external embeds (YouTube/Vimeo) under *Site Settings
-→ Video embeds* in the CMS.
-
-## How to swap the résumé
-
-Replace **`public/resume/Sharif_Resume.pdf`** with your real PDF (keep the
-filename). Update the "last updated" date under *Site Settings* (`resumeUpdated`
-in `src/content/settings/site.json`). Until a real PDF is in place the site
-detects the placeholder at build time and shows "Request résumé" instead of a
-download link (see `src/lib/resume.ts`).
-
-## Editing in the browser (`/studio` — the Studio)
-
-`/studio` is a **custom-built admin** ("the Studio") — a React app under
-`src/studio/` that edits content and commits straight back to the repo through a
-small Cloudflare Worker (`studio-worker/`, password-protected). No third-party
-CMS, no OAuth dance. Desktop and phone; installable; opens offline.
-
-**Studio 2.0 ("Field Desk")** — dense, keyboard-first, drag-and-drop:
-- **⌘K command palette** — jump anywhere, create anything, find any loaded entry.
-- **Collection tables** with search, status filter, **drag-to-reorder** (mouse,
-  touch or keyboard) saved as **one commit** on drop with *Undo*, one-click
-  status pills, and **bulk publish / unpublish / delete** (one commit each).
-- **Block editor** (TipTap/ProseMirror) for the body: type **`/`** for blocks
-  (headings, lists, quote, code, image, video, divider), select text for an
-  inline menu, **drop or paste images** straight into the text, an AI assist
-  menu (polish / grammar / summarize / expand), and a **Markdown** toggle to
-  the raw source. The file stays clean markdown: every real post round-trips
-  with identical rendered HTML (tested), and raw embeds are kept byte-exact.
-- **Media library** — one tab per managed folder; drop any number of files
-  to upload them as **one commit** (images optimised first), multi-select to
-  delete, copy a path. **`?`** opens a keyboard-shortcuts sheet.
-- **Location picker** — projects get a map card (click to pin, drag, or type
-  lat/lng) instead of two bare number fields.
-- **Editor** with a publish sidebar, live preview, **⌘S** to save, local drafts
-  that survive a closed tab, a **History** drawer with a line diff and *Restore*,
-  and image fields that accept **drag-and-drop** uploads with sortable galleries.
-- **Truthful publish toast** — tracks the site's build stamp until the deployed
-  commit is the one you saved; reports a failed build with the log link.
-- **Demo mode** (`/studio/?mock=1`, password `mock`) — an in-memory copy of the
-  site seeded from the repo, so anyone can try it; the e2e suite runs on it.
-- **Field log** (offline capture → one-commit Field Notes draft), light/dark
-  theme, error boundaries with recovery, TanStack Query cache with optimistic
-  reorders, real static pages for every deep route (plus `_redirects` on
-  Cloudflare for routes newer than the build).
-
-Structure: `src/studio/app` (App, routes, TanStack Query hooks, mock Worker),
-`src/studio/ui` (primitives, toasts, palette, error boundary),
-`src/studio/features/*` (shell, auth, dashboard, collection, editor). The
-Worker API is unchanged.
-
-### Image pipeline (automatic on upload)
-Every uploaded photo is processed in the browser before it's committed
-(`src/studio/image-process.ts`):
-- **HEIC/HEIF → JPEG** so iPhone photos render on the built site.
-- **Downscaled** to ~2400px @ q0.85 with EXIF orientation honoured (Astro then
-  generates responsive sizes from that source).
-- **EXIF GPS + capture date are read first** (re-encoding strips them) and saved
-  onto Field Gallery photos as `lat`/`lng`/`takenAt` — this feeds the map.
-
-### "Where I've worked" map
-`src/components/WorkMap.astro` + `WorkMapIsland.tsx` render a MapLibre map on the
-About page with two toggleable layers: **project sites** (projects carrying
-`lat`/`lng`) and **field photos** (gallery points geotagged on upload).
-Coordinates are **snapped to ~1 km** for client confidentiality, and projects
-stay behind the `published` gate. Add a project to the map by setting its
-location in the Studio (or `lat`/`lng` in frontmatter).
+Moving to a custom domain takes two changes: `SITE_URL` in the Pages settings,
+and the Worker's `ALLOWED_ORIGIN`. Every link goes through `withBase()`, and
+every absolute URL goes through `Astro.site`.
 
 ---
 
-## Project structure
+## Publishing with the Studio (`/studio`)
+
+A custom admin (no third-party CMS) that commits straight to this repo through
+the Worker in [`studio-worker/`](./studio-worker/README.md). It sits behind a
+password, works on desktop and phone, installs as an app, and opens offline.
+Try it without a password at `/studio/?mock=1` (password `mock`). That demo
+runs on an in-memory copy of the site; nothing is saved.
+
+**Writing.** Projects, notes and tools each have a schema-driven form and a
+block editor (type `/` for blocks; drop or paste images; a Markdown toggle).
+Every save is one commit and works with ⌘S. Drafts are kept in the browser as
+you type. A History drawer diffs past versions and restores them. ⌘K jumps
+anywhere. There is no built-in AI writing help: draft in Claude, then paste
+the text in.
+
+**Before it goes live.** Every entry that publishes goes through two checks:
+
+1. **Clearance (projects).** Four boxes: names, photos, location and data are
+   cleared for public sharing. *Published* can't be switched on until all
+   four are ticked, and unticking one takes the project offline. The date is
+   recorded in the file (`clearance`).
+2. **Automatic check (everything).** A read of the fields and write-up for
+   precise coordinates, lab results with units (mg/kg, µg/L, ng/L…), street
+   addresses, parcel numbers, phone numbers, and any name on your **watch
+   list**. Findings show in context in the sidebar. Publishing with anything
+   unreviewed asks you to read it first. It is a checklist, not a judge: a
+   regulatory limit looks exactly like a lab result.
+
+The **watch list** (Studio → Watch list) holds names that must never appear:
+clients, sites, people. The repo stores only salted hashes
+(`src/content/settings/watchlist.json`), so the file doesn't show the names.
+That keeps them from a casual reader, but not from someone guessing a
+specific name.
+
+**Preview link.** This builds the current version at the unlisted preview
+address without touching the live site, so you can read it as a visitor
+would or send it for review. Each preview replaces the last one.
+
+**Location precision.** Map positions are always rounded:
+`site` ≈ 1 km, `town` ≈ 10 km, `region` ≈ 50 km (a per-project setting).
+Coordinates typed into text are not rounded, which is what the automatic
+check is for.
+
+### Media
+
+| Kind | Where it lives | Limits | Notes |
+|---|---|---|---|
+| Photos | `src/assets/…` | optimised on upload | HEIC → JPEG, ≤ 2400 px, **EXIF (and GPS) stripped** by re-encoding. If re-encoding fails, the upload stops rather than send the original. |
+| Video | **YouTube** | none | Paste the link. The site shows a poster and loads YouTube's privacy-enhanced player only when someone presses play. |
+| Short loops | `public/media/loops/` | 20 s, 8 MB | Silent, play when visible, a poster frame is taken for you. **Phone GPS is blanked in place** before upload. |
+| Voice notes | `public/media/audio/` | 15 MB | Record in the Studio or upload. The waveform is computed in the browser, and a transcript field sits alongside. |
+| PDFs | `public/media/docs/` | 10 MB | Only documents that are already public. |
+
+The limits keep the site deployable: Cloudflare Pages rejects any file over
+25 MiB, and everything committed stays in git history for good. The Media
+library shows where each file is used and warns before you delete one that
+something still references.
+
+### Field log (offline)
+
+Capture on site with no signal: a title, notes, a GPS fix, photos, a **voice
+memo** and short **clips**. Everything stays on the device (IndexedDB) until
+you publish. Publishing turns a capture into a Field Notes **draft**: photos
+are optimised, clips get a poster frame and their GPS blanked, and the memo
+gets its waveform. The files land before the note does, so a note never
+appears without its media. When you're back in signal, *Publish all*
+publishes every waiting capture.
+
+---
+
+## Content model
+
+`src/content/schemas.ts` is the single source of truth. The build and the
+Studio validate against the same rules, so an entry the Studio saves can't
+break the build.
+
+- **Projects** (`src/content/projects/*.md`): the report pages. `published`
+  plus `clearance` gate them; they also take `lat`/`lng`/`privacy`, `video`,
+  `audio`, `documents` and a gallery.
+- **Notes** (`src/content/blog/*.md`, served at `/notes/`): `draft` gates
+  them. Notes from the field log carry `category: field-notes`.
+- **Tools** (`src/content/tools/*.md`): each gets a hand-drawn schematic
+  (`src/components/tools/Schematic.astro`), or a `loop` screen recording
+  once one is uploaded.
+- **Settings** (`src/content/settings/*.json`): site details, career and
+  credentials, gallery, captions and the watch list.
+
+Titles and summaries get printer's quotes at build time; files keep what was
+typed.
+
+---
+
+## How it's built
 
 ```
-.github/workflows/deploy.yml   GitHub Pages deploy (official Actions flow, main only)
-.github/workflows/ci.yml       PR checks: unit tests (vitest) · astro check · build
-tests/                         unit tests (frontmatter round-trip, schemas, date range)
-scripts/smoke.mjs              headless-Chromium smoke test (CSP, console, reveals, OG)
-studio-worker/                 Cloudflare Worker backend for the Studio (auth + commits)
-public/
-  resume/Sharif_Resume.pdf    résumé (swap via the Studio)
-  og-image.png (manual share-image override), robots.txt, favicon.svg, .nojekyll
 src/
-  assets/covers, assets/gallery   images → optimized via <Image>
-  studio/                      the custom admin: Studio, Editor, Field, MarkdownEditor,
-                               PreviewPane, image-process, schema, api
-  components/                  Hero, FieldAtlas, CaseStudies, ProjectCard, Gallery, About, RecruiterBar,
-                               WorkMap (+ WorkMapIsland), three/HeroScene…
-  content/projects, blog, tools   one Markdown file per entry (Studio-managed)
-  content/settings/            site.json + gallery.json + media.json singletons
-  lib/                         motion, hero, theme, atlas, og, images, projects, blog, site…
-  layouts/BaseLayout.astro     <head>, SEO/OG/Twitter, JSON-LD, RSS link
-  pages/                       index, about, projects/[slug], blog/[slug], 404, rss.xml
-  content.config.ts            content collections schema
-astro.config.mjs
+  pages/            routes: /, /projects, /tools, /notes, /about, /cv, /colophon, 404, share cards, search.json
+  layouts/          BaseLayout: fonts, theme, CSP-hashed inline script, rail, search
+  components/
+    site/           nav, footer, depth rail (boring log), search
+    home/           the map chapter (opening + atlas), work, tools, notes, field, about, contact
+    ui/             title block, figure + lightbox, locator (key map), state map, status
+    media/          YouTube facade, loop, audio player
+  scripts/          vanilla TS, lazy-loaded per feature; terrain/ is the WebGL renderer
+  lib/              content queries, terrain maths, privacy rounding, share cards, build env
+  styles/           tokens, base, layout, components
+  studio/           the Studio (React): app/, ui/, features/*, media + confidentiality modules
+studio-worker/      the Cloudflare Worker (paste worker.js into the dashboard)
+scripts/            terrain build, smoke/e2e suites, screenshots, redirect site
+tests/              vitest
 ```
 
-## The Living Atlas (WebGL California)
+**The terrain.** `scripts/build-terrain.mjs` turns Mapzen Terrarium elevation
+tiles (SRTM, NED, GMTED) and a Natural Earth boundary into
+`public/data/ca-terrain.png`: 192 × 216 cells, with elevation in R, sea in G
+and "inside California" in A. `src/scripts/terrain/` draws it as a WebGL2
+point cloud. The camera follows the reading position on the home page (an
+oblique opening view, then plan view, then a fly-to for each site), and the
+readout shows the latitude and longitude under the pointer (screen-to-ground
+unprojection). The same data renders the dot-relief SVG behind every map
+figure (`/data/ca-relief.svg`). Without WebGL, or if the context is lost,
+the figure falls back to that static relief.
 
-One persistent WebGL scene sits behind every public page: a point field of
-**real California terrain** (Sierra crest, Central Valley, Tahoe, the coast)
-with slowly climbing contour lines, a pointer ripple, and the project sites
-glowing on their real coordinates.
+**Motion.** Reveals are CSS scroll-driven animations (`animation-timeline:
+view()`) with an IntersectionObserver fallback. Page-to-page morphs (a project
+card's title and figure into its report) are native cross-document View
+Transitions. Everything honours `prefers-reduced-motion`.
 
-- **Data** — `node scripts/build-terrain.mjs` fetches SRTM-derived Mapzen
-  terrarium tiles + the Natural Earth state boundary and bakes
-  `public/data/ca-terrain.png` (192×216 RGBA: elevation, sea flag, in-state
-  mask) and `src/data/ca-terrain.json` (bbox, scale). Both are committed; re-run
-  only to change resolution.
-- **Scene** — `src/components/three/TerrainField.tsx` samples the heightmap in
-  the vertex shader (≈ 41k points desktop / 10k phone), mounted once in
-  `BaseLayout` with `transition:persist` so the canvas and camera survive View
-  Transitions.
-- **Stations** — each page declares where the camera should be via `<body
-  data-scene>`: `home` (scroll flies hero → Atlas plan view → quiet backdrop),
-  `page` (quiet backdrop), `site` (close over `data-scene-lat/lng` — project
-  pages). The homepage Field Atlas list emits `atlas:active` on hover to light a
-  node; the scene emits `atlas:pose` for the hero HUD readout.
-- **Discipline** — DPR capped, render loop paused when the tab is hidden,
-  on-demand frames under reduced motion, additive blending only on the dark
-  theme, colours from the theme tokens (`--hero-*`).
-
-## Design & motion notes
-
-- **The Living Atlas.** One persistent WebGL scene (`src/components/three/
-  TerrainField.tsx`, mounted in BaseLayout with `transition:persist`) renders
-  California's real terrain as a point field from a heightmap baked by
-  `scripts/build-terrain.mjs` (SRTM tiles + state boundary → `public/data/
-  ca-terrain.png`). Pages declare a camera station on `<body data-scene>`
-  (`home` scroll flight · `page` backdrop · `site` close-up over lat/lng);
-  on the homepage the camera also flies to each case study's site as its row
-  crosses the viewport. Project sites glow as nodes with projected labels, a
-  coordinate lens follows the pointer over the state, and the hero HUD reads
-  the live camera target. Hovering an Atlas row emits `atlas:active`.
-- **Kinetic type.** Section and case-study titles settle from light to bold as
-  they enter (Space Grotesk's weight axis, scroll-driven, no JS).
-- **Two themes.** *Field* (dark, default) and *Lab* (light) are one token set
-  each in `global.css`; the toggle lives in the nav (`src/lib/theme.ts`), the
-  choice persists in localStorage and follows the OS until you pick, and a
-  hashed inline script applies it before first paint. The WebGL hero and the
-  MapLibre basemap recolour with the theme.
-- **Field Atlas.** The homepage's `FieldAtlas.astro` lists every published site
-  with a location beside an intentionally empty stage: the Living Atlas behind
-  the page is the map (hover a row, its node lights up). The About page keeps a
-  conventional MapLibre map; data prep is shared in `src/lib/atlas.ts`.
-- **Case studies.** Projects carry optional `problem` / `approach` / `outcome`
-  fields (editable in the Studio). When present they render as a brief on the
-  homepage rows (`CaseStudies.astro`) and at the top of the project page.
-- **Recruiter bar.** `RecruiterBar.astro` slides in after the first viewport
-  (CSS scroll-driven) with résumé / LinkedIn / email; dismiss hides it for the
-  session.
-
-- Tokens (color/type/easing) live in `src/styles/global.css` under `@theme`.
-- Scrolling is native. Reveals, the hero parallax, the career-timeline fill,
-  the topo line-draw and the reading-progress bar are **CSS scroll-driven
-  animations** (`animation-timeline: view()`) declared in `global.css` under
-  SCROLL-DRIVEN REVEALS — no scroll listeners, no smooth-scroll library.
-  Browsers without support get the same motion as CSS transitions toggled by a
-  tiny IntersectionObserver in `src/lib/motion.ts` (which also owns the custom
-  cursor and magnetic buttons). GSAP stays where it earns its place: the hero
-  headline (`src/lib/hero.ts`), the count-up stats and the lightbox
-  (`src/lib/lightbox.ts`).
-- **Share cards** (`og:image`) are rendered at build time by satori + sharp from
-  `src/lib/og.ts` — one branded card per page, with the cover photo when there
-  is one. `src/pages/og/[...slug].png.ts` lists the routes; BaseLayout picks the
-  matching card automatically. Setting a custom image in Site Settings overrides
-  all of them.
-- **Content-Security-Policy** is on for every page (`security.csp` in
-  `astro.config.mjs`). Astro hashes its own inline scripts; the only inline
-  script we write (the `js` class gate) is hashed in BaseLayout, and third-party
-  origins are added per page with `Astro.csp.insertDirective`. `npm run smoke`
-  builds nothing but drives every page type in headless Chromium and fails on
-  any CSP violation, console error, or reveal left invisible.
-- **Every animation respects `prefers-reduced-motion`** and degrades on touch
-  (no hover-only dead-ends; no scroll-jacking on phones). The WebGL hero pauses
-  off-screen and freezes under reduced-motion.
-
-## Performance
-
-- All images go through Astro `<Image>` (responsive WebP, lazy-loaded).
-- The Three.js hero is isolated into its own chunk, loaded via `client:visible`
-  so it never blocks first paint/LCP (the headline is plain HTML/CSS).
-- Run a Lighthouse check after deploy; target ≥ 90 Performance / ≥ 95 A11y.
+**Accessibility.** Every text colour pair is checked against WCAG AA in both
+themes. The site is fully keyboard-navigable (skip link, visible focus,
+dialog focus management), and the lightbox and search are real `<dialog>`s.
 
 ---
 
-## ✅ Manual steps for Nawaz
+## Manual steps for Nawaz
 
-These need your own credentials/judgment — they are **not** done in this repo:
+These need your accounts or your judgement:
 
-1. **Hosting** — production is Cloudflare Pages at `https://mosharif.pages.dev`
-   (`SITE_URL`/`BASE_PATH` live in the Pages project settings). To move to a
-   custom domain: Pages project → *Custom domains*, then change `SITE_URL` and
-   the Worker's `ALLOWED_ORIGIN`.
-2. **GitHub Pages** stays enabled (Source = "GitHub Actions") only to serve the
-   redirect from the old `/portfolio/` address.
-3. **Studio backend** — deploy the Cloudflare Worker and set its secrets
-   (`STUDIO_PASSWORD`, `STUDIO_JWT_SECRET`, and a GitHub token). Full steps:
-   [`studio-worker/README.md`](./studio-worker/README.md). **Never commit the
-   secrets.**
-4. **Résumé** — upload your PDF in the Studio (Site Settings → Résumé), or drop
-   it at `public/resume/Sharif_Resume.pdf`.
-5. **Confidentiality review** — for every seeded project, confirm each
-   site/client detail is cleared for public sharing, then set `published: true`.
-   The seeds use neutral, public-level descriptions and are confidentiality-gated.
-6. **Real field photos** — add them to `src/assets/gallery/`. You can delete the
-   placeholder generators (`scripts/gen-*.mjs`) and placeholder images once real
-   media is in.
+1. **Redeploy the Studio Worker.** Paste the current
+   [`studio-worker/worker.js`](./studio-worker/worker.js) into the Cloudflare
+   dashboard. This adds preview links (`/api/preview`) and removes the old AI
+   endpoint. The Studio keeps working on the old Worker, but *Preview link*
+   will ask for the update.
+2. **Clear each live project.** On its next save the Studio asks you to tick
+   the four clearance boxes. That is your confirmation that each detail is
+   public; nobody else can give it.
+3. **Fill the watch list** with client, site and people names that must never
+   appear.
+4. **Name your university** in the career log (Studio → Career &
+   Credentials). It currently says "University".
+5. **Confirm the field photos** in the gallery are cleared (no identifiable
+   people, plates or client signage).
+6. **Résumé PDF:** upload it in Site Settings, or replace
+   `public/resume/Sharif_Resume.pdf`. Until a real PDF is there, the CV page
+   offers "Print or save as PDF" of itself instead of a download
+   (`src/lib/resume.ts` detects the placeholder).
+7. **Tool loops** (optional): record 5–15 s of each tool in use with sample
+   data and upload it on the tool's page in the Studio. It replaces the
+   schematic.

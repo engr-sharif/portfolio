@@ -178,6 +178,44 @@ export const collections: Collection[] = [
     ],
   },
   {
+    id: 'profile',
+    label: 'Career & Credentials',
+    icon: 'M6.5 1A1.5 1.5 0 0 0 5 2.5V3H1.5A1.5 1.5 0 0 0 0 4.5v8A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-8A1.5 1.5 0 0 0 14.5 3H11v-.5A1.5 1.5 0 0 0 9.5 1zm0 1h3a.5.5 0 0 1 .5.5V3H6v-.5a.5.5 0 0 1 .5-.5',
+    kind: 'file',
+    file: 'src/content/settings/profile.json',
+    labelField: 'timeline',
+    fields: [
+      {
+        name: 'timeline', label: 'Career log', type: 'list',
+        hint: 'Shown on About as a boring log, present at the top. Order here doesn’t matter.',
+        fields: [
+          { name: 'date', label: 'When', type: 'text', hint: 'e.g. "2023 — Present" or "Anticipated 2027"' },
+          { name: 'title', label: 'Title', type: 'text' },
+          { name: 'org', label: 'Organisation · place', type: 'text' },
+          { name: 'detail', label: 'One line', type: 'text' },
+        ],
+      },
+      {
+        name: 'credentials', label: 'Licences', type: 'list',
+        fields: [
+          { name: 'label', label: 'Licence', type: 'text' },
+          { name: 'issuer', label: 'Issued by', type: 'text' },
+          { name: 'status', label: 'Status', type: 'text' },
+          { name: 'date', label: 'Date', type: 'text' },
+        ],
+      },
+      {
+        name: 'certifications', label: 'Certifications', type: 'list',
+        fields: [
+          { name: 'label', label: 'Certification', type: 'text' },
+          { name: 'issuer', label: 'Issued by / standard', type: 'text' },
+          { name: 'date', label: 'Date', type: 'text' },
+          { name: 'expires', label: 'Renews', type: 'text' },
+        ],
+      },
+    ],
+  },
+  {
     id: 'gallery',
     label: 'Field Gallery',
     icon: 'M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0',
