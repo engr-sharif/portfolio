@@ -1,0 +1,35 @@
+---
+/**
+ * The depth rail — the page drawn as a boring log. Sections that carry
+ * data-stratum="Title" (and optionally data-code / data-pattern) become the
+ * layers; the readout gives the reader's depth. Built by src/scripts/rail.ts.
+ * Patterns follow the standard lithology symbols (gravel, sand, silt, clay,
+ * bedrock).
+ */
+export interface Props { label?: string; total?: number }
+const { label = 'Boring B-1', total = 42.5 } = Astro.props;
+---
+<svg width="0" height="0" class="visually-hidden" aria-hidden="true" focusable="false">
+  <defs>
+    <pattern id="lith-topsoil" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M0 8 4 4l4 4" fill="none" stroke="currentColor" stroke-width=".8"/></pattern>
+    <pattern id="lith-silt" width="10" height="6" patternUnits="userSpaceOnUse"><path d="M1 3h4" stroke="currentColor" stroke-width=".9"/></pattern>
+    <pattern id="lith-clay" width="10" height="5" patternUnits="userSpaceOnUse"><path d="M0 2.5h10" stroke="currentColor" stroke-width=".7"/></pattern>
+    <pattern id="lith-sand" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r=".7" fill="currentColor"/><circle cx="4.5" cy="4.5" r=".7" fill="currentColor"/></pattern>
+    <pattern id="lith-silty-sand" width="10" height="8" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r=".7" fill="currentColor"/><path d="M5 6h4" stroke="currentColor" stroke-width=".8"/></pattern>
+    <pattern id="lith-gravel" width="14" height="12" patternUnits="userSpaceOnUse"><circle cx="4" cy="4" r="2.4" fill="none" stroke="currentColor" stroke-width=".8"/><circle cx="11" cy="9" r="1.8" fill="none" stroke="currentColor" stroke-width=".8"/></pattern>
+    <pattern id="lith-rock" width="16" height="10" patternUnits="userSpaceOnUse"><path d="M0 0h16M0 5h16M4 0v5M12 5v5" fill="none" stroke="currentColor" stroke-width=".8"/></pattern>
+  </defs>
+</svg>
+<nav class="rail" aria-label="On this page" data-rail data-total={total}>
+  <div class="rail__head">
+    <span class="label">{label}</span>
+    <span class="rail__depth" aria-hidden="true"><span data-rail-depth>0.0</span><small>ft bgs</small></span>
+    <span class="mono" style="font-size: 0.6875rem; color: var(--ink-3);">Ground surface 0.0</span>
+  </div>
+  <div class="rail__col">
+    <svg class="rail__svg" data-rail-svg aria-hidden="true" preserveAspectRatio="none"></svg>
+    <div class="rail__names" data-rail-names></div>
+    <span class="rail__tick" data-rail-tick aria-hidden="true"></span>
+  </div>
+</nav>
+<div class="depthbar" data-depthbar aria-hidden="true"></div>

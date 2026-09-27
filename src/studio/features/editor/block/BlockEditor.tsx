@@ -5,14 +5,13 @@ import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from '@tiptap/markdown';
 import Placeholder from '@tiptap/extension-placeholder';
-import type { Editor, Range } from '@tiptap/core';
-import { Bold, Italic, Code, Link2, Heading2, Heading3, List, ListOrdered, Quote, SquareCode, Image as ImageIcon, Film, Minus, Undo2, Redo2, Sparkles, FileCode2, Pilcrow, Type, Loader2 } from 'lucide-react';
+import type { Editor } from '@tiptap/core';
+import { Bold, Italic, Code, Link2, Heading2, Heading3, List, ListOrdered, Quote, SquareCode, Image as ImageIcon, Film, Minus, Undo2, Redo2, FileCode2, Pilcrow, Type, Loader2 } from 'lucide-react';
 import { HtmlBlock, RepoImage, createSlash, type SlashItem, type SlashState } from './extensions';
 import { uploadFile } from '../Field';
 import { MarkdownEditor, videoEmbed } from '../../../MarkdownEditor';
-import { aiAssist, uploadImage } from '../../../api';
-import { aiGuide } from '../../../studio-lib';
-import { Button, Dialog, IconButton, Input, Menu } from '../../../ui/primitives';
+import { storeLoop, loopHtml } from '../../../media-upload';
+import { Button, Dialog, Input } from '../../../ui/primitives';
 
 /**
  * Block editor for the markdown body. TipTap/ProseMirror in the browser, clean
@@ -25,13 +24,6 @@ import { Button, Dialog, IconButton, Input, Menu } from '../../../ui/primitives'
 interface Props { value: string; onChange: (md: string) => void; mediaDir?: string; placeholder?: string }
 type Mode = 'blocks' | 'markdown';
 const MODE_KEY = 'studio.editor';
-const AI_TASKS = [
-  { key: 'polish', label: 'Polish wording' },
-  { key: 'grammar', label: 'Fix grammar only' },
-  { key: 'summarize', label: 'Summarize' },
-  { key: 'expand', label: 'Expand from notes' },
-];
-const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9.]+/g, '-').replace(/(^-|-$)/g, '');
 
 export const BlockEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/assets/blog', placeholder = 'Write, or type “/” for blocks…' }) => {
   const [mode, setMode] = useState<Mode>(() => { try { return (localStorage.getItem(MODE_KEY) as Mode) || 'blocks'; } catch { return 'blocks'; } });
@@ -42,9 +34,7 @@ export const BlockEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/assets
   const [videoUrl, setVideoUrl] = useState('');
   const [videoErr, setVideoErr] = useState('');
   const [busy, setBusy] = useState('');
-  const [aiOpen, setAiOpen] = useState(false);
-  const [ai, setAi] = useState<{ task: string; result: string; range: Range | null } | null>(null);
-  const [aiErr, setAiErr] = useState('');
+  const [err, setErr] = useState('');
   const lastMd = useRef(value);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -58,7 +48,7 @@ export const BlockEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/assets
         const node = { type: 'image', attrs: { src: path, alt: f.name.replace(/\.[^.]+$/, '') } };
         if (pos != null) editor.chain().focus().insertContentAt(pos, node).run(); else editor.chain().focus().insertContent(node).run();
       }
-    } catch (e: any) { setAiErr(e?.message || 'Upload failed.'); }
+    } catch (e: any) { setErr(e?.message || 'Upload failed.'); }
     finally { setBusy(''); }
     return true;
   }, [mediaDir]);
@@ -72,7 +62,7 @@ export const BlockEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/assets
     { id: 'quote', title: 'Quote', icon: <Quote size={15} />, keywords: 'blockquote callout', run: (e, r) => e.chain().focus().deleteRange(r).toggleBlockquote().run() },
     { id: 'code', title: 'Code block', hint: 'Snippet with syntax', icon: <SquareCode size={15} />, keywords: 'pre fence snippet', run: (e, r) => e.chain().focus().deleteRange(r).toggleCodeBlock().run() },
     { id: 'img', title: 'Image', hint: 'Upload from device', icon: <ImageIcon size={15} />, keywords: 'photo picture upload', run: (e, r) => { e.chain().focus().deleteRange(r).run(); fileInput.current?.click(); } },
-    { id: 'video', title: 'Video', hint: 'YouTube, Vimeo or upload', icon: <Film size={15} />, keywords: 'youtube vimeo embed', run: (e, r) => { e.chain().focus().deleteRange(r).run(); setVideoErr(''); setVideoOpen(true); } },
+    { id: 'video', title: 'Video', hint: 'YouTube link or a short clip', icon: <Film size={15} />, keywords: 'youtube loop clip embed', run: (e, r) => { e.chain().focus().deleteRange(r).run(); setVideoErr(''); setVideoOpen(true); } },
     { id: 'hr', title: 'Divider', icon: <Minus size={15} />, keywords: 'rule separator hr', run: (e, r) => e.chain().focus().deleteRange(r).setHorizontalRule().run() },
   ], []);
 
@@ -142,43 +132,19 @@ export const BlockEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/assets
   };
   const insertVideoUrl = () => {
     const html = videoEmbed(videoUrl);
-    if (!html || !editor) { setVideoErr('Not a YouTube or Vimeo link. Check the URL.'); return; }
+    if (!html || !editor) { setVideoErr('That isn’t a YouTube link. Paste the address from the video’s Share button.'); return; }
     editor.chain().focus().insertContent({ type: 'htmlBlock', attrs: { html } }).run();
     setVideoUrl(''); setVideoOpen(false);
   };
   const insertVideoFile = async (file: File) => {
     if (!editor) return;
-    setBusy('Uploading video…'); setVideoErr('');
+    setVideoErr('');
     try {
-      const base64 = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(file); });
-      const name = slugify(file.name);
-      await uploadImage(`public/videos/${name}`, base64, `studio: upload ${name}`);
-      editor.chain().focus().insertContent({ type: 'htmlBlock', attrs: { html: `<video class="video-embed-native" controls preload="metadata" src="${import.meta.env.BASE_URL}videos/${name}"></video>` } }).run();
+      const { src, poster } = await storeLoop(file, (st) => setBusy(st));
+      editor.chain().focus().insertContent({ type: 'htmlBlock', attrs: { html: loopHtml(src, poster) } }).run();
       setVideoOpen(false);
     } catch (e: any) { setVideoErr(e?.message || 'Upload failed.'); }
     finally { setBusy(''); }
-  };
-
-  const runAi = async (task: string) => {
-    if (!editor) return;
-    const { from, to, empty } = editor.state.selection;
-    const text = empty ? editor.getMarkdown() : editor.state.doc.textBetween(from, to, '\n');
-    if (!text.trim()) { setAiErr('Write something first, or select text to work on.'); return; }
-    setAiOpen(false); setAiErr(''); setBusy(`Assistant: ${task}…`);
-    try {
-      const guide = await aiGuide();
-      const { result } = await aiAssist(task, text, guide ? { system: guide } : {});
-      if (!result) setAiErr('The assistant returned nothing — try again.'); else setAi({ task, result, range: empty ? null : { from, to } });
-    } catch (e: any) { setAiErr(e?.message || 'AI request failed.'); }
-    finally { setBusy(''); }
-  };
-  const applyAi = (how: 'replace' | 'insert') => {
-    if (!editor || !ai) return;
-    if (how === 'replace' && ai.range) editor.chain().focus().insertContentAt(ai.range, ai.result, { contentType: 'markdown' }).run();
-    else if (how === 'replace') editor.commands.setContent(ai.result, { contentType: 'markdown' });
-    else editor.chain().focus().insertContent(`\n\n${ai.result}\n\n`, { contentType: 'markdown' }).run();
-    if (how === 'replace' && !ai.range) { const md = editor.getMarkdown(); lastMd.current = md; onChange(md); }
-    setAi(null);
   };
 
   const Tb: FC<{ on: boolean | undefined; label: string; icon: React.ReactNode; onClick: () => void; disabled?: boolean }> = ({ on, label, icon, onClick, disabled }) => (
@@ -210,9 +176,6 @@ export const BlockEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/assets
             <span className="blk-tb__sep" />
             <Tb on={false} label="Undo" icon={<Undo2 size={15} />} onClick={() => editor.chain().focus().undo().run()} disabled={!active?.canUndo} />
             <Tb on={false} label="Redo" icon={<Redo2 size={15} />} onClick={() => editor.chain().focus().redo().run()} disabled={!active?.canRedo} />
-            <span className="blk-tb__sep" />
-            <Menu open={aiOpen} setOpen={setAiOpen} align="left" trigger={(p) => <button type="button" className="blk-tb__btn blk-tb__btn--ai" title="AI assistant" {...p}><Sparkles size={15} /><span>Assist</span></button>}
-              items={AI_TASKS.map((t) => ({ label: `${t.label}${active?.hasSelection ? ' (selection)' : ''}`, onSelect: () => runAi(t.key) }))} />
           </>
         )}
         <span className="blk-tb__spacer" />
@@ -223,19 +186,7 @@ export const BlockEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/assets
         </div>
       </div>
 
-      {aiErr && <p className="sf__err blk-err" role="alert">{aiErr} <button type="button" className="link" onClick={() => setAiErr('')}>dismiss</button></p>}
-      {ai && (
-        <div className="blk-ai" role="status">
-          <div className="blk-ai__head"><Sparkles size={14} aria-hidden /> Assistant · {AI_TASKS.find((t) => t.key === ai.task)?.label}{ai.range ? ' (selection)' : ''}</div>
-          <pre className="blk-ai__text">{ai.result}</pre>
-          <div className="sf__row-actions">
-            <Button size="sm" variant="primary" onClick={() => applyAi('replace')}>{ai.range ? 'Replace selection' : 'Replace all'}</Button>
-            <Button size="sm" onClick={() => applyAi('insert')}>Insert at cursor</Button>
-            <Button size="sm" variant="ghost" onClick={() => setAi(null)}>Discard</Button>
-          </div>
-        </div>
-      )}
-
+      {err && <p className="sf__err blk-err" role="alert">{err} <button type="button" className="link" onClick={() => setErr('')}>dismiss</button></p>}
       {mode === 'blocks' ? (
         <div className="blk-body">
           <EditorContent editor={editor} />
@@ -248,7 +199,6 @@ export const BlockEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/assets
               <span className="blk-tb__sep" />
               <Tb on={active?.h2} label="Heading 2" icon={<Heading2 size={14} />} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} />
               <Tb on={active?.quote} label="Quote" icon={<Quote size={14} />} onClick={() => editor.chain().focus().toggleBlockquote().run()} />
-              <Tb on={false} label="Assist with selection" icon={<Sparkles size={14} />} onClick={() => setAiOpen(true)} />
             </BubbleMenu>
           )}
         </div>
@@ -273,12 +223,12 @@ export const BlockEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/assets
         <Input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://…" aria-label="URL" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyLink(); } }} autoFocus />
       </Dialog>
       <Dialog open={videoOpen} onClose={() => setVideoOpen(false)} title="Add a video" width={460}>
-        <div className="sf"><span className="sf__label">YouTube or Vimeo link</span>
+        <div className="sf"><span className="sf__label">YouTube link</span>
           <div className="sf__row-actions"><Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://youtu.be/…" aria-label="Video URL" autoFocus onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); insertVideoUrl(); } }} /><Button variant="primary" onClick={insertVideoUrl}>Embed</Button></div>
         </div>
         <div className="sf"><span className="sf__label">Or upload a short MP4</span>
           <label className="btn btn--secondary btn--sm"><Film size={14} aria-hidden /><span className="btn__label">{busy || 'Choose file'}</span><input type="file" accept="video/mp4,video/webm" hidden disabled={!!busy} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void insertVideoFile(f); }} /></label>
-          <p className="sf__hint">Keep it under ~20 MB; large files belong on YouTube or Vimeo.</p>
+          <p className="sf__hint">A short silent clip: under 8 MB and 20 s. Anything longer, or with sound, belongs on YouTube.</p>
         </div>
         {videoErr && <p className="sf__err" role="alert">{videoErr}</p>}
       </Dialog>

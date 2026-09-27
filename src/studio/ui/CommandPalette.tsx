@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FC, type ReactNode } from 'r
 import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
-import { Search, LayoutDashboard, Plus, FileText, MapPin, Settings, Sparkles, Images, LogOut, Moon, Sun, FlaskConical, Wrench, FolderKanban, PenLine } from 'lucide-react';
+import { Search, LayoutDashboard, Plus, FileText, MapPin, Settings, Images, LogOut, Moon, Sun, FlaskConical, Wrench, FolderKanban, PenLine, EyeOff, BriefcaseBusiness } from 'lucide-react';
 import { collections } from '../schema';
 import type { EntryRow } from '../studio-lib';
 import { Kbd } from './primitives';
@@ -16,7 +16,7 @@ export interface PaletteContext { theme: 'dark' | 'light'; toggleTheme: () => vo
 interface Item { id: string; group: string; label: string; hint?: string; icon: ReactNode; run: () => void; keywords?: string }
 
 export const collectionIcon = (id: string, size = 16) =>
-  id === 'projects' ? <FolderKanban size={size} /> : id === 'blog' ? <PenLine size={size} /> : id === 'tools' ? <Wrench size={size} /> : id === 'gallery' ? <Images size={size} /> : id === 'ai' ? <Sparkles size={size} /> : <Settings size={size} />;
+  id === 'projects' ? <FolderKanban size={size} /> : id === 'blog' ? <PenLine size={size} /> : id === 'tools' ? <Wrench size={size} /> : id === 'gallery' ? <Images size={size} /> : id === 'profile' ? <BriefcaseBusiness size={size} /> : <Settings size={size} />;
 
 export const CommandPalette: FC<{ open: boolean; onClose: () => void; ctx: PaletteContext }> = ({ open, onClose, ctx }) => {
   const [, navigate] = useLocation();
@@ -35,6 +35,7 @@ export const CommandPalette: FC<{ open: boolean; onClose: () => void; ctx: Palet
       ...collections.map((c) => ({ id: `nav-${c.id}`, group: 'Go to', label: c.label, icon: collectionIcon(c.id), run: go(c.kind === 'folder' ? `/c/${c.id}` : `/file/${c.id}`), hint: c.kind === 'folder' ? 'collection' : 'settings' })),
       { id: 'nav-fieldlog', group: 'Go to', label: 'Field log', hint: 'works offline', icon: <MapPin size={16} />, run: go('/field-log') },
       { id: 'nav-media', group: 'Go to', label: 'Media library', hint: 'upload · delete · copy paths', icon: <Images size={16} />, run: go('/media'), keywords: 'images photos files upload' },
+      { id: 'nav-watch', group: 'Go to', label: 'Watch list', hint: 'names that must never go live', icon: <EyeOff size={16} />, run: go('/watch-list'), keywords: 'confidential clients names privacy nda' },
       ...collections.filter((c) => c.kind === 'folder').map((c) => ({ id: `new-${c.id}`, group: 'Create', label: `New ${c.label.replace(/s$/, '').toLowerCase()}`, icon: <Plus size={16} />, run: go(`/c/${c.id}/new`) })),
       { id: 'theme', group: 'Preferences', label: ctx.theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme', icon: ctx.theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />, run: () => { ctx.toggleTheme(); onClose(); } },
       { id: 'mock', group: 'Preferences', label: ctx.mock ? 'Leave demo mode (use the real site)' : 'Try demo mode (in-memory copy of the site)', icon: <FlaskConical size={16} />, run: () => { ctx.toggleMock(); onClose(); }, keywords: 'mock demo sandbox' },

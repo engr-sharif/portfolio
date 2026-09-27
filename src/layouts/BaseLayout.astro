@@ -1,164 +1,128 @@
 ---
 import '../styles/global.css';
-// Self-hosted variable fonts (no render-blocking Google CDN, no GDPR concern).
-import '@fontsource-variable/inter';
-import '@fontsource-variable/space-grotesk';
-import '@fontsource-variable/jetbrains-mono';
+// Self-hosted variable fonts. Archivo carries the width axis the opening
+// animates; Newsreader is the reading face; Plex Mono is for data only.
+import '@fontsource-variable/archivo/wdth.css';
+import '@fontsource-variable/newsreader/wght.css';
+import '@fontsource-variable/newsreader/wght-italic.css';
+import '@fontsource/ibm-plex-mono/400.css';
+import '@fontsource/ibm-plex-mono/500.css';
+import archivoUrl from '@fontsource-variable/archivo/files/archivo-latin-wdth-normal.woff2?url';
+import newsreaderUrl from '@fontsource-variable/newsreader/files/newsreader-latin-wght-normal.woff2?url';
 import { createHash } from 'node:crypto';
-import { ClientRouter } from 'astro:transitions';
-import Nav from '../components/Nav.astro';
-import Footer from '../components/Footer.astro';
-import RecruiterBar from '../components/RecruiterBar.astro';
-import CommandPalette from '../components/CommandPalette.tsx';
-import TerrainField from '../components/three/TerrainField.tsx';
+import Nav from '../components/site/Nav.astro';
+import Footer from '../components/site/Footer.astro';
+import Rail from '../components/site/Rail.astro';
+import Search from '../components/site/Search.astro';
 import { withBase } from '../lib/path';
 import { site } from '../lib/site';
-import { getAtlasPoints } from '../lib/atlas';
+import { IS_PREVIEW, SHOW_UNPUBLISHED } from '../lib/build-env';
 
 export interface Props {
   title?: string;
   description?: string;
-  /** Social image: base-relative ("/og/home.png") or absolute. Defaults to the
-   *  build-time card for this route (src/pages/og/) unless Site Settings sets
-   *  a custom share image. */
+  /** Social image: base-relative ("/og/home.png") or absolute. */
   image?: string;
-  showChrome?: boolean;
   ogType?: string;
-  /** Camera station for the Living Atlas: 'home' (scroll-driven flight),
-   *  'page' (quiet backdrop) or 'site' (close over sceneLat/sceneLng). */
-  scene?: 'home' | 'page' | 'site';
-  sceneLat?: number;
-  sceneLng?: number;
+  /** Draw the depth rail from this page's [data-stratum] sections. */
+  rail?: boolean;
+  railLabel?: string;
+  /** Extra class on <body>. */
+  bodyClass?: string;
+  noindex?: boolean;
 }
 
-/**
- * Pick the generated share card for the current route:
- *   /              → og/home.png
- *   /about/        → og/about.png            /projects/ → og/projects.png …
- *   /projects/x/   → og/projects/x.png       /blog/x/   → og/blog/x.png
- *   /blog/tags/x/  → og/blog.png             anything else → og/home.png
- */
+/** The generated share card for the current route (src/pages/og/). */
 function ogFor(pathname: string): string {
   const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   const path = pathname.startsWith(base) ? pathname.slice(base.length) : pathname;
   const parts = path.split('/').filter(Boolean);
   if (parts.length === 0) return '/og/home.png';
   const [section, slug, ...rest] = parts;
-  if (['about', 'projects', 'tools', 'blog'].includes(section)) {
+  if (['about', 'projects', 'tools', 'notes', 'cv'].includes(section)) {
     if (!slug) return `/og/${section}.png`;
-    if (section !== 'about' && rest.length === 0) return `/og/${section}/${slug}.png`;
+    if (['projects', 'tools', 'notes'].includes(section) && rest.length === 0) return `/og/${section}/${slug}.png`;
     return `/og/${section}.png`;
   }
   return '/og/home.png';
 }
 
-// Site-wide SEO/share defaults are editable in the Studio (Site Settings);
-// fall back to the baked-in copy when those fields are left blank. Per-page
-// props still override everything.
 const {
-  title = site.seoTitle?.trim() || `${site.name} — ${site.credential}`,
+  title = site.seoTitle?.trim() || `${site.name} — Environmental Engineer, EIT`,
   description = site.seoDescription?.trim() || site.bio,
   image = site.ogImage?.trim() || ogFor(Astro.url.pathname),
-  showChrome = true,
   ogType = 'website',
-  scene = Astro.url.pathname.replace(/\/$/, '') === import.meta.env.BASE_URL.replace(/\/$/, '') ? 'home' : 'page',
-  sceneLat,
-  sceneLng,
+  rail = false,
+  railLabel,
+  bodyClass = '',
+  noindex = false,
 } = Astro.props;
 
-// Project sites for the Living Atlas nodes (published + located only).
-const atlasNodes = (await getAtlasPoints()).projects.map((p) => ({ slug: p.slug, lat: p.lat, lng: p.lng, status: p.status, title: p.title, location: p.location }));
-
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
-// Per-page images may arrive absolute; base-relative ones (e.g. /og/home.png)
-// need the base + origin prepended.
 const ogImage = /^https?:\/\//.test(image) ? image : new URL(withBase(image), Astro.site).href;
+// Preview deployments (any branch but main on Cloudflare Pages) stay out of
+// search engines: they exist for review, not for readers.
+const isPreview = IS_PREVIEW;
 
-// Site-wide Person structured data (EEAT / rich-result signal). Built once on
-// the homepage-level layout; absolute URLs so it's valid under /portfolio/.
 const personLd = {
   '@context': 'https://schema.org',
   '@type': 'Person',
   name: site.name,
-  jobTitle: site.credential,
+  jobTitle: 'Environmental Engineer',
+  hasCredential: 'Engineer-in-Training (EIT), California',
   description: site.bio,
-  image: ogImage,
   worksFor: { '@type': 'Organization', name: 'Jacobs' },
-  address: { '@type': 'PostalAddress', addressLocality: site.location, addressRegion: 'CA', addressCountry: 'US' },
+  address: { '@type': 'PostalAddress', addressLocality: 'Sacramento', addressRegion: 'CA', addressCountry: 'US' },
   url: Astro.site?.href,
   email: `mailto:${site.email}`,
   sameAs: [site.linkedin, site.github].filter(Boolean),
-  knowsAbout: [
-    'Environmental characterization',
-    'Site remediation',
-    'PFAS',
-    'Landfill CQA',
-    'Groundwater sampling',
-  ],
+  knowsAbout: ['Environmental site characterization', 'Remediation', 'PFAS', 'Mercury', 'Landfill monitoring', 'XRF', 'Groundwater sampling'],
 };
 
-// Optional privacy-friendly analytics: set site.analytics to your GoatCounter
-// subdomain (e.g. "engr-sharif") to enable. Empty → no script, no tracking.
-const goatcounter = (site as { analytics?: string }).analytics?.trim();
+const goatcounter = site.analytics?.trim();
 
-/* ------------------------------------------------------------------- CSP --
- * The baseline policy lives in astro.config.mjs; here we add what the PUBLIC
- * site needs and nothing more:
- *  - the one inline script we keep (the `js` class gate must run before first
- *    paint, so it can't be a module) — allowed by SHA-256 hash;
- *  - `style-src-attr 'unsafe-inline'` for the handful of static style=""
- *    attributes (view-transition-name, decorative opacities). Scripts can't
- *    inject styles this way, so the exposure is nil;
- *  - third-party origins: CARTO basemap tiles (map), EnviroStor/ArcGIS (live
- *    regulatory badge), Web3Forms (contact), YouTube/Vimeo (embeds), and
- *    GoatCounter only when analytics is switched on.
- */
-// One inline script, run before first paint: (1) mark JS available so reveals
-// may start hidden, (2) apply the saved/OS colour theme so there's no flash of
-// the wrong theme. Hashed below for the Content-Security-Policy.
+/* CSP — the baseline is in astro.config.mjs; the public site adds only:
+ *  - the hash of the one inline script (theme + js gate, must run pre-paint);
+ *  - style-src-attr for a few static style="" attributes (custom properties);
+ *  - EnviroStor (live regulatory badge), Web3Forms (contact),
+ *    YouTube thumbnails + privacy-enhanced player (click-to-load only),
+ *    GoatCounter only when analytics is on. */
 const JS_GATE =
   "(function(){var d=document.documentElement;d.classList.add('js');" +
-  "try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'}" +
-  "d.dataset.theme=t;d.style.colorScheme=t}catch(e){}})();";
+  "try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}" +
+  "d.dataset.theme=t}catch(e){d.dataset.theme='light'}})();";
 const jsGateHash = `sha256-${createHash('sha256').update(JS_GATE).digest('base64')}` as const;
-// Astro's directive type only lists the directives its config validates;
-// style-src-attr is a real CSP3 directive the runtime passes through untouched.
 type Directive = Parameters<NonNullable<typeof Astro.csp>['insertDirective']>[0];
 const directive = (d: string) => Astro.csp?.insertDirective(d as Directive);
 if (Astro.csp) {
   Astro.csp.insertScriptHash(jsGateHash);
   directive("style-src-attr 'unsafe-inline'");
-  directive(
-    "connect-src 'self' https://*.basemaps.cartocdn.com https://basemaps.cartocdn.com https://services3.arcgis.com https://api.web3forms.com" +
-      (goatcounter ? ' https://*.goatcounter.com' : ''),
-  );
-  directive("img-src 'self' data: blob: https://*.basemaps.cartocdn.com" + (goatcounter ? ' https://*.goatcounter.com' : ''));
-  directive('frame-src https://www.youtube-nocookie.com https://player.vimeo.com');
+  directive("connect-src 'self' https://services3.arcgis.com https://api.web3forms.com" + (goatcounter ? ' https://*.goatcounter.com' : ''));
+  directive("img-src 'self' data: blob: https://i.ytimg.com" + (goatcounter ? ' https://*.goatcounter.com' : ''));
+  directive('frame-src https://www.youtube-nocookie.com');
   directive("form-action 'self' https://api.web3forms.com");
   if (goatcounter) Astro.csp.insertScriptResource('https://gc.zgo.at');
 }
 ---
-
 <!doctype html>
 <html lang="en" data-goatcounter={goatcounter || undefined}>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- JS gate + theme, before first paint (see JS_GATE above). Hashed for CSP. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <script is:inline set:html={JS_GATE} />
-    <link rel="icon" href={withBase('favicon.svg')} type="image/svg+xml" />
-    <meta name="generator" content={Astro.generator} />
-    <meta name="author" content={site.name} />
-    <meta name="theme-color" content="#0c0e0d" />
-
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
+    {(noindex || isPreview) && <meta name="robots" content="noindex, nofollow" />}
+    <link rel="preload" href={archivoUrl} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={newsreaderUrl} as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href={withBase('/favicon.svg')} type="image/svg+xml" />
+    <meta name="theme-color" content="#edede7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#111311" media="(prefers-color-scheme: dark)" />
+    <meta name="author" content={site.name} />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="alternate" type="application/rss+xml" title={`${site.name} — Notes`} href={new URL(withBase('/rss.xml'), Astro.site).href} />
 
-    <!-- RSS discovery -->
-    <link rel="alternate" type="application/rss+xml" title={`${site.shortName} — Writing`} href={new URL(withBase('rss.xml'), Astro.site).href} />
-
-    <!-- Open Graph -->
     <meta property="og:type" content={ogType} />
     <meta property="og:site_name" content={site.name} />
     <meta property="og:title" content={title} />
@@ -167,61 +131,31 @@ if (Astro.csp) {
     <meta property="og:image" content={ogImage} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content={`${site.name} — ${site.role}`} />
-
-    <!-- Twitter card -->
+    <meta property="og:image:alt" content={`${site.name}, Environmental Engineer`} />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImage} />
-    <meta name="twitter:image:alt" content={`${site.name} — ${site.role}`} />
-
-    <script type="application/ld+json" set:html={JSON.stringify(personLd)} is:inline />
-
-    <ClientRouter />
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(personLd)} />
+    <slot name="head" />
   </head>
-  <body data-scene={scene} data-scene-lat={sceneLat} data-scene-lng={sceneLng}>
-    {/* The Living Atlas — one persistent WebGL California behind every page.
-        transition:persist keeps the same canvas (and its camera) alive across
-        View Transitions; each page only tells it where to fly (data-scene). */}
-    {showChrome && <TerrainField client:idle transition:persist="living-atlas" nodes={atlasNodes} />}
-    {showChrome && (
-      <div id="intro" aria-hidden="true">
-        <div class="intro__mask"><span class="intro__label">{site.name}</span></div>
-        <div class="intro__bar"></div>
-      </div>
+  <body class:list={[rail && 'has-rail', bodyClass]}>
+    <a class="skip" href="#main">Skip to content</a>
+    <Nav />
+    {rail && <Rail label={railLabel} />}
+    <div class="page">
+      <main id="main" tabindex="-1">
+        <slot />
+      </main>
+      <Footer />
+    </div>
+    {SHOW_UNPUBLISHED && (
+      <p class="stamp" role="note"><span class="stamp__k">Unlisted preview</span> Drafts are shown. Not the live site.</p>
     )}
-    <a href="#main" class="sr-skip">Skip to content</a>
-    <div class="u-grain" aria-hidden="true"></div>
-    {showChrome && <Nav />}
-    <main id="main">
-      <slot />
-    </main>
-    {showChrome && <Footer />}
-    {showChrome && <RecruiterBar />}
-    {showChrome && (
-      <CommandPalette
-        client:idle
-        base={import.meta.env.BASE_URL}
-        nav={[
-          { label: 'Projects', href: withBase('projects/'), hint: 'Case studies from the field' },
-          { label: 'Tools', href: withBase('tools/'), hint: 'Software I’ve built' },
-          { label: 'Writing', href: withBase('blog/'), hint: 'Field notes & technical posts' },
-          { label: 'About', href: withBase('about/'), hint: 'Bio, skills, credentials' },
-          { label: 'Contact', href: withBase('#contact'), hint: 'Get in touch' },
-        ]}
-      />
-    )}
-
+    <Search />
     <script>
-      // Boot global motion (cursor, magnetic, reveal fallback) + the intro.
-      // The module self-registers astro:page-load, but we also call it once
-      // for the very first load in case the event already fired.
-      import { bootMotion } from '../lib/motion';
-      import '../lib/intro';
-      import '../lib/theme';
-      bootMotion();
+      import '../scripts/site';
     </script>
-    {goatcounter && <script>import '../lib/analytics';</script>}
+    {goatcounter && <script>import '../scripts/analytics';</script>}
   </body>
 </html>

@@ -2,18 +2,19 @@ import { useEffect, useState, type FC, type ReactNode } from 'react';
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, ImagePlus, Images, Sparkles, Trash2, Upload, X, Plus } from 'lucide-react';
+import { GripVertical, ImagePlus, Images, Trash2, Upload, X, Plus } from 'lucide-react';
 import type { Field as FieldDef } from '../../schema';
-import { uploadImage, rawImageUrl, rawRepoUrl, aiAssist } from '../../api';
-import { aiGuide } from '../../studio-lib';
+import { uploadImage, rawImageUrl, rawRepoUrl, freeName } from '../../api';
 import { useMedia } from '../../app/queries';
-import { processImage, type ImageMeta } from '../../image-process';
+import { processImage, roundCoord, type ImageMeta } from '../../image-process';
 import { Button, Dialog, IconButton, Input, Switch, Textarea } from '../../ui/primitives';
+import { YouTubeField, LoopField, AudioField } from './MediaFields';
+import { checkSize, fmtBytes, LIMITS } from '../../media';
 
 /**
  * Schema-driven form fields. Every field type the collections use, with:
  * drag-to-reorder for image lists and object lists (dnd-kit, keyboard too),
- * drop-to-upload on image fields, an in-place media library, and AI alt text.
+ * drop-to-upload on image fields and an in-place media library.
  */
 export interface FieldProps {
   field: FieldDef;
@@ -21,7 +22,10 @@ export interface FieldProps {
   onChange: (v: any) => void;
   error?: string;
   onMeta?: (m: ImageMeta) => void;
-  onCaption?: (text: string) => void;
+  /** Set another field of the same entry (a loop's poster, a recording's waveform). */
+  onSibling?: (name: string, value: unknown) => void;
+  /** The entry's current values, for fields that read a sibling. */
+  siblings?: Record<string, unknown>;
 }
 
 const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9.]+/g, '-').replace(/(^-|-$)/g, '');
@@ -29,14 +33,16 @@ const readAsDataUrl = (file: Blob) => new Promise<string>((res, rej) => { const 
 
 export async function uploadFile(file: File, dir: string): Promise<{ path: string; meta: ImageMeta }> {
   const { file: out, meta } = await processImage(file);
-  const name = slugify(out.name);
+  const name = await freeName(dir, slugify(out.name));
   const path = `${dir}/${name}`;
   await uploadImage(path, await readAsDataUrl(out), `studio: upload ${name}`);
   return { path: `/${path}`, meta };
 }
-async function uploadPublicFile(file: File, dir: string): Promise<string> {
+async function uploadPublicFile(file: File, dir: string, maxBytes: number = LIMITS.publicBytes): Promise<string> {
+  // Anything served from public/ must stay under Cloudflare's per-file limit.
+  checkSize(file, maxBytes, `Files on the site must stay under ${fmtBytes(maxBytes)}. Compress it, or link to it instead.`);
   const { file: out } = await processImage(file);
-  const name = slugify(out.name);
+  const name = await freeName(dir, slugify(out.name));
   const path = `${dir}/${name}`;
   await uploadImage(path, await readAsDataUrl(out), `studio: upload ${name}`);
   return '/' + path.replace(/^public\//, '');
@@ -76,11 +82,13 @@ export const Field: FC<FieldProps> = (props) => {
     case 'select': {
       const opts = field.options ?? [];
       const legacy = value != null && value !== '' && !opts.includes(value);
+      // an unset value shows the default the site will use
+      const cur = value == null || value === '' ? field.default : value;
       return (
         <Wrap error={error}>
           <Label field={field} as="span" />
           <div className="sf__chips" role="radiogroup" aria-label={field.label}>
-            {opts.map((opt) => <button type="button" key={opt} role="radio" aria-checked={value === opt} className={`chip${value === opt ? ' is-on' : ''}`} onClick={() => onChange(opt)}>{opt}</button>)}
+            {opts.map((opt) => <button type="button" key={opt} role="radio" aria-checked={cur === opt} className={`chip${cur === opt ? ' is-on' : ''}`} onClick={() => onChange(opt)}>{opt}</button>)}
             {legacy && <button type="button" role="radio" aria-checked className="chip is-on chip--legacy" title="Not one of the current options. Pick another to replace it.">{String(value)} · legacy</button>}
             {value && !field.required && <button type="button" className="chip chip--clear" onClick={() => onChange(undefined)}>clear</button>}
           </div>
@@ -98,6 +106,12 @@ export const Field: FC<FieldProps> = (props) => {
       return <FileField {...props} />;
     case 'list':
       return <ListField {...props} />;
+    case 'youtube':
+      return <YouTubeField {...props} />;
+    case 'loop':
+      return <LoopField {...props} />;
+    case 'audio':
+      return <AudioField {...props} />;
     default:
       return null;
   }
@@ -213,12 +227,10 @@ const SortableThumb: FC<{ id: string; src: string; label: string; onRemove: () =
 };
 
 /* ------------------------------------------------------------------- Image */
-const ImageField: FC<FieldProps> = ({ field, value, onChange, error, onMeta, onCaption }) => {
+const ImageField: FC<FieldProps> = ({ field, value, onChange, error, onMeta }) => {
   const dir = field.mediaDir || 'src/assets/covers';
   const [busy, setBusy] = useState(false);
   const [lib, setLib] = useState(false);
-  const [describing, setDescribing] = useState(false);
-  const [draft, setDraft] = useState<string | null>(null);
   const [err, setErr] = useState('');
   const [over, setOver] = useState(false);
   const up = async (f?: File) => {
@@ -227,13 +239,6 @@ const ImageField: FC<FieldProps> = ({ field, value, onChange, error, onMeta, onC
     try { const { path, meta } = await uploadFile(f, dir); onChange(path); onMeta?.(meta); }
     catch (e: any) { setErr(e?.message || 'Upload failed. Check your connection and try again.'); }
     finally { setBusy(false); }
-  };
-  const describe = async () => {
-    if (!value) return;
-    setDescribing(true); setErr(''); setDraft(null);
-    try { const guide = await aiGuide(); const { result } = await aiAssist('alt', '', { image: rawImageUrl(String(value), dir), ...(guide ? { system: guide } : {}) }); result ? setDraft(result) : setErr('No description came back — try again.'); }
-    catch (e: any) { setErr(e?.message || 'AI request failed.'); }
-    finally { setDescribing(false); }
   };
   return (
     <Wrap error={error}>
@@ -247,15 +252,8 @@ const ImageField: FC<FieldProps> = ({ field, value, onChange, error, onMeta, onC
           {value && <code className="imgfield__name">{String(value).split('/').pop()}</code>}
           <div className="sf__row-actions">
             <Button size="sm" variant="ghost" icon={<Images size={14} />} onClick={() => setLib(true)}>Choose existing</Button>
-            {value && onCaption && <Button size="sm" variant="ghost" icon={<Sparkles size={14} />} loading={describing} onClick={describe}>Describe</Button>}
             {value && <Button size="sm" variant="ghost" icon={<X size={14} />} onClick={() => onChange('')}>Clear</Button>}
           </div>
-          {draft !== null && (
-            <div className="ai-draft">
-              <Textarea rows={2} value={draft} onChange={(e) => setDraft(e.target.value)} aria-label="AI description" />
-              <div className="sf__row-actions"><Button size="sm" variant="primary" onClick={() => { onCaption?.(draft); setDraft(null); }}>Use this</Button><Button size="sm" variant="ghost" onClick={() => setDraft(null)}>Discard</Button></div>
-            </div>
-          )}
         </div>
       </div>
       {err && <p className="sf__err" role="alert">{err}</p>}
@@ -280,7 +278,7 @@ const FileField: FC<FieldProps> = ({ field, value, onChange, error }) => {
           <code className={`imgfield__name${val ? '' : ' is-empty'}`}>{val ? val.split('/').pop() : 'No file'}</code>
           <div className="sf__row-actions">
             <label className="btn btn--secondary btn--sm"><Upload size={14} aria-hidden /><span className="btn__label">{busy ? 'Uploading…' : val ? 'Replace' : 'Upload'}</span>
-              <input type="file" accept={field.accept || undefined} hidden disabled={busy} onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ''; if (!f) return; setBusy(true); setErr(''); try { onChange(await uploadPublicFile(f, dir)); } catch (er: any) { setErr(er?.message || 'Upload failed.'); } finally { setBusy(false); } }} />
+              <input type="file" accept={field.accept || undefined} hidden disabled={busy} onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ''; if (!f) return; setBusy(true); setErr(''); try { onChange(await uploadPublicFile(f, dir, field.maxBytes)); } catch (er: any) { setErr(er?.message || 'Upload failed.'); } finally { setBusy(false); } }} />
             </label>
             {val && <Button size="sm" variant="ghost" icon={<X size={14} />} onClick={() => onChange('')}>Clear</Button>}
           </div>
@@ -319,9 +317,9 @@ const ListField: FC<FieldProps> = ({ field, value, onChange, error }) => {
   const remove = (i: number) => { onChange(arr.filter((_, j) => j !== i)); setIds((s) => s.filter((_, j) => j !== i)); };
   const blank = () => Object.fromEntries((field.fields || []).map((f) => [f.name, '']));
   const geoAware = (field.fields || []).some((f) => f.name === 'lat');
-  const hasAlt = (field.fields || []).some((f) => f.name === 'alt');
-  const applyMeta = (i: number, m: ImageMeta) => { const p: Record<string, any> = {}; if (m.lat != null) { p.lat = m.lat; p.lng = m.lng; } if (m.takenAt) p.takenAt = m.takenAt; if (Object.keys(p).length) update(i, p); };
-  const applyCaption = (i: number, text: string) => { const p: Record<string, any> = { alt: text }; if (!arr[i]?.caption) p.caption = text; update(i, p); };
+  // Photo GPS is rounded to 0.01° (~1 km) BEFORE it is stored: this file is
+  // committed to a public repo, and git history never forgets an exact site.
+  const applyMeta = (i: number, m: ImageMeta) => { const p: Record<string, any> = {}; if (m.lat != null && m.lng != null) { p.lat = roundCoord(m.lat); p.lng = roundCoord(m.lng); } if (m.takenAt) p.takenAt = m.takenAt; if (Object.keys(p).length) update(i, p); };
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e; if (!over || active.id === over.id) return;
     const from = ids.indexOf(String(active.id)), to = ids.indexOf(String(over.id));
@@ -335,7 +333,7 @@ const ListField: FC<FieldProps> = ({ field, value, onChange, error }) => {
           <div className="olist">
             {arr.map((item, i) => (
               <SortableItem key={ids[i]} id={ids[i]} index={i} onRemove={() => remove(i)}>
-                {(field.fields || []).map((sf) => <Field key={sf.name} field={sf} value={item[sf.name]} onChange={(v) => update(i, { [sf.name]: v })} onMeta={geoAware && sf.type === 'image' ? (m) => applyMeta(i, m) : undefined} onCaption={hasAlt && sf.type === 'image' ? (t) => applyCaption(i, t) : undefined} />)}
+                {(field.fields || []).map((sf) => <Field key={sf.name} field={sf} value={item[sf.name]} onChange={(v) => update(i, { [sf.name]: v })} onMeta={geoAware && sf.type === 'image' ? (m) => applyMeta(i, m) : undefined} />)}
               </SortableItem>
             ))}
           </div>

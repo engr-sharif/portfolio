@@ -1,0 +1,50 @@
+---
+/**
+ * 5.0 From the field — the photographs, in the order set in the Studio's
+ * Field Gallery. The first two run large, side by side; the rest follow as a
+ * contact sheet. Every photo opens in the viewer with its caption.
+ */
+import galleryData from '../../content/settings/gallery.json';
+import { getImage } from '../../lib/images';
+import { getCaption } from '../../lib/captions';
+import SectionHead from '../ui/SectionHead.astro';
+import Figure from '../ui/Figure.astro';
+
+type Photo = { image: string; alt?: string; caption?: string };
+const photos = ((galleryData as { photos?: Photo[] }).photos ?? [])
+  .map((p) => ({ ...p, img: getImage(p.image) }))
+  .filter((p): p is Photo & { img: NonNullable<ReturnType<typeof getImage>> } => !!p.img)
+  .map((p) => ({ ...p, caption: p.caption || getCaption(p.image), alt: p.alt || p.caption || getCaption(p.image) || 'Field photograph' }));
+const lead = photos.slice(0, 2);
+const rest = photos.slice(2);
+---
+{photos.length > 0 && (
+  <section class="sec field" id="field" data-stratum="From the field" data-code="GP" data-pattern="lith-gravel" aria-labelledby="field-title">
+    <div class="wrap">
+      <SectionHead no="5.0" id="field-title" title="From the field" intro="Photographs from site: the ground itself, the instruments, and the work of sampling it." />
+      <div class="field__lead">
+        {lead.map((p, i) => (
+          <Figure image={p.img} alt={p.alt} caption={p.caption} no={`5.${i + 1}`} group="field" aspect="4 / 3" sizes="(min-width: 64rem) 46vw, 92vw" widths={[640, 960, 1280]} />
+        ))}
+      </div>
+      {rest.length > 0 && (
+        <div class="field__sheet" data-reveal="stagger">
+          {rest.map((p, i) => (
+            <Figure image={p.img} alt={p.alt} caption={p.caption} no={`5.${i + 3}`} group="field" aspect="1 / 1" sizes="(min-width: 64rem) 22vw, (min-width: 40rem) 30vw, 46vw" widths={[360, 540, 720]} />
+          ))}
+        </div>
+      )}
+    </div>
+  </section>
+)}
+
+<style>
+  .field__lead { display: grid; gap: var(--gap); }
+  .field__sheet { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-6) var(--gap); margin-top: var(--s-8); }
+  .field__sheet :global(.fig__cap) { font-size: 0.875rem; }
+  @media (min-width: 40rem) { .field__sheet { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (min-width: 64rem) {
+    .field__lead { grid-template-columns: 1fr 1fr; }
+    .field__sheet { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+</style>

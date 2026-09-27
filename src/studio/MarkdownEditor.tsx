@@ -1,14 +1,7 @@
 import { useRef, useState, type FC } from 'react';
-import { uploadImage, aiAssist } from './api';
+import { uploadImage, freeName } from './api';
+import { youtubeFacadeHtml, storeLoop, loopHtml } from './media-upload';
 import { processImage } from './image-process';
-import { aiGuide } from './studio-lib';
-
-const AI_ACTIONS: { key: string; label: string }[] = [
-  { key: 'polish', label: 'Polish' },
-  { key: 'grammar', label: 'Fix grammar' },
-  { key: 'summarize', label: 'Summarize' },
-  { key: 'expand', label: 'Expand from notes' },
-];
 
 interface Props {
   value: string;
@@ -18,20 +11,8 @@ interface Props {
 
 const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9.]+/g, '-').replace(/(^-|-$)/g, '');
 
-/** Turn a YouTube/Vimeo URL into a responsive embed snippet, or null if it
- * isn't a recognised video URL. */
-export function videoEmbed(url: string): string | null {
-  const u = url.trim();
-  const yt = u.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{11})/);
-  if (yt) {
-    return `<div class="video-embed"><iframe src="https://www.youtube-nocookie.com/embed/${yt[1]}" title="Video" loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`;
-  }
-  const vm = u.match(/vimeo\.com\/(?:video\/)?(\d+)/);
-  if (vm) {
-    return `<div class="video-embed"><iframe src="https://player.vimeo.com/video/${vm[1]}" title="Video" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div>`;
-  }
-  return null;
-}
+/** A YouTube URL → the site's click-to-load video facade (or null). */
+export const videoEmbed = (url: string) => youtubeFacadeHtml(url);
 
 /** Wrap or insert markdown around the current selection in the textarea. */
 function surround(ta: HTMLTextAreaElement, before: string, after = before, placeholder = '') {
@@ -54,44 +35,6 @@ export const MarkdownEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/ass
   const [videoOpen, setVideoOpen] = useState(false);
   const [videoUrl, setVideoUrl] = useState('');
   const [videoErr, setVideoErr] = useState('');
-  // AI assist
-  const [aiOpen, setAiOpen] = useState(false);
-  const [aiBusy, setAiBusy] = useState('');
-  const [aiResult, setAiResult] = useState('');
-  const [aiErr, setAiErr] = useState('');
-  const [aiOnSelection, setAiOnSelection] = useState(false);
-
-  const runAi = async (task: string) => {
-    const ta = ref.current;
-    const sel = ta && ta.selectionEnd > ta.selectionStart ? ta.value.slice(ta.selectionStart, ta.selectionEnd) : '';
-    const input = sel || value;
-    if (!input.trim()) { setAiErr('Write something first, or select text to work on.'); return; }
-    setAiOnSelection(!!sel);
-    setAiBusy(task); setAiErr(''); setAiResult('');
-    try {
-      const guide = await aiGuide();
-      const { result } = await aiAssist(task, input, guide ? { system: guide } : {});
-      if (!result) { setAiErr('The assistant returned nothing — try again.'); }
-      else setAiResult(result);
-    } catch (e: any) {
-      setAiErr(e?.message || 'AI request failed.');
-    } finally { setAiBusy(''); }
-  };
-
-  const acceptAi = (mode: 'replace' | 'insert') => {
-    const ta = ref.current;
-    if (mode === 'replace' && aiOnSelection && ta && ta.selectionEnd > ta.selectionStart) {
-      const { selectionStart: s, selectionEnd: e } = ta;
-      onChange(value.slice(0, s) + aiResult + value.slice(e));
-    } else if (mode === 'replace') {
-      onChange(aiResult);
-    } else {
-      const at = ta ? ta.selectionStart : value.length;
-      onChange(value.slice(0, at) + `\n\n${aiResult}\n\n` + value.slice(at));
-    }
-    setAiResult(''); setAiOpen(false); setAiErr('');
-  };
-
   const apply = (fn: (ta: HTMLTextAreaElement) => { next: string; caret: number }) => {
     const ta = ref.current; if (!ta) return;
     const { next, caret } = fn(ta);
@@ -110,7 +53,7 @@ export const MarkdownEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/ass
 
   const insertVideoUrl = () => {
     const embed = videoEmbed(videoUrl);
-    if (!embed) { setVideoErr('Not a YouTube or Vimeo link. Check the URL.'); return; }
+    if (!embed) { setVideoErr('That isn’t a YouTube link. Paste the address from the video’s Share button.'); return; }
     insertBlock(embed);
     setVideoUrl(''); setVideoErr(''); setVideoOpen(false);
   };
@@ -118,14 +61,8 @@ export const MarkdownEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/ass
   const insertVideoFile = async (file: File) => {
     setUploading(true); setVideoErr('');
     try {
-      const base64 = await new Promise<string>((res, rej) => {
-        const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(file);
-      });
-      const name = slugify(file.name);
-      const path = `public/videos/${name}`;
-      await uploadImage(path, base64, `studio: upload ${name}`);
-      // Root-relative under the site's base path (import.meta.env.BASE_URL).
-      insertBlock(`<video class="video-embed-native" controls preload="metadata" src="${import.meta.env.BASE_URL}videos/${name}"></video>`);
+      const { src, poster } = await storeLoop(file);
+      insertBlock(loopHtml(src, poster));
       setVideoOpen(false);
     } catch (e: any) {
       setVideoErr(e?.message || 'Upload failed.');
@@ -140,7 +77,7 @@ export const MarkdownEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/ass
       const base64 = await new Promise<string>((res, rej) => {
         const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(new Error('Could not read that file.')); r.readAsDataURL(out);
       });
-      const name = slugify(out.name);
+      const name = await freeName(mediaDir, slugify(out.name));
       const path = `${mediaDir}/${name}`;
       await uploadImage(path, base64, `studio: upload ${name}`);
       const ta = ref.current;
@@ -179,41 +116,13 @@ export const MarkdownEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/ass
         </label>
         <button type="button" className="md__btn" title="Insert video"
           onMouseDown={(e) => { e.preventDefault(); setVideoOpen((o) => !o); setVideoErr(''); }}>▶</button>
-        <button type="button" className={`md__btn md__btn--ai${aiOpen ? ' is-on' : ''}`} title="AI assist"
-          onMouseDown={(e) => { e.preventDefault(); setAiOpen((o) => !o); setAiErr(''); setAiResult(''); }}>✨</button>
       </div>
 
       {uploadErr && <p className="md__ai-err" role="alert">{uploadErr} <button type="button" className="md__dismiss" onClick={() => setUploadErr('')}>dismiss</button></p>}
 
-      {aiOpen && (
-        <div className="md__ai">
-          <p className="md__ai-label">Work on the selected text, or the whole write-up if nothing is selected:</p>
-          <div className="md__ai-actions">
-            {AI_ACTIONS.map((a) => (
-              <button key={a.key} type="button" className="sf__btn" disabled={!!aiBusy}
-                onClick={() => runAi(a.key)}>
-                {aiBusy === a.key ? 'Working…' : a.label}
-              </button>
-            ))}
-            <button type="button" className="sf__btn sf__btn--ghost" onClick={() => { setAiOpen(false); setAiResult(''); setAiErr(''); }}>Close</button>
-          </div>
-          {aiErr && <p className="md__ai-err">{aiErr}</p>}
-          {aiResult && (
-            <div className="md__ai-result">
-              <textarea className="sf__input sf__textarea" rows={6} value={aiResult} onChange={(e) => setAiResult(e.target.value)} />
-              <div className="md__ai-row">
-                <button type="button" className="sf__btn sf__btn--upload" onClick={() => acceptAi('replace')}>{aiOnSelection ? 'Replace selection' : 'Replace all'}</button>
-                <button type="button" className="sf__btn" onClick={() => acceptAi('insert')}>Insert below</button>
-                <button type="button" className="sf__btn sf__btn--ghost" onClick={() => setAiResult('')}>Discard</button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       {videoOpen && (
         <div className="md__video">
-          <p className="md__video-label">Paste a YouTube or Vimeo link…</p>
+          <p className="md__video-label">Paste a YouTube link…</p>
           <div className="md__video-row">
             <input
               className="sf__input sf__input--sm" placeholder="https://youtu.be/…" value={videoUrl} autoFocus
@@ -222,7 +131,7 @@ export const MarkdownEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/ass
             />
             <button type="button" className="sf__btn" onClick={insertVideoUrl}>Insert</button>
           </div>
-          <p className="md__video-label">…or upload a short clip (MP4, keep it under ~50&nbsp;MB)</p>
+          <p className="md__video-label">…or upload a short silent clip (MP4, under 8&nbsp;MB and 20&nbsp;s)</p>
           <div className="md__video-row">
             <label className="sf__btn sf__btn--upload">
               {uploading ? 'Uploading…' : 'Upload MP4'}

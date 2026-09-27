@@ -1,0 +1,163 @@
+---
+/**
+ * The CV, generated from the same content as the rest of the site, so it's
+ * never out of date. On screen it's a sheet; printed (or saved as PDF from
+ * the print dialog) it becomes a clean one-to-two page résumé.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { site } from '../../lib/site';
+import { profile } from '../../lib/profile';
+import { getProjects, dateRange } from '../../lib/projects';
+import { getTools } from '../../lib/tools';
+import { getPosts } from '../../lib/blog';
+import { withBase } from '../../lib/path';
+import { resumeReady } from '../../lib/resume';
+
+const projects = await getProjects();
+const tools = await getTools();
+const posts = await getPosts();
+const jobs = profile.timeline.filter((t) => !/B\.S\.|M\.S\.|degree|FE|PE\)|Professional Engineer/i.test(t.title));
+const education = profile.timeline.filter((t) => /B\.S\.|M\.S\.|degree/i.test(t.title));
+const host = new URL(import.meta.env.BASE_URL, import.meta.env.SITE).host;
+const updated = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+---
+<BaseLayout title="CV — Mohammad Sharif" description={`Curriculum vitae: ${site.bio}`} bodyClass="cv-page">
+  <div class="wrap">
+    <div class="cv__bar" data-print-hide>
+      <ol class="phead__crumbs"><li><a href={withBase('/')}>Home</a></li><li aria-current="page">CV</li></ol>
+      <div class="cv__actions">
+        <button class="btn" type="button" data-print>Print or save as PDF</button>
+        {resumeReady && <a class="btn btn--line" href={withBase(site.resume)} download>Download the PDF résumé</a>}
+      </div>
+    </div>
+
+    <article class="cv">
+      <header class="cv__head">
+        <div>
+          <h1 class="cv__name">{site.name}</h1>
+          <p class="cv__role">Environmental Engineer, EIT · {site.location}</p>
+        </div>
+        <ul class="cv__contact">
+          <li><a href={`mailto:${site.email}`}>{site.email}</a></li>
+          <li><a href={site.linkedin}>{site.linkedin.replace(/^https:\/\/(www\.)?/, '').replace(/\/$/, '')}</a></li>
+          <li><a href={site.github}>{site.github.replace(/^https:\/\//, '')}</a></li>
+          <li><a href={withBase('/')}>{host}</a></li>
+        </ul>
+      </header>
+
+      <section class="cv__sec">
+        <h2 class="cv__h">Summary</h2>
+        <p class="cv__summary">{site.bio}</p>
+      </section>
+
+      <section class="cv__sec">
+        <h2 class="cv__h">Experience</h2>
+        {jobs.map((j) => (
+          <div class="cv__item">
+            <div class="cv__line"><h3>{j.title}</h3><span class="cv__date">{j.date}</span></div>
+            <p class="cv__org">{j.org}</p>
+            <p>{j.detail}</p>
+          </div>
+        ))}
+      </section>
+
+      <section class="cv__sec">
+        <h2 class="cv__h">Selected projects</h2>
+        {projects.map((p) => (
+          <div class="cv__item">
+            <div class="cv__line"><h3>{p.data.title}</h3><span class="cv__date">{dateRange(p.data.startDate, p.data.endDate, p.data.status)}</span></div>
+            <p class="cv__org">{p.data.role}{p.data.location ? ` · ${p.data.location}` : ''}</p>
+            <p>{p.data.summary}</p>
+          </div>
+        ))}
+      </section>
+
+      <section class="cv__sec">
+        <h2 class="cv__h">Software I’ve built</h2>
+        <ul class="cv__list">
+          {tools.map((t) => <li><strong>{t.data.name}.</strong> {t.data.summary} <span class="cv__tech">({t.data.tech.join(', ')})</span></li>)}
+        </ul>
+      </section>
+
+      <section class="cv__sec cv__cols">
+        <div>
+          <h2 class="cv__h">Licensure and certification</h2>
+          <ul class="cv__list">
+            {profile.credentials.map((c) => <li><strong>{c.label}</strong> · {c.issuer} · {c.status === 'Active' ? c.date : c.date}</li>)}
+            {profile.certifications.map((c) => <li><strong>{c.label}</strong> · {c.date}{c.expires ? `, renews ${c.expires}` : ''}</li>)}
+          </ul>
+        </div>
+        <div>
+          {education.length > 0 && (
+            <>
+              <h2 class="cv__h">Education</h2>
+              <ul class="cv__list">{education.map((e) => <li><strong>{e.title}</strong> · {e.org} · {e.date}</li>)}</ul>
+            </>
+          )}
+          {posts.length > 0 && (
+            <>
+              <h2 class="cv__h">Writing</h2>
+              <ul class="cv__list">{posts.map((p) => <li>{p.data.title} <span class="cv__tech">({p.data.pubDate.getFullYear()})</span></li>)}</ul>
+            </>
+          )}
+        </div>
+      </section>
+      <p class="cv__foot">Updated {updated}. Project descriptions are public, high-level summaries; no confidential site data is included.</p>
+    </article>
+  </div>
+</BaseLayout>
+
+<script>
+  document.querySelector('[data-print]')?.addEventListener('click', () => window.print());
+</script>
+
+<style>
+  .cv__bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--s-4); padding-top: var(--s-7); }
+  .cv__bar .phead__crumbs { margin: 0; }
+  .cv__actions { display: flex; flex-wrap: wrap; gap: var(--s-3); }
+  .cv {
+    max-width: 56rem;
+    margin: var(--s-6) auto 0;
+    padding: clamp(1.5rem, 1rem + 3vw, 4rem);
+    background: var(--ground-2);
+    border: 1px solid var(--rule-2);
+    font-size: 0.9375rem;
+    line-height: 1.5;
+  }
+  .cv__head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s-5); padding-bottom: var(--s-5); border-bottom: 2px solid var(--ink); }
+  .cv__name { font-size: clamp(2rem, 1.5rem + 2vw, 3rem); font-weight: 560; letter-spacing: -0.03em; line-height: 1; }
+  .cv__role { margin-top: var(--s-2); color: var(--ink-2); }
+  .cv__contact { list-style: none; padding: 0; display: grid; gap: 0.15rem; font-family: var(--f-mono); font-size: 0.75rem; text-align: right; }
+  .cv__contact a { text-decoration: none; }
+  .cv__sec { padding-top: var(--s-5); margin-top: var(--s-5); border-top: 1px solid var(--rule); }
+  .cv__h { font-size: var(--t-label); font-weight: 650; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cinnabar-ink); margin-bottom: var(--s-3); font-stretch: 112%; }
+  .cv__summary { font-family: var(--f-text); font-size: 1.0625rem; max-width: 70ch; }
+  .cv__item { break-inside: avoid; }
+  .cv__item + .cv__item { margin-top: var(--s-4); }
+  .cv__line { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s-4); }
+  .cv__line h3 { font-size: 1rem; font-weight: 620; letter-spacing: -0.005em; }
+  .cv__date { font-family: var(--f-mono); font-size: 0.75rem; color: var(--ink-3); white-space: nowrap; }
+  .cv__org { color: var(--ink-2); font-size: 0.875rem; }
+  .cv__item p:last-child { font-family: var(--f-text); font-size: 1rem; color: var(--ink); }
+  .cv__list { list-style: none; padding: 0; display: grid; gap: 0.4rem; }
+  .cv__list li { break-inside: avoid; }
+  .cv__tech { color: var(--ink-3); font-size: 0.8125rem; }
+  .cv__cols { display: grid; gap: var(--s-6); }
+  .cv__cols .cv__h + .cv__list + .cv__h { margin-top: var(--s-5); }
+  @media (min-width: 48rem) { .cv__cols { grid-template-columns: 1fr 1fr; } }
+  .cv__foot { margin-top: var(--s-6); font-family: var(--f-mono); font-size: 0.6875rem; color: var(--ink-3); }
+
+  @media print {
+    @page { size: letter; margin: 14mm 14mm 16mm; }
+    :global(.nav), :global(.foot), :global(.rail), :global(.depthbar), :global(.skip), :global(.search), [data-print-hide] { display: none !important; }
+    :global(html), :global(body) { background: #fff !important; color: #000 !important; }
+    :global(:root) { --ink: #000; --ink-2: #333; --ink-3: #555; --rule: #ccc; --rule-2: #999; --cinnabar-ink: #a8310f; --ground-2: #fff; }
+    .cv { border: 0; padding: 0; margin: 0; max-width: none; font-size: 10pt; background: #fff; }
+    .cv__name { font-size: 22pt; }
+    .cv__summary, .cv__item p:last-child { font-size: 10pt; }
+    .cv__sec { padding-top: 8pt; margin-top: 8pt; }
+    .cv__contact { font-size: 8pt; }
+    .cv__cols { grid-template-columns: 1fr 1fr; }
+    a { text-decoration: none !important; color: inherit !important; }
+  }
+</style>

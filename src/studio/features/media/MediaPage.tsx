@@ -3,8 +3,10 @@ import { useLocation } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
 import { Upload, Trash2, Copy, Check, FileText, Film, Image as ImageIcon, Search, X, ExternalLink } from 'lucide-react';
 import { MEDIA_DIRS, mediaDirById } from '../../media-dirs';
-import { useDir, keys } from '../../app/queries';
-import { commitFiles, uploadImage, rawRepoUrl, isMissingRoute, type ListEntry } from '../../api';
+import { useDir, useUsage, keys } from '../../app/queries';
+import { usedBy } from '../../studio-lib';
+import { LIMITS, checkSize } from '../../media';
+import { commitFiles, uploadImage, rawRepoUrl, isMissingRoute, freeNames, type ListEntry } from '../../api';
 import { processImage } from '../../image-process';
 import { useToast } from '../../ui/Toaster';
 import { Button, Confirm, EmptyState, IconButton, Input, Skeleton } from '../../ui/primitives';
@@ -19,6 +21,17 @@ const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9.]+/g, '-').repl
 const isImg = (n: string) => /\.(jpe?g|png|webp|avif|gif|svg)$/i.test(n);
 const isVid = (n: string) => /\.(mp4|webm|mov)$/i.test(n);
 const readB64 = (b: Blob) => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).replace(/^data:[^,]*,/, '')); r.onerror = () => rej(new Error('Could not read file.')); r.readAsDataURL(b); });
+/** "Used in: Sulphur Bank Mercury Mine" — or a quiet "Not used" when nothing references it. */
+const UsedBy: FC<{ name: string; index?: ReturnType<typeof usedBy>; loading: boolean; onOpen: (route: string) => void }> = ({ name, index, loading, onOpen }) => {
+  if (loading) return <span className="mcard__used is-muted">Checking use…</span>;
+  const refs = usedBy(index, name);
+  if (!refs.length) return <span className="mcard__used is-muted">Not used</span>;
+  return (
+    <span className="mcard__used">
+      Used in {refs.slice(0, 2).map((r, i) => <span key={r.route}>{i ? ', ' : ''}<button type="button" className="link" onClick={() => onOpen(r.route)}>{r.label}</button></span>)}{refs.length > 2 ? ` +${refs.length - 2}` : ''}
+    </span>
+  );
+};
 const fmt = (n: number) => (n > 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1e3))} KB`);
 
 export const MediaPage: FC<{ dirId?: string }> = ({ dirId }) => {
@@ -27,6 +40,7 @@ export const MediaPage: FC<{ dirId?: string }> = ({ dirId }) => {
   const { toast, publish } = useToast();
   const md = mediaDirById(dirId || '') || MEDIA_DIRS[0];
   const list = useDir(md.dir);
+  const usage = useUsage();
   const [q, setQ] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [over, setOver] = useState(false);
@@ -43,13 +57,20 @@ export const MediaPage: FC<{ dirId?: string }> = ({ dirId }) => {
     if (!picked.length) return;
     setBusy(`Preparing ${picked.length} file${picked.length === 1 ? '' : 's'}…`);
     try {
-      const prepared: { path: string; content: string; encoding: 'base64'; bytes: number }[] = [];
+      const outs: File[] = [];
+      // Keep every file deployable: Cloudflare refuses files over 25 MiB.
+      const limit = md.kind === 'video' ? LIMITS.loopBytes : md.kind === 'audio' ? LIMITS.audioBytes : md.id === 'docs' ? LIMITS.docBytes : LIMITS.publicBytes;
+      const advice = md.kind === 'video' ? 'Loops must stay small: trim to ~10 s at 720p, or put the video on YouTube.' : md.kind === 'audio' ? 'Export as M4A or MP3 at 64–128 kbps.' : 'Compress it first.';
+      for (const f of picked) if (!(md.kind === 'image' || f.type.startsWith('image/'))) checkSize(f, limit, `${f.name}: ${advice}`);
       for (let i = 0; i < picked.length; i++) {
         const f = picked[i];
         setBusy(`Preparing ${i + 1} of ${picked.length}…`);
-        const out = md.kind === 'image' || f.type.startsWith('image/') ? (await processImage(f)).file : f;
-        prepared.push({ path: `${md.dir}/${slugify(out.name)}`, content: await readB64(out), encoding: 'base64', bytes: out.size });
+        outs.push(md.kind === 'image' || f.type.startsWith('image/') ? (await processImage(f)).file : f);
       }
+      // Never replace a file that's already there: same-named uploads get -2, -3…
+      const names = await freeNames(md.dir, outs.map((o) => slugify(o.name)));
+      const prepared: { path: string; content: string; encoding: 'base64'; bytes: number }[] = [];
+      for (let i = 0; i < outs.length; i++) prepared.push({ path: `${md.dir}/${names[i]}`, content: await readB64(outs[i]), encoding: 'base64', bytes: outs[i].size });
       setBusy(`Committing ${prepared.length} file${prepared.length === 1 ? '' : 's'}…`);
       let commit: string | undefined;
       try {
@@ -82,6 +103,7 @@ export const MediaPage: FC<{ dirId?: string }> = ({ dirId }) => {
     const stored = e.path.startsWith('public/') ? '/' + e.path.replace(/^public\//, '') : `/${e.path}`;
     try { await navigator.clipboard.writeText(stored); setCopied(e.path); setTimeout(() => setCopied(''), 1200); } catch { toast({ kind: 'info', title: stored, description: 'Copy this path manually.' }); }
   };
+  const inUse = files.filter((f) => selected.has(f.path)).map((f) => ({ f, refs: usedBy(usage.data, f.name) })).filter((x) => x.refs.length);
   const toggle = (p: string) => setSelected((s) => { const n = new Set(s); n.has(p) ? n.delete(p) : n.add(p); return n; });
 
   return (
@@ -90,7 +112,7 @@ export const MediaPage: FC<{ dirId?: string }> = ({ dirId }) => {
         <div><h1 className="page__title">Media</h1><p className="page__sub">{md.hint}</p></div>
         <div className="page__actions">
           <Button variant="primary" icon={<Upload size={15} />} onClick={() => input.current?.click()} loading={!!busy}>{busy || 'Upload'}</Button>
-          <input ref={input} type="file" multiple hidden accept={md.kind === 'image' ? 'image/*,.heic,.heif' : md.kind === 'video' ? 'video/mp4,video/webm' : undefined} onChange={(e) => upload(e.target.files)} data-testid="media-input" />
+          <input ref={input} type="file" multiple hidden accept={md.kind === 'image' ? 'image/*,.heic,.heif' : md.kind === 'video' ? 'video/mp4,video/webm' : md.kind === 'audio' ? 'audio/*,.m4a,.mp3,.wav,.ogg,.webm' : md.id === 'docs' ? 'application/pdf' : undefined} onChange={(e) => upload(e.target.files)} data-testid="media-input" />
         </div>
       </header>
 
@@ -127,6 +149,7 @@ export const MediaPage: FC<{ dirId?: string }> = ({ dirId }) => {
                   </button>
                   <div className="mcard__meta">
                     <span className="mcard__name" title={f.name}>{f.name}</span>
+                    <UsedBy name={f.name} index={usage.data} loading={usage.isLoading} onOpen={(r) => navigate(r)} />
                     <span className="mcard__actions">
                       <IconButton variant="ghost" size="sm" label={copied === f.path ? 'Copied' : 'Copy path'} icon={copied === f.path ? <Check size={13} /> : <Copy size={13} />} onClick={() => copyPath(f)} />
                       <a className="btn btn--ghost btn--sm btn--icon" href={url} target="_blank" rel="noreferrer" title="Open file" aria-label={`Open ${f.name}`}><ExternalLink size={13} /></a>
@@ -140,7 +163,7 @@ export const MediaPage: FC<{ dirId?: string }> = ({ dirId }) => {
         <div className="mediagrid-drop" aria-hidden><ImageIcon size={16} /> Drop files to upload to <code>{md.dir}</code></div>
       </div>
 
-      <Confirm open={confirmDel} onClose={() => setConfirmDel(false)} onConfirm={del} danger busy={!!busy} title={`Delete ${selected.size} file${selected.size === 1 ? '' : 's'}?`} confirmLabel="Delete" body="This commits the deletions to the repo. Any entry still using one of these files will show a broken image until it is edited. History keeps the files." />
+      <Confirm open={confirmDel} onClose={() => setConfirmDel(false)} onConfirm={del} danger busy={!!busy} title={`Delete ${selected.size} file${selected.size === 1 ? '' : 's'}?`} confirmLabel="Delete" body={inUse.length ? <>Still in use: {inUse.map(({ f, refs }, i) => <span key={f.path}>{i ? '; ' : ''}<strong>{f.name}</strong> in {refs.map((r) => r.label).join(', ')}</span>)}. Those entries will show a missing file until they're edited. History keeps the files.</> : 'Nothing on the site uses these files. This commits the deletions; history keeps them.'} />
     </div>
   );
 };

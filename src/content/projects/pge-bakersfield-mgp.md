@@ -7,7 +7,6 @@ role: "Characterization & remediation support"
 startDate: "2023-09"
 summary: "Characterization and remediation support at a former manufactured gas plant (MGP) site, a common class of legacy industrial sites requiring soil and groundwater cleanup."
 techniques: ["Characterization", "Remediation", "Soil & groundwater"]
-coverImage: "mgp.jpg"
 featured: true
 order: 2
 location: "Bakersfield, CA"

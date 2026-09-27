@@ -33,36 +33,19 @@ If your Worker URL differs from the default in `src/studio/api.ts`, update the
 `getEndpoint()` default there (or, once, in the browser console on `/studio`:
 `localStorage.setItem('studio.endpoint','https://…workers.dev')`).
 
-That's it. Visit **`/portfolio/studio/`**, sign in with your password, and edit.
-
-### 5. (Optional) Enable the AI assistant
-The Studio's ✨ assistant (polish/summarize/expand text, and write captions/alt
-text from photos) runs on **Cloudflare Workers AI** — open-source models on
-Cloudflare's free tier, no extra API key. The binding is already declared in
-`wrangler.toml`:
-```toml
-[ai]
-binding = "AI"
-```
-Just enable Workers AI on your Cloudflare account (Dashboard → **AI** → Workers
-AI → follow the one-time enable prompt) and redeploy:
-```bash
-cd studio-worker && npx wrangler deploy
-```
-Until that's done, the ✨ buttons return a friendly "AI not enabled yet" message
-and everything else keeps working. Models default to
-`@cf/meta/llama-3.3-70b-instruct-fp8-fast` (text — best writing quality on
-Workers AI) and `@cf/llava-hf/llava-1.5-7b-hf` (vision); override via
-`AI_TEXT_MODEL` / `AI_VISION_MODEL` in `wrangler.toml`. If the 70B model uses too
-much of the free daily allowance, drop the text model to
-`@cf/meta/llama-3.1-8b-instruct` for faster, cheaper edits. The assistant's
-voice/tone guide lives in the Worker (and is editable at **Studio → AI Assistant**).
+That's it. Visit **`https://mosharif.pages.dev/studio/`**, sign in with your password, and edit.
 
 ## Redeploying after a code change (no CLI needed)
 Cloudflare Dashboard → Workers & Pages → **engr-sharif-studio** → **Edit code**
 → replace the contents with the new `worker.js` → **Deploy**. Secrets and vars
 are kept. Check the **Settings → Variables** tab has `ALLOWED_ORIGIN` set —
-since this revision the Worker refuses cross-origin requests without it.
+the Worker refuses cross-origin requests without it.
+
+**Latest revision (Ground Truth redesign):** adds `POST /api/preview` (the
+Studio's *Preview link*) and removes the old `/api/assist` AI endpoint and its
+`[ai]` binding. Nothing else changes, and an older Studio keeps working
+against it. Until you redeploy, *Preview link* says the Worker needs updating;
+everything else works either way.
 
 ## How it works
 - **Login:** `POST /api/login` with the password → returns a signed JWT (8 h).
@@ -77,12 +60,17 @@ since this revision the Worker refuses cross-origin requests without it.
 - **History:** `GET /api/history?path=…` lists the commits that touched a file
   (or the whole site); `GET /api/file?path=…&ref=<sha>` reads a past version.
   Powers the Studio's History drawer and Restore.
-- **Deploy status:** `GET /api/deploy-status?since=<ms>` reads the Actions run
-  for the deploy branch so the Studio can say *Live* / *Build failed* honestly
-  (falls back to an unauthenticated read — the repo is public — when the PAT
-  has no Actions permission).
-- **AI:** `POST /api/assist` proxies to Workers AI. Vision tasks only accept
-  images hosted in this repo (`raw.githubusercontent.com/<repo>/…`).
+- **Deploy status:** `GET /api/deploy-status?commit=<sha>` reads the check run
+  Cloudflare Pages posts on the commit, so the Studio can say *Live* or
+  *Build failed* honestly. It falls back to an unauthenticated read (the repo
+  is public) when the PAT can't read checks.
+- **Unlisted preview:** `POST /api/preview` resets the `preview` branch
+  (`PREVIEW_BRANCH`, optional) to the live branch, then commits the files
+  there as one commit. Cloudflare Pages builds it at
+  `https://preview.<project>.pages.dev`. That build shows unpublished entries
+  and is never indexed. The live branch is never touched. Pages must build
+  preview branches (the default: *Settings → Builds → Branch control →
+  Preview: All non-production branches*).
 
 ## Security posture
 - Password + GitHub token live only in the Worker's environment; the browser
@@ -90,11 +78,12 @@ since this revision the Worker refuses cross-origin requests without it.
 - **CORS fails closed** — only origins listed in `ALLOWED_ORIGIN` are echoed;
   unknown `Origin` headers get a 403.
 - **JWT pinned to HS256**; `alg`/`typ`/`sub`/`exp`/`iat` are all checked.
-- **Rate limits** (per client IP, in isolate memory): 8 sign-in attempts per
-  10 min, 40 assist calls per 10 min. Pair with a Cloudflare WAF rule for a
+- **Rate limit** (per client IP, in isolate memory): 8 sign-in attempts per
+  10 min, 60 commits and 20 previews per 10 min. Pair with a Cloudflare WAF rule for a
   hard ceiling if you ever need one.
 - **Repo paths are validated** (relative, no `..`, no control chars) and
-  uploads are capped at ~50 MB; assist input at 20k chars / 8 MB images.
+  uploads are capped at ~50 MB (the Studio's own limits are far lower:
+  Cloudflare Pages refuses any file over 25 MiB).
 - Responses carry `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`,
   `Referrer-Policy: no-referrer`.
 

@@ -1,0 +1,54 @@
+---
+import { nav, site } from '../../lib/site';
+import { withBase } from '../../lib/path';
+
+const here = Astro.url.pathname.replace(import.meta.env.BASE_URL.replace(/\/$/, ''), '') || '/';
+const current = (match: string) => here.startsWith(match);
+const cvCurrent = here.startsWith('/cv/');
+---
+<header class="nav" data-nav>
+  <div class="wrap nav__in">
+    <a class="nav__brand" href={withBase('/')} aria-label={`${site.name}, home`}>
+      <span class="nav__name">{site.name}</span>
+      <span class="nav__role">Environmental Engineer, EIT</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      {nav.map((item) => (
+        <a class="nav__link" href={withBase(item.href)} aria-current={current(item.match) ? 'page' : undefined}>{item.label}</a>
+      ))}
+    </nav>
+    <div class="nav__tools">
+      <a class="btn btn--line btn--sm nav__cv" href={withBase('/cv/')} aria-current={cvCurrent ? 'page' : undefined}>CV</a>
+      <button class="iconbtn" type="button" data-search-open aria-label="Search (press / or ⌘K)" aria-haspopup="dialog" aria-keyshortcuts="/ Meta+K Control+K">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="4.75"/><path d="m10.5 10.5 3.75 3.75"/></svg>
+      </button>
+      <button class="iconbtn" type="button" data-theme-toggle aria-label="Switch to the night theme">
+        <span class="theme-disc" aria-hidden="true"></span>
+      </button>
+      <button class="iconbtn nav__menu" type="button" data-menu-open aria-label="Open menu" aria-haspopup="dialog" aria-controls="sheet">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2 5h12M2 11h12"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Menu" data-sheet inert>
+  <div class="sheet__top">
+    <span class="nav__name">{site.name}</span>
+    <button class="iconbtn" type="button" data-menu-close aria-label="Close menu">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m3.5 3.5 9 9m0-9-9 9"/></svg>
+    </button>
+  </div>
+  <ul class="sheet__links">
+    <li><a href={withBase('/')}><span class="mono">00</span>Home</a></li>
+    {nav.map((item, i) => (
+      <li><a href={withBase(item.href)} aria-current={current(item.match) ? 'page' : undefined}><span class="mono">{String(i + 1).padStart(2, '0')}</span>{item.label}</a></li>
+    ))}
+    <li><a href={withBase('/cv/')}><span class="mono">{String(nav.length + 1).padStart(2, '0')}</span>CV</a></li>
+  </ul>
+  <div class="sheet__foot">
+    <span class="label">Contact</span>
+    <a href={`mailto:${site.email}`}>{site.email}</a>
+    <span>{site.location}</span>
+  </div>
+</div>

@@ -1,0 +1,58 @@
+---
+/** 4.0 Field notes — the latest writing, as a table of contents. */
+import { getPosts, CATEGORY_LABEL } from '../../lib/blog';
+import { withBase } from '../../lib/path';
+import { readingMinutes } from '../../lib/reading';
+import SectionHead from '../ui/SectionHead.astro';
+
+const posts = (await getPosts()).slice(0, 3);
+const all = (await getPosts()).length;
+const fmt = (d: Date) => d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+---
+<section class="sec notes" id="notes" data-stratum="Field notes" data-code="ML" data-pattern="lith-silt" aria-labelledby="notes-title">
+  <div class="wrap">
+    <SectionHead no="4.0" id="notes-title" title="Field notes" intro="Methods, lessons from site, and how the tools came about.">
+      <a class="go" href={withBase('/notes/')}>All {all} notes <span class="arrow" aria-hidden="true">→</span></a>
+    </SectionHead>
+    <ol class="rows notelist">
+      {posts.map((p) => (
+        <li>
+          <a class="notelist__row" href={withBase(`/notes/${p.id}/`)}>
+            <span class="notelist__date mono"><time datetime={p.data.pubDate.toISOString()}>{fmt(p.data.pubDate)}</time></span>
+            <span class="notelist__main">
+              <span class="notelist__title">{p.data.title}</span>
+              <span class="notelist__desc">{p.data.description}</span>
+            </span>
+            <span class="notelist__side">
+              <span class="label">{p.data.category ? CATEGORY_LABEL[p.data.category] : 'Note'}</span>
+              <span class="mono">{readingMinutes(p.body)} min</span>
+              {p.data.audio && <span class="mono">· audio</span>}
+            </span>
+          </a>
+        </li>
+      ))}
+    </ol>
+  </div>
+</section>
+
+<style>
+  .notelist__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-2) var(--gap);
+    padding: var(--s-5) 0;
+    text-decoration: none;
+  }
+  .notelist__date { color: var(--ink-3); }
+  .notelist__main { display: grid; gap: var(--s-2); }
+  .notelist__title { font-size: var(--t-h3); font-weight: 540; letter-spacing: -0.02em; line-height: 1.15; transition: color var(--d-1) var(--ease); }
+  .notelist__row:hover .notelist__title { color: var(--cinnabar-ink); }
+  .notelist__desc { font-family: var(--f-text); font-size: 1.0625rem; line-height: 1.5; color: var(--ink-2); max-width: 60ch; }
+  .notelist__side { display: flex; gap: var(--s-3); align-items: baseline; color: var(--ink-3); }
+  @media (min-width: 56rem) {
+    .notelist__row { grid-template-columns: repeat(12, minmax(0, 1fr)); align-items: baseline; }
+    .notelist__date { grid-column: 1 / span 2; }
+    .notelist__main { grid-column: 3 / span 7; }
+    .notelist__side { grid-column: 11 / span 2; justify-content: flex-end; flex-direction: column; align-items: flex-end; gap: 0.3rem; }
+  }
+</style>

@@ -8,7 +8,6 @@ startDate: "2022-06"
 endDate: "2023-05"
 summary: "Field support for a SERDP-funded research study on PFAS, including groundwater sampling to support investigation of per- and polyfluoroalkyl substances in the subsurface."
 techniques: ["PFAS", "Groundwater sampling", "Research field study"]
-coverImage: "pfas.jpg"
 featured: true
 order: 3
 externalLink: "https://serdp-estcp.mil/"

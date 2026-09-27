@@ -4,6 +4,7 @@
  * caller commits everything as ONE atomic commit.
  */
 import { stringify } from './frontmatter';
+import { loopHtml } from './media-upload';
 
 export interface NotePhoto { ext: string; alt?: string; takenAt?: string }
 export interface NoteInput {
@@ -14,12 +15,16 @@ export interface NoteInput {
   lng?: number;
   project?: string;
   photos: NotePhoto[];
+  memo?: { ext: string; peaks?: string; transcript?: string };  // a voice memo
+  clips?: { ext: string }[];                                     // short silent clips
 }
 export interface BuiltNote {
   slug: string;
   path: string;              // src/content/blog/<slug>.md
   content: string;           // full markdown with frontmatter
   photoPaths: string[];      // src/assets/blog/<slug>-1.jpg …
+  memoPath?: string;         // public/media/audio/<slug>.<ext>
+  clipPaths: { clip: string; poster: string }[]; // public/media/loops/<slug>-clip-1.mp4 + poster
   data: Record<string, unknown>;
 }
 
@@ -50,6 +55,12 @@ export function buildFieldNote(input: NoteInput, opts: { slug?: string; mediaDir
   const slug = opts.slug || fieldNoteSlug(input.title, input.createdAt);
   const day = input.createdAt.slice(0, 10);
   const photoPaths = input.photos.map((p, i) => `${mediaDir}/${slug}-${i + 1}.${p.ext.replace(/^\./, '') || 'jpg'}`);
+  const memoPath = input.memo ? `public/media/audio/${slug}.${input.memo.ext.replace(/^\./, '') || 'webm'}` : undefined;
+  const clipPaths = (input.clips ?? []).map((c, i) => ({
+    clip: `public/media/loops/${slug}-clip-${i + 1}.${c.ext.replace(/^\./, '') || 'mp4'}`,
+    poster: `public/media/loops/${slug}-clip-${i + 1}-poster.jpg`,
+  }));
+  const site = (p: string) => p.replace(/^public/, '');
   const title = input.title.trim() || `Field note — ${day}`;
 
   const data: Record<string, unknown> = {
@@ -60,6 +71,7 @@ export function buildFieldNote(input: NoteInput, opts: { slug?: string; mediaDir
     tags: ['Field log'],
     category: 'field-notes',
     ...(input.project ? { relatedProject: input.project } : {}),
+    ...(memoPath ? { audio: site(memoPath), ...(input.memo?.peaks ? { audioPeaks: input.memo.peaks } : {}), ...(input.memo?.transcript?.trim() ? { transcript: input.memo.transcript.trim() } : {}) } : {}),
     featured: false,
     draft: true,
   };
@@ -70,10 +82,14 @@ export function buildFieldNote(input: NoteInput, opts: { slug?: string; mediaDir
   const where = input.lat != null && input.lng != null ? ` · ${coarse(input.lat).toFixed(2)}, ${coarse(input.lng).toFixed(2)} (approx.)` : '';
   parts.push(`*Logged in the field ${stamp}${where}.*`);
   if (input.note.trim()) parts.push(input.note.trim());
+  if (clipPaths.length) {
+    parts.push('## Clips');
+    parts.push(clipPaths.map((c, i) => loopHtml(site(c.clip), site(c.poster), `${title} — clip ${i + 1}`)).join('\n\n'));
+  }
   if (photoPaths.length) {
     parts.push('## Photos');
     parts.push(photoPaths.map((p, i) => `![${input.photos[i].alt || `${title} — photo ${i + 1}`}](/${p})`).join('\n\n'));
   }
 
-  return { slug, path: `${contentDir}/${slug}.md`, content: stringify({ data, body: parts.join('\n\n') + '\n' }), photoPaths, data };
+  return { slug, path: `${contentDir}/${slug}.md`, content: stringify({ data, body: parts.join('\n\n') + '\n' }), photoPaths, memoPath, clipPaths, data };
 }

@@ -1,124 +1,99 @@
 ---
 import { render } from 'astro:content';
-import { Image, getImage } from 'astro:assets';
 import { Code } from 'astro-expressive-code/components';
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { getImage as resolveImage } from '../../lib/images';
-import { withBase } from '../../lib/path';
+import TitleBlock from '../../components/ui/TitleBlock.astro';
+import Figure from '../../components/ui/Figure.astro';
+import Schematic from '../../components/tools/Schematic.astro';
+import Loop from '../../components/media/Loop.astro';
+import YouTube from '../../components/media/YouTube.astro';
 import { getTools } from '../../lib/tools';
+import { getImage } from '../../lib/images';
+import { withBase } from '../../lib/path';
 
 export async function getStaticPaths() {
   const tools = await getTools();
-  return tools.map((tool) => ({ params: { slug: tool.id }, props: { tool } }));
+  return tools.map((tool, i) => ({ params: { slug: tool.id }, props: { tool, i, prev: tools[i - 1] ?? null, next: tools[i + 1] ?? null } }));
 }
-
-const { tool } = Astro.props;
-const { data } = tool;
+const { tool, i, prev, next } = Astro.props;
+const d = tool.data;
 const { Content } = await render(tool);
-const groupId = `tool-${tool.id}`;
-
-// Resolve screenshots (filenames in src/assets/**) → thumb + high-res for viewer.
-const shots = await Promise.all(
-  data.screenshots
-    .map((name) => ({ name, img: resolveImage(name) }))
-    .filter((s) => s.img)
-    .map(async (s) => ({
-      img: s.img!,
-      full: (await getImage({ src: s.img!, width: 2400, format: 'webp' })).src,
-      alt: `${data.name} — screenshot`,
-    })),
-);
+const shots = d.screenshots.map((s) => getImage(s)).filter((x): x is NonNullable<typeof x> => !!x);
+const no = `T-${String(i + 1).padStart(2, '0')}`;
 ---
-<BaseLayout title={`${data.name} — Tool`} description={data.summary} ogType="article">
-  <article class="detail">
-    <div class="u-container">
-      <a href={withBase('tools/')} class="detail__back link-underline" style="color:var(--color-muted);font-size:var(--text-sm);">← All tools</a>
+<BaseLayout title={`${d.name} — Mohammad Sharif`} description={d.summary} ogType="article">
+  <article class="wrap tool">
+    <header class="phead">
+      <ol class="phead__crumbs"><li><a href={withBase('/')}>Home</a></li><li><a href={withBase('/tools/')}>Tools</a></li><li aria-current="page">{d.name}</li></ol>
+      <p class="mono tool__no">{no}</p>
+      <h1 class="phead__title">{d.name}</h1>
+      <p class="lede phead__lede">{d.summary}</p>
+      <div class="tool__tb"><TitleBlock wideCols={3} cells={[
+        { label: 'Built with', value: d.tech.join(', ') },
+        { label: 'Source', value: d.repoUrl ? d.repoUrl.replace(/^https:\/\/github\.com\//, 'github.com/') : 'Private' },
+        { label: 'Try it', value: d.liveUrl ? d.liveUrl.replace(/^https?:\/\//, '') : 'On request' },
+      ]} /></div>
+    </header>
 
-      <header class="detail__header" data-reveal>
-        <p class="section__eyebrow">Tool</p>
-        <h1 class="detail__title" style="margin:1rem 0 1.2rem;">{data.name}</h1>
-        <p style="color:var(--color-paper-soft);font-size:var(--text-lg);max-width:60ch;">{data.summary}</p>
-
-        <ul class="card__tags" style="margin-top:1.4rem;">
-          {data.tech.map((t) => <li>{t}</li>)}
-        </ul>
-
-        <div style="display:flex;gap:0.8rem;flex-wrap:wrap;margin-top:1.6rem;">
-          {data.repoUrl && (
-            <a href={data.repoUrl} class="btn btn--ghost" target="_blank" rel="noopener" data-magnetic="0.3">View code ↗</a>
-          )}
-          {data.liveUrl && (
-            <a href={data.liveUrl} class="btn" target="_blank" rel="noopener" data-magnetic="0.3">Live demo ↗</a>
-          )}
-        </div>
-      </header>
-    </div>
-
-    {data.problem && (
-      <div class="u-container">
-        <aside class="tool-problem" data-reveal>
-          <span class="tool-problem__label">The problem</span>
-          <p>{data.problem}</p>
-        </aside>
+    <figure class="fig tool__fig">
+      <div class="fig__frame tool__frame" style={`view-transition-name: tool-${tool.id}`}>
+        {d.loop ? <Loop src={d.loop} poster={d.loopPoster} label={`${d.name}, screen recording`} /> : <div class="tool__sch"><Schematic slug={tool.id} label={`Schematic: ${d.summary}`} /></div>}
       </div>
-    )}
+      <figcaption class="fig__cap"><span class="fig__no">Fig. 1</span><span>{d.loop ? 'Screen recording.' : 'What it does, drawn as a schematic. No project data is shown.'}</span></figcaption>
+    </figure>
+
+    <div class="tool__body">
+      <aside class="tool__aside">
+        {d.problem && <div><p class="label">The problem</p><p class="tool__prob">{d.problem}</p></div>}
+        <div class="tool__actions">
+          {d.liveUrl && <a class="btn" href={d.liveUrl} rel="noopener">Open the tool <span class="arrow" aria-hidden="true">↗</span></a>}
+          {d.repoUrl && <a class="btn btn--line" href={d.repoUrl} rel="noopener">Source on GitHub <span class="arrow" aria-hidden="true">↗</span></a>}
+        </div>
+      </aside>
+      <div class="tool__main">
+        <div class="prose"><Content /></div>
+        {d.codeSnippet && (
+          <section class="tool__code" aria-label="Code excerpt">
+            <p class="label">Excerpt</p>
+            <Code code={d.codeSnippet} lang={d.codeLang} />
+          </section>
+        )}
+        {d.video && <div class="tool__video"><YouTube video={d.video} title={`${d.name}: walkthrough`} /></div>}
+      </div>
+    </div>
 
     {shots.length > 0 && (
-      <div class="u-container">
-        <h2 style="font-size:var(--text-xl);margin:2.5rem 0 1.5rem;">Screenshots</h2>
-        <div class="gallery" data-reveal-stagger>
-          {shots.map((s) => (
-            <button class="gallery__item" data-lightbox data-gallery={groupId} data-full={s.full} aria-label="Open screenshot">
-              <Image src={s.img} alt={s.alt} widths={[400, 800, 1200]} sizes="(max-width: 640px) 90vw, 22rem" loading="lazy" />
-            </button>
-          ))}
-        </div>
-      </div>
+      <section class="tool__shots" aria-label="Screenshots">
+        {shots.map((s, k) => <Figure image={s} alt={`${d.name}, screenshot ${k + 1}`} no={String(k + 2)} group="tool" sizes="(min-width: 64rem) 45vw, 92vw" />)}
+      </section>
     )}
 
-    <div class="u-container detail__bodywrap">
-      <div class="detail__body prose" data-reveal>
-        <Content />
-      </div>
-      <aside class="detail__aside" data-reveal>
-        {data.repoUrl && (
-          <a href={data.repoUrl} class="btn btn--ghost" target="_blank" rel="noopener" data-magnetic="0.3">View code ↗</a>
-        )}
-        <a href={withBase('#contact')} class="btn" data-magnetic="0.3">Get in touch</a>
-      </aside>
-    </div>
-
-    {data.codeSnippet && (
-      <div class="u-container" style="margin-top:1rem;">
-        <h2 style="font-size:var(--text-xl);margin:2rem 0 1.2rem;">A snippet</h2>
-        <div data-reveal>
-          <Code code={data.codeSnippet} lang={data.codeLang} />
-        </div>
-      </div>
-    )}
+    <nav class="pager tool__pager" aria-label="More tools">
+      {prev && <a href={withBase(`/tools/${prev.id}/`)}><span class="label">← Previous</span><span class="t">{prev.data.name}</span></a>}
+      {next && <a href={withBase(`/tools/${next.id}/`)}><span class="label">Next →</span><span class="t">{next.data.name}</span></a>}
+    </nav>
   </article>
 </BaseLayout>
 
-<script>
-  import '../../lib/lightbox';
-</script>
-
 <style>
-  .detail { padding-top: 7rem; }
-  .detail__title { font-size: var(--text-3xl); max-width: 20ch; }
-  .detail__bodywrap { display: grid; gap: 2.5rem; margin-top: 2.5rem; }
-  @media (min-width: 900px) {
-    .detail__bodywrap { grid-template-columns: minmax(0, 1fr) 16rem; align-items: start; }
+  .tool__no { color: var(--cinnabar-ink); margin-bottom: var(--s-4); }
+  .tool__tb { margin-top: var(--s-7); }
+  .tool__fig { margin-top: var(--s-7); max-width: 60rem; }
+  .tool__frame { aspect-ratio: 16 / 9; background: var(--ground-2); }
+  .tool__sch { padding: 5% 12% 6%; height: 100%; display: grid; place-items: center; }
+  .tool__sch :global(svg) { max-height: 100%; }
+  .tool__body { display: grid; gap: var(--s-7); margin-top: clamp(3.5rem, 2.5rem + 3vw, 6rem); }
+  .tool__aside { display: grid; gap: var(--s-6); align-content: start; }
+  .tool__prob { font-family: var(--f-text); font-size: 1.125rem; line-height: 1.55; margin-top: var(--s-2); }
+  .tool__actions { display: flex; flex-wrap: wrap; gap: var(--s-3); }
+  .tool__code { margin-top: var(--s-8); max-width: calc(var(--measure) + 6rem); display: grid; gap: var(--s-3); }
+  .tool__video { margin-top: var(--s-7); max-width: var(--measure); }
+  .tool__shots { display: grid; gap: var(--s-7) var(--gap); margin-top: var(--section); }
+  @media (min-width: 64rem) {
+    .tool__body { grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); }
+    .tool__aside { grid-column: 1 / span 3; position: sticky; top: calc(var(--nav-h) + var(--s-6)); }
+    .tool__main { grid-column: 5 / span 8; }
+    .tool__shots { grid-template-columns: 1fr 1fr; }
   }
-  .detail__aside { display: flex; flex-direction: column; gap: 0.8rem; position: sticky; top: 6rem; }
-  .tool-problem {
-    margin-top: 2rem;
-    border-left: 2px solid var(--color-field-bright);
-    background: color-mix(in srgb, var(--color-field-dim) 28%, transparent);
-    padding: 1.2rem 1.4rem;
-    border-radius: 0 12px 12px 0;
-    max-width: 60ch;
-  }
-  .tool-problem__label { color: var(--color-field-bright); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.14em; display: block; margin-bottom: 0.5rem; }
-  .tool-problem p { margin: 0; color: var(--color-paper-soft); }
+  .tool__pager { margin-top: var(--section); }
 </style>

@@ -1,36 +1,55 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import PageHeader from '../../components/atlas/PageHeader.astro';
-import { withBase } from '../../lib/path';
+import Schematic from '../../components/tools/Schematic.astro';
+import Loop from '../../components/media/Loop.astro';
 import { getTools } from '../../lib/tools';
-import { site } from '../../lib/site';
+import { withBase } from '../../lib/path';
 
 const tools = await getTools();
 ---
-<BaseLayout
-  title={`Tools — ${site.name}`}
-  description="Software I've built to remove friction from environmental fieldwork — mapping, data, and QC tools."
->
-  <main class="u-container">
-    <PageHeader
-      eyebrow="Engineer who builds"
-      title="Tools I've built"
-      count={`${tools.length} shipped`}
-      intro="An environmental engineer who ships software. Mapping, data, and QC tools built for real fieldwork — open any one for the problem, the approach, and a code snippet."
-      crumbs={[{ label: 'Home', href: '/' }, { label: 'Tools' }]}
-    />
-
-    <div class="tools-grid" data-reveal-stagger>
-      {tools.map((t) => (
-        <a class="tool-card tool-card--link" href={withBase(`tools/${t.id}/`)} aria-label={`Open ${t.data.name}`}>
-          <h3 class="tool-card__name">{t.data.name}</h3>
-          <p class="tool-card__problem">{t.data.summary}</p>
-          <div class="tool-card__tech">
-            {t.data.tech.slice(0, 4).map((x) => <span class="chip">{x}</span>)}
+<BaseLayout title="Tools — Mohammad Sharif" description="Software built for environmental fieldwork: sampling plans, XRF data, contamination figures, boring logs and report QC.">
+  <div class="wrap">
+    <header class="phead">
+      <ol class="phead__crumbs"><li><a href={withBase('/')}>Home</a></li><li aria-current="page">Tools</li></ol>
+      <h1 class="phead__title">Built for the field</h1>
+      <p class="lede phead__lede">Software I wrote because a job on site needed it. Each one started as a specific problem: a data gap no one could see, two XRF guns that didn’t agree, a report that quietly carried last year’s numbers.</p>
+    </header>
+    <ol class="tidx">
+      {tools.map((t, i) => (
+        <li class="tidx__item" data-reveal>
+          <a class="tidx__fig" href={withBase(`/tools/${t.id}/`)} tabindex="-1" aria-hidden="true" style={`view-transition-name: tool-${t.id}`}>
+            {t.data.loop ? <Loop src={t.data.loop} poster={t.data.loopPoster} label={`${t.data.name}, screen recording`} /> : <Schematic slug={t.id} label={`Schematic: ${t.data.summary}`} />}
+          </a>
+          <div class="tidx__text">
+            <p class="mono tidx__no">T-{String(i + 1).padStart(2, '0')}</p>
+            <h2 class="tidx__name"><a href={withBase(`/tools/${t.id}/`)}>{t.data.name}</a></h2>
+            <p class="tidx__sum">{t.data.summary}</p>
+            {t.data.problem && <p class="tidx__prob"><span class="label">The problem</span> {t.data.problem}</p>}
+            <p class="mono tidx__tech">{t.data.tech.join(' · ')}</p>
           </div>
-          <span class="tool-card__more">Read more →</span>
-        </a>
+        </li>
       ))}
-    </div>
-  </main>
+    </ol>
+  </div>
 </BaseLayout>
+
+<style>
+  .tidx { list-style: none; padding: 0; margin-top: clamp(3rem, 2rem + 3vw, 5rem); display: grid; border-top: 1px solid var(--rule-2); }
+  .tidx__item { display: grid; gap: var(--s-6); padding-block: clamp(2.5rem, 2rem + 2vw, 4rem); border-bottom: 1px solid var(--rule); }
+  .tidx__fig { position: relative; display: block; aspect-ratio: 16 / 10; padding: 6% 7% 8%; background: var(--ground-2); border: 1px solid var(--rule); overflow: hidden; }
+  .tidx__fig :global(.loop) { position: absolute; inset: 0; }
+  .tidx__text { display: grid; gap: var(--s-3); align-content: start; }
+  .tidx__no { color: var(--cinnabar-ink); }
+  .tidx__name { font-size: var(--t-h2); font-weight: 520; letter-spacing: -0.028em; line-height: 1.02; }
+  .tidx__name a { text-decoration: none; }
+  .tidx__name a:hover { color: var(--cinnabar-ink); }
+  .tidx__sum { font-family: var(--f-text); font-size: var(--t-body); line-height: 1.55; max-width: 44ch; }
+  .tidx__prob { font-family: var(--f-text); font-size: 1rem; line-height: 1.55; color: var(--ink-2); max-width: 52ch; }
+  .tidx__prob .label { margin-right: 0.35rem; }
+  .tidx__tech { color: var(--ink-3); font-size: 0.75rem; }
+  @media (min-width: 64rem) {
+    .tidx__item { grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); align-items: center; }
+    .tidx__fig { grid-column: 1 / span 6; }
+    .tidx__text { grid-column: 8 / span 5; }
+  }
+</style>

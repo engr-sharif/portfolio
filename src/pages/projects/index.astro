@@ -1,38 +1,68 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import PageHeader from '../../components/atlas/PageHeader.astro';
-import ProjectCard from '../../components/ProjectCard.astro';
-import ProjectExplorer from '../../components/ProjectExplorer.tsx';
-import { getProjects, getTechniques } from '../../lib/projects';
-import { site } from '../../lib/site';
+import StateMap from '../../components/ui/StateMap.astro';
+import Status from '../../components/ui/Status.astro';
+import { getProjects, dateRange } from '../../lib/projects';
+import { publicPosition } from '../../lib/atlas';
+import { withBase } from '../../lib/path';
 
 const projects = await getProjects();
-const techniques = await getTechniques();
-const statusCounts = projects.reduce<Record<string, number>>((acc, p) => {
-  acc[p.data.status] = (acc[p.data.status] ?? 0) + 1;
-  return acc;
-}, {});
+let n = 0;
+const rows = projects.map((p) => {
+  const pos = publicPosition(p.data);
+  return { p, pos, no: pos ? String(++n).padStart(2, '0') : '—' };
+});
+const pins = rows.filter((r) => r.pos).map((r) => ({ no: r.no, lat: r.pos!.lat, lng: r.pos!.lng, label: r.p.data.title, href: withBase(`/projects/${r.p.id}/`), active: r.p.data.status === 'active' }));
+const active = projects.filter((p) => p.data.status === 'active').length;
 ---
-<BaseLayout
-  title={`Projects — ${site.name}`}
-  description="Environmental projects: site characterization, remediation, PFAS, landfill CQA, and groundwater/landfill-gas monitoring across California."
->
-  <main class="u-container">
-    <PageHeader
-      eyebrow="Project dashboard"
-      title="Environmental projects"
-      count={`${projects.length} documented`}
-      intro="A live record of characterization, remediation, and quality-assurance work. Filter by status or technique. All entries use public, high-level descriptions."
-      crumbs={[{ label: 'Home', href: '/' }, { label: 'Projects' }]}
-    />
+<BaseLayout title="Work — Mohammad Sharif" description="Case studies in environmental site characterization, remediation and compliance monitoring across California.">
+  <div class="wrap">
+    <header class="phead">
+      <ol class="phead__crumbs"><li><a href={withBase('/')}>Home</a></li><li aria-current="page">Work</li></ol>
+      <h1 class="phead__title">Work</h1>
+      <p class="lede phead__lede">{projects.length} projects across California, {active} of them active. Each is written up like a report: the setting, my role, what I did and what came of it.</p>
+    </header>
 
-    <ProjectExplorer statusCounts={statusCounts} techniques={techniques} client:visible />
-
-    <div class="project-grid" data-reveal-stagger>
-      {projects.map((project) => <ProjectCard project={project} />)}
+    <div class="widx">
+      <ol class="rows widx__list">
+        {rows.map(({ p, no }) => (
+          <li>
+            <a class="widx__row" href={withBase(`/projects/${p.id}/`)}>
+              <span class="widx__no mono">{no}</span>
+              <span class="widx__main">
+                <span class="widx__title" style={`view-transition-name: title-${p.id}`}>{p.data.title}</span>
+                <span class="widx__sum">{p.data.summary}</span>
+              </span>
+              <span class="widx__meta">
+                <span class="label">{p.data.siteType}</span>
+                <span>{p.data.location ?? 'Several sites'}</span>
+                <span class="mono">{dateRange(p.data.startDate, p.data.endDate, p.data.status)}</span>
+                <Status status={p.data.status} />
+              </span>
+            </a>
+          </li>
+        ))}
+      </ol>
+      <aside class="widx__map">
+        <StateMap pins={pins} no="1" caption="Project locations, rounded to about 1 km. Filled pins are active." />
+      </aside>
     </div>
-    <p class="explorer-empty" data-explorer-empty style="display:none;">
-      No projects match those filters.
-    </p>
-  </main>
+  </div>
 </BaseLayout>
+
+<style>
+  .widx { display: grid; gap: var(--s-8); margin-top: clamp(3rem, 2rem + 3vw, 5rem); }
+  .widx__row { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); gap: var(--s-3) var(--s-4); padding: var(--s-6) 0; text-decoration: none; }
+  .widx__no { color: var(--cinnabar-ink); padding-top: 0.4rem; }
+  .widx__main { display: grid; gap: var(--s-3); }
+  .widx__title { font-size: var(--t-h3); font-weight: 540; letter-spacing: -0.02em; line-height: 1.12; transition: color var(--d-1) var(--ease); }
+  .widx__row:hover .widx__title { color: var(--cinnabar-ink); }
+  .widx__sum { font-family: var(--f-text); font-size: 1.0625rem; line-height: 1.55; color: var(--ink-2); max-width: 58ch; }
+  .widx__meta { grid-column: 2; display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-5); align-items: baseline; font-size: 0.9375rem; color: var(--ink-2); }
+  .widx__meta .mono { color: var(--ink-3); font-size: 0.75rem; }
+  @media (min-width: 64rem) {
+    .widx { grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); align-items: start; }
+    .widx__list { grid-column: 1 / span 7; }
+    .widx__map { grid-column: 9 / span 4; position: sticky; top: calc(var(--nav-h) + var(--s-6)); }
+  }
+</style>

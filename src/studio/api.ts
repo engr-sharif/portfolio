@@ -207,18 +207,34 @@ export interface ListEntry { name: string; path: string; sha: string; type: stri
 export const listDir = (dir: string): Promise<ListEntry[]> =>
   call(`/api/list?dir=${encodeURIComponent(dir)}`);
 
+/**
+ * Pick free file names in a repo folder so an upload never silently replaces
+ * an existing file (the Worker updates a file in place when the path exists).
+ * "photo.jpg" → "photo-2.jpg" → "photo-3.jpg"…; names within the same batch
+ * are kept distinct too. A folder that doesn't exist yet counts as empty.
+ */
+export async function freeNames(dir: string, names: string[]): Promise<string[]> {
+  let existing: string[] = [];
+  try { existing = (await listDir(dir)).map((e) => e.name); } catch { /* new folder */ }
+  return pickFreeNames(existing, names);
+}
+/** Pure core of freeNames (case-insensitive, like most file systems). */
+export function pickFreeNames(existing: string[], names: string[]): string[] {
+  const taken = new Set(existing.map((n) => n.toLowerCase()));
+  return names.map((name) => {
+    const dot = name.lastIndexOf('.');
+    const stem = dot > 0 ? name.slice(0, dot) : name;
+    const ext = dot > 0 ? name.slice(dot) : '';
+    let candidate = name;
+    for (let n = 2; taken.has(candidate.toLowerCase()); n++) candidate = `${stem}-${n}${ext}`;
+    taken.add(candidate.toLowerCase());
+    return candidate;
+  });
+}
+export const freeName = async (dir: string, name: string) => (await freeNames(dir, [name]))[0];
+
 export const uploadImage = (path: string, base64: string, message: string) =>
   call('/api/upload', { method: 'POST', body: JSON.stringify({ path, base64, message }) });
-
-/** AI assist via the Worker's Cloudflare Workers AI binding. `task` is one of
- * polish|grammar|summarize|expand (text) or alt|caption (vision, needs image
- * URL). Returns { result }. */
-export const aiAssist = (
-  task: string,
-  text: string,
-  opts: { system?: string; image?: string } = {},
-): Promise<{ result: string }> =>
-  call('/api/assist', { method: 'POST', body: JSON.stringify({ task, text, ...opts }) });
 
 /** Public raw-content URL for a repo image (the repo is public, so no auth).
  * Accepts stored values like "/src/assets/covers/x.jpg" or "x.jpg". */
@@ -235,4 +251,26 @@ export function rawImageUrl(stored: string, fallbackDir = 'src/assets'): string 
 export function rawRepoUrl(repoPath: string): string {
   const p = repoPath.replace(/^\//, '');
   return `https://raw.githubusercontent.com/${REPO}/${BRANCH}/${p}`;
+}
+
+/* ---------------------------------------------------------------- preview */
+export interface PreviewResult extends CommitResult { branch: string }
+/** Commit files to the Worker's preview branch (reset to the live site first).
+ * The live site is untouched. */
+export const sendPreview = (message: string, files: CommitFile[]): Promise<PreviewResult> =>
+  call('/api/preview', { method: 'POST', body: JSON.stringify({ message, files }) });
+
+/** Build state of any commit, from the host's checks (no site stamp). */
+export async function commitBuildState(commit: string): Promise<DeployStatus> {
+  try { return (await call(`/api/deploy-status?commit=${encodeURIComponent(commit)}`)) as DeployStatus; }
+  catch { return { state: 'unknown' }; }
+}
+
+/** Where Cloudflare Pages serves a branch: https://<branch>.<project>.pages.dev.
+ * Null on other hosts (localhost, a custom domain) where it can't be derived. */
+export function branchOrigin(branch: string, host = location.host): string | null {
+  if (!/\.pages\.dev$/.test(host)) return null;
+  const project = host.split('.').slice(-3).join('.');
+  const alias = branch.toLowerCase().replace(/[^a-z0-9-]+/g, '-').slice(0, 28).replace(/-+$/, '');
+  return `https://${alias}.${project}`;
 }

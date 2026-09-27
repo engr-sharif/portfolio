@@ -56,6 +56,38 @@ export async function listEntries(collection: Collection): Promise<EntryRow[]> {
   return rows.map(({ path, label, status, broken }) => ({ path, label, status, broken }));
 }
 
+export interface UsageSource { label: string; route: string; text: string }
+
+/**
+ * Everything that can reference a media file — every entry of every folder
+ * collection and every settings file — as lower-cased text, so the media
+ * library can say where each file is used (and warn before deleting it).
+ */
+export async function contentIndex(): Promise<UsageSource[]> {
+  const out: UsageSource[] = [];
+  await Promise.all(collections.map(async (c) => {
+    try {
+      if (c.kind === 'file' && c.file) {
+        const { content } = await readFile(c.file);
+        out.push({ label: c.label, route: `/file/${c.id}`, text: (content || '').toLowerCase() });
+        return;
+      }
+      const files = (await listDir(c.dir!)).filter((f) => f.type === 'file' && /\.mdx?$/.test(f.name));
+      await Promise.all(files.map(async (f) => {
+        const { content } = await readFile(f.path);
+        let label = f.name;
+        try { label = String(parse(content || '').data[c.labelField] || f.name); } catch { /* keep file name */ }
+        out.push({ label, route: `/c/${c.id}/e/${f.name.replace(/\.mdx?$/, '')}`, text: (content || '').toLowerCase() });
+      }));
+    } catch { /* a missing folder simply has no references */ }
+  }));
+  return out;
+}
+
+/** Sources that mention a file (by name, case-insensitive). */
+export const usedBy = (index: UsageSource[] | undefined, fileName: string) =>
+  (index ?? []).filter((s) => s.text.includes(fileName.toLowerCase()));
+
 export interface MediaItem { path: string; name: string; url: string }
 
 /** Browse all images already uploaded in a media directory (for the picker). */
@@ -152,19 +184,3 @@ export async function uniqueEntryPath(dir: string, slug: string): Promise<string
   }
   return `${dir}/${base}-${Date.now()}.md`;
 }
-
-export const AI_GUIDE_PATH = 'src/content/settings/ai.json';
-
-/** The AI writing guide (from settings/ai.json). Empty string means "use the
- * Worker's built-in default guide". Cached until the guide is saved. */
-let _aiGuide: string | undefined;
-export async function aiGuide(): Promise<string> {
-  if (_aiGuide !== undefined) return _aiGuide;
-  try {
-    const f = await readFile(AI_GUIDE_PATH);
-    _aiGuide = f.content ? (JSON.parse(f.content).guide || '') : '';
-  } catch { _aiGuide = ''; }
-  return _aiGuide ?? '';
-}
-/** Call after saving ai.json so the next assist uses the new guide. */
-export const invalidateAiGuide = () => { _aiGuide = undefined; };

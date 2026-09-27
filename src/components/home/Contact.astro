@@ -1,0 +1,57 @@
+---
+/** 7.0 Contact — the ask. Email first (copyable), the form beside it. */
+import { site } from '../../lib/site';
+import SectionHead from '../ui/SectionHead.astro';
+
+const hasForm = !!site.contactFormKey?.trim();
+---
+<section class="sec contact" id="contact" data-stratum="Contact" data-code="BR" data-pattern="lith-rock" aria-labelledby="contact-title">
+  <div class="wrap">
+    <SectionHead no="7.0" id="contact-title" title="Hiring for field or remediation work?" />
+    <div class="contact__grid">
+      <div class="contact__left">
+        <p class="contact__lede">I’m open to environmental engineering roles in California. Email is the quickest way to reach me.</p>
+        <div class="contact__mail">
+          <a class="contact__addr" href={`mailto:${site.email}`}>{site.email}</a>
+          <button class="btn btn--line btn--sm" type="button" data-copy={site.email}><span data-copy-label>Copy address</span></button>
+        </div>
+        <ul class="contact__elsewhere">
+          <li><a href={site.linkedin} rel="me noopener">LinkedIn</a></li>
+          <li><a href={site.github} rel="me noopener">GitHub</a></li>
+          <li><span class="mono">{site.location}</span></li>
+        </ul>
+      </div>
+      <form class="contact__form" method="post" action="https://api.web3forms.com/submit" data-contact-form data-has-form={String(hasForm)} data-email={site.email}>
+        {hasForm && <input type="hidden" name="access_key" value={site.contactFormKey} />}
+        <input type="hidden" name="subject" value={`Portfolio enquiry for ${site.name}`} />
+        <input type="checkbox" name="botcheck" class="visually-hidden" tabindex="-1" autocomplete="off" aria-hidden="true" />
+        <label class="field"><span>Name</span><input class="input" name="name" autocomplete="name" required /></label>
+        <label class="field"><span>Email</span><input class="input" name="email" type="email" autocomplete="email" required /></label>
+        <label class="field"><span>Message</span><textarea class="input" name="message" rows="6" required placeholder="The role, the site, or the question."></textarea></label>
+        <div class="contact__send">
+          <button class="btn" type="submit">{hasForm ? 'Send message' : 'Write the email'} <span class="arrow" aria-hidden="true">→</span></button>
+          <p class="contact__status" data-contact-status role="status" aria-live="polite"></p>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<style>
+  .contact__grid { display: grid; gap: var(--s-8); }
+  .contact__left { display: grid; gap: var(--s-6); align-content: start; }
+  .contact__lede { font-family: var(--f-text); font-size: var(--t-lede); line-height: 1.45; max-width: 30ch; }
+  .contact__mail { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4); }
+  .contact__addr { font-size: clamp(1.25rem, 1rem + 1.1vw, 2rem); font-weight: 540; letter-spacing: -0.02em; text-decoration-color: var(--cinnabar); text-underline-offset: 0.18em; overflow-wrap: anywhere; }
+  .contact__elsewhere { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-5); color: var(--ink-2); }
+  .contact__form { display: grid; gap: var(--s-5); }
+  .contact__send { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4); }
+  .contact__status { font-family: var(--f-text); color: var(--ink-2); }
+  .contact__status[data-tone='ok'] { color: var(--ink); }
+  .contact__status[data-tone='err'] { color: var(--cinnabar-ink); }
+  @media (min-width: 64rem) {
+    .contact__grid { grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); }
+    .contact__left { grid-column: 1 / span 5; }
+    .contact__form { grid-column: 7 / span 6; }
+  }
+</style>

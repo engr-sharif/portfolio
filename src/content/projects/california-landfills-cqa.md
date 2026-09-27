@@ -8,7 +8,6 @@ startDate: "2021-05"
 endDate: "2023-08"
 summary: "Construction Quality Assurance (CQA) across multiple California landfill sites — including Yolo County Central Landfill, Colton, and Woodville — covering liner/cover QA and landfill gas (LFG) monitoring."
 techniques: ["CQA", "LFG monitoring", "Field QA", "Liner/cover systems"]
-coverImage: "cqa.jpg"
 featured: false
 order: 4
 published: true

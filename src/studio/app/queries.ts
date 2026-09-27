@@ -7,8 +7,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Collection } from '../schema';
 import { readFile, writeFile, deleteFile, commitFiles, history, listDir, type HistoryEntry, type FileResult } from '../api';
-import { listEntries, getStats, saveOrder, duplicateEntry, uniqueEntryPath, listImages, type EntryRow, type CollStat, type MediaItem } from '../studio-lib';
+import { listEntries, getStats, saveOrder, duplicateEntry, uniqueEntryPath, listImages, contentIndex, type EntryRow, type CollStat, type MediaItem, type UsageSource } from '../studio-lib';
 import { parse, stringify } from '../frontmatter';
+import { EMPTY_WATCHLIST, type WatchList } from '../confidentiality';
 
 export const keys = {
   entries: (id: string) => ['entries', id] as const,
@@ -17,6 +18,7 @@ export const keys = {
   history: (path?: string) => ['history', path ?? '*'] as const,
   media: (dir: string) => ['media', dir] as const,
   dir: (dir: string) => ['dir', dir] as const,
+  usage: ['usage'] as const,
 };
 
 export const useEntries = (collection: Collection) =>
@@ -31,6 +33,8 @@ export const useHistory = (path?: string, limit = 20) =>
   useQuery<HistoryEntry[]>({ queryKey: [...keys.history(path), limit], queryFn: () => history(path, limit), staleTime: 15_000 });
 
 export const useMedia = (dir: string) => useQuery<MediaItem[]>({ queryKey: keys.media(dir), queryFn: () => listImages(dir), staleTime: 30_000 });
+/** Where each media file is referenced (read once, refreshed on focus). */
+export const useUsage = () => useQuery<UsageSource[]>({ queryKey: keys.usage, queryFn: contentIndex, staleTime: 60_000 });
 export const useDir = (dir: string) => useQuery({ queryKey: keys.dir(dir), queryFn: () => listDir(dir), staleTime: 30_000 });
 
 /** Invalidate everything a change to `path` in `collection` could affect. */
@@ -114,5 +118,30 @@ export function useBulk(collection: Collection) {
       return r.commit;
     },
     onSuccess: () => inv(collection.id),
+  });
+}
+
+/* ------------------------------------------------------------- watch list */
+export const WATCHLIST_PATH = 'src/content/settings/watchlist.json';
+
+/** The hashed watch list (and its blob sha, for a conflict-safe save). */
+export const useWatchList = () =>
+  useQuery<{ list: WatchList; sha: string | null }>({
+    queryKey: keys.entry(WATCHLIST_PATH),
+    queryFn: async () => {
+      const f = await readFile(WATCHLIST_PATH);
+      let list = EMPTY_WATCHLIST;
+      try { if (f.content) list = { ...EMPTY_WATCHLIST, ...JSON.parse(f.content) }; } catch { /* a broken file reads as empty; saving repairs it */ }
+      return { list, sha: f.sha };
+    },
+    staleTime: 60_000,
+  });
+
+export function useSaveWatchList() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ list, sha, message }: { list: WatchList; sha: string | null; message: string }) =>
+      writeFile(WATCHLIST_PATH, JSON.stringify(list, null, 2) + '\n', message, sha),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.entry(WATCHLIST_PATH) }),
   });
 }

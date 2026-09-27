@@ -1,0 +1,184 @@
+---
+/**
+ * Site-location figure, drawn from the terrain data (no image files): the
+ * state as a dot-relief with a graticule and the inset marked, beside a
+ * regional inset centred on the site. Positions are the project's public,
+ * rounded coordinates (0.01°) — a figure never shows more than that.
+ */
+import { withBase } from '../../lib/path';
+import { toUV, VIEW_W, VIEW_H, KM_PER_UNIT, BBOX } from '../../lib/terrain';
+
+export interface Props {
+  lat: number;
+  lng: number;
+  name: string;
+  place?: string;
+  no?: string;
+  caption?: string;
+  /** Regional inset zoom relative to the statewide panel. */
+  zoom?: number;
+  compact?: boolean;
+  vt?: string;
+}
+const { lat, lng, name, place, no, caption, zoom = 4, compact = false, vt } = Astro.props;
+const { u, v } = toUV(lat, lng);
+const relief = `--relief-url: url('${withBase('/data/ca-relief.svg')}')`;
+
+// Graticule: whole degrees inside the bbox.
+const lats = [] as number[];
+for (let a = Math.ceil(BBOX.south); a <= Math.floor(BBOX.north); a++) lats.push(a);
+const lngs = [] as number[];
+for (let o = Math.ceil(BBOX.west); o <= Math.floor(BBOX.east); o++) lngs.push(o);
+const gx = (o: number) => toUV(0, o).u * VIEW_W;
+const gy = (a: number) => toUV(a, 0).v * VIEW_H;
+
+// Inset extent on the statewide panel: the inset frame is square, showing
+// 1/zoom of the state's width.
+const insetW = VIEW_W / zoom;
+const insetH = insetW;
+
+// Scale bar for the inset: pick a round distance near 22% of its width.
+const insetKm = (VIEW_W * KM_PER_UNIT) / zoom;
+const target = insetKm * 0.22;
+const nice = [5, 10, 20, 25, 50, 100].reduce((a, b) => (Math.abs(b - target) < Math.abs(a - target) ? b : a));
+const barPct = (nice / insetKm) * 100;
+
+const fmt = (n: number, pos: string, neg: string) => `${Math.abs(n).toFixed(2)}° ${n >= 0 ? pos : neg}`;
+---
+<figure class:list={['fig locator', compact && 'locator--compact']} style={vt ? `view-transition-name: ${vt}` : undefined}>
+  <div class="locator__sheet fig__frame">
+    <div class="locator__state" style={`aspect-ratio: ${VIEW_W} / ${VIEW_H}`}>
+      <div class="relief" style={relief}></div>
+      <svg class="locator__svg" viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} preserveAspectRatio="none" aria-hidden="true">
+        <g class="locator__grat">
+          {lats.map((a) => <line x1="0" x2={VIEW_W} y1={gy(a)} y2={gy(a)} />)}
+          {lngs.map((o) => <line y1="0" y2={VIEW_H} x1={gx(o)} x2={gx(o)} />)}
+        </g>
+        <rect class="locator__inset" x={u * VIEW_W - insetW / 2} y={v * VIEW_H - insetH / 2} width={insetW} height={insetH} />
+        <circle class="locator__dot" cx={u * VIEW_W} cy={v * VIEW_H} r="7" />
+      </svg>
+      <span class="locator__water" style="left: 7%; top: 74%;">Pacific<br />Ocean</span>
+      <span class="locator__tick mono" style={`top: ${(gy(40) / VIEW_H) * 100}%`}>40° N</span>
+      <span class="locator__tick mono" style={`top: ${(gy(35) / VIEW_H) * 100}%`}>35° N</span>
+      <span class="locator__tick locator__tick--x mono" style={`left: ${(gx(-120) / VIEW_W) * 100}%`}>120° W</span>
+    </div>
+    <div class="locator__region">
+      <div class="locator__zoom" style={`width: ${zoom * 100}%; aspect-ratio: ${VIEW_W} / ${VIEW_H}; transform: translate(${(-u * 100).toFixed(3)}%, ${(-v * 100).toFixed(3)}%)`}>
+        <div class="relief" style={relief}></div>
+      </div>
+      <span class="locator__cross" aria-hidden="true"></span>
+      <div class="locator__label">
+        <span class="locator__name">{name}</span>
+        {place && <span class="locator__place">{place}</span>}
+        <span class="mono locator__coords"><span>{fmt(lat, 'N', 'S')}</span> <span>{fmt(lng, 'E', 'W')}</span></span>
+      </div>
+      <svg class="locator__north" viewBox="0 0 20 34" aria-hidden="true"><path d="M10 1 16.5 21 10 16.5 3.5 21Z" /><text x="10" y="32" text-anchor="middle">N</text></svg>
+      <div class="locator__scale" aria-hidden="true">
+        <span class="locator__bar" style={`width: ${barPct.toFixed(2)}%`}><i></i></span>
+        <span class="mono">{nice} km</span>
+      </div>
+    </div>
+  </div>
+  <figcaption class="fig__cap">
+    {no && <span class="fig__no">Fig. {no}</span>}
+    <span>{caption ?? `Site location. The position is shown to about 1 km, rounded for confidentiality.`}</span>
+  </figcaption>
+</figure>
+
+<style>
+  .locator { container-type: inline-size; }
+  .locator__sheet {
+    display: grid;
+    grid-template-columns: minmax(0, 0.82fr) minmax(0, 1fr);
+    background: var(--ground-2);
+  }
+  .locator--compact .locator__sheet { grid-template-columns: minmax(0, 1fr); }
+  .locator--compact .locator__state { display: none; }
+  .locator__state {
+    position: relative;
+    border-right: 1px solid var(--rule);
+    align-self: center;
+    margin: 6%;
+  }
+  .locator__svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .locator__grat line { stroke: var(--rule-2); stroke-width: 1.2; stroke-dasharray: 3 7; vector-effect: non-scaling-stroke; }
+  .locator__inset { fill: none; stroke: var(--cinnabar); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+  .locator__dot { fill: var(--cinnabar); }
+  .locator__water {
+    position: absolute;
+    font-family: var(--f-text);
+    font-style: italic;
+    font-size: clamp(0.6875rem, 0.6rem + 0.3vw, 0.875rem);
+    line-height: 1.15;
+    color: var(--water);
+  }
+  .locator__tick { position: absolute; left: -0.25rem; transform: translate(-100%, -50%); font-size: 0.625rem; color: var(--ink-3); white-space: nowrap; }
+  .locator__tick--x { top: auto; bottom: -1.1rem; left: auto; transform: translateX(-50%); }
+  @media (max-width: 40rem) { .locator__tick { display: none; } }
+
+  .locator__region {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 1 / 1;
+    background: var(--ground-2);
+  }
+  .locator__zoom { position: absolute; left: 50%; top: 50%; }
+  .locator__zoom .relief { background: var(--relief); opacity: 0.9; }
+  .locator__cross {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 2.25rem; height: 2.25rem;
+    transform: translate(-50%, -50%);
+    border: 1.5px solid var(--cinnabar);
+    border-radius: 50%;
+  }
+  .locator__cross::before, .locator__cross::after {
+    content: '';
+    position: absolute;
+    background: var(--cinnabar);
+  }
+  .locator__cross::before { left: 50%; top: -0.9rem; bottom: -0.9rem; width: 1.5px; transform: translateX(-50%); }
+  .locator__cross::after { top: 50%; left: -0.9rem; right: -0.9rem; height: 1.5px; transform: translateY(-50%); }
+  .locator__label {
+    position: absolute;
+    left: calc(50% + 1.75rem);
+    top: calc(50% + 1.25rem);
+    display: grid;
+    gap: 0.15rem;
+    padding: 0.5rem 0.65rem;
+    background: var(--scrim);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    border-left: 2px solid var(--cinnabar);
+    max-width: calc(50% - 2.25rem);
+  }
+  .locator__name { font-weight: 620; font-size: 0.875rem; line-height: 1.2; }
+  .locator__place { font-size: 0.8125rem; color: var(--ink-2); line-height: 1.2; }
+  /* lat and lng wrap as a pair when the label is narrow, never mid-number */
+  .locator__coords { display: flex; flex-wrap: wrap; column-gap: 0.6em; font-size: 0.6875rem; color: var(--ink-3); }
+  .locator__coords span { white-space: nowrap; }
+  @container (min-width: 52rem) {
+    .locator__sheet { grid-template-columns: minmax(0, 0.62fr) minmax(0, 1fr); }
+  }
+  @container (max-width: 34rem) {
+    .locator__label { left: 0.75rem; right: 0.75rem; top: auto; bottom: 2.6rem; max-width: none; }
+    .locator__cross { width: 1.75rem; height: 1.75rem; }
+  }
+  /* Draw-in: the inset box traces itself and the crosshair settles on the
+     site as the figure scrolls into view. Still and complete otherwise. */
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      .locator__inset { stroke-dasharray: 800; animation: loc-trace linear both; animation-timeline: view(); animation-range: entry 10% cover 40%; }
+      .locator__cross { animation: loc-settle linear both; animation-timeline: view(); animation-range: entry 20% cover 45%; }
+    }
+  }
+  @keyframes loc-trace { from { stroke-dashoffset: 800; } to { stroke-dashoffset: 0; } }
+  @keyframes loc-settle { from { transform: translate(-50%, -50%) scale(2.4) rotate(-45deg); opacity: 0; } to { transform: translate(-50%, -50%); opacity: 1; } }
+  .locator__north { position: absolute; top: 0.9rem; right: 0.9rem; width: 1.1rem; fill: var(--ink-2); }
+  .locator__north text { font-family: var(--f-mono); font-size: 9px; fill: var(--ink-2); }
+  .locator__scale { position: absolute; left: 0.9rem; bottom: 0.8rem; right: 0.9rem; display: flex; align-items: center; gap: 0.5rem; color: var(--ink-2); }
+  /* the distance sits on its own plate so it reads over the relief */
+  .locator__scale .mono { font-size: 0.6875rem; white-space: nowrap; padding: 0.1rem 0.35rem; background: var(--scrim); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+  .locator__bar { position: relative; height: 0.4rem; border: 1px solid var(--ink-2); border-top: 0; }
+  .locator__bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 50%; background: var(--ink-2); }
+</style>

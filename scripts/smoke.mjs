@@ -29,9 +29,9 @@ const THEME = process.env.SMOKE_THEME === 'light' ? 'light' : 'dark';
 const ORIGIN = `http://localhost:${PORT}`;
 
 const routes = [
-  '', 'about/', 'projects/', 'tools/', 'blog/', 'studio/',
+  '', 'about/', 'projects/', 'tools/', 'notes/', 'cv/', 'colophon/', 'styleguide/', 'studio/',
   ...firstOf('dist/projects', 'projects/'),
-  ...firstOf('dist/blog', 'blog/', ['tags']),
+  ...firstOf('dist/notes', 'notes/'),
   ...firstOf('dist/tools', 'tools/'),
 ];
 
@@ -53,7 +53,7 @@ setTimeout(() => { console.error(`smoke: watchdog fired after ${WATCHDOG_MS / 10
 // npx wrapper leaves those alive holding the step's stdout — in GitHub Actions
 // that hangs the job until the 6-hour limit.
 const astroBin = new URL('../node_modules/astro/bin/astro.mjs', import.meta.url);
-const server = spawn(process.execPath, [fileURLToPath(astroBin), 'preview', '--port', String(PORT)], {
+const server = spawn(process.execPath, [fileURLToPath(astroBin), 'preview', '--port', String(PORT), '--ignore-lock'], {
   stdio: ['ignore', 'pipe', 'pipe'],
   detached: true,
 });
@@ -106,7 +106,7 @@ for (const route of routes) {
     await new Promise((r) => setTimeout(r, 900));
   });
   const hidden = await page.evaluate(() =>
-    [...document.querySelectorAll('[data-reveal], [data-reveal-stagger] > *')]
+    [...document.querySelectorAll('[data-reveal], [data-reveal="stagger"] > *')]
       .filter((el) => el.getBoundingClientRect().height > 0 && Number(getComputedStyle(el).opacity) < 0.9)
       .map((el) => el.tagName.toLowerCase() + (el.className ? '.' + String(el.className).split(' ')[0] : '')),
   );
@@ -131,10 +131,10 @@ for (const route of routes) {
     if (applied !== THEME) problems.push(`theme not applied: expected ${THEME}, got ${applied}`);
   }
 
-  // The Living Atlas canvas must be present on public pages (WebGL boots at idle).
-  if (route !== 'studio/') {
-    const canvas = await page.$('.atlas-layer canvas');
-    if (!canvas) problems.push('no Living Atlas canvas');
+  // The home page's terrain must boot (or fall back to its still relief).
+  if (route === '') {
+    const live = await page.evaluate(() => { const t = document.querySelector('[data-terrain]'); return t ? (t.classList.contains('is-live') || t.classList.contains('is-static')) : false; });
+    if (!live) problems.push('terrain did not start (no is-live / is-static)');
   }
 
   const hasCsp = await page.$('meta[http-equiv="content-security-policy" i]');

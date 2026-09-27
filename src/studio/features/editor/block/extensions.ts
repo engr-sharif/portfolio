@@ -35,7 +35,7 @@ export const HtmlBlock = Node.create({
   },
   renderHTML({ node }) {
     const html = String(node.attrs.html || '');
-    const label = /youtube/i.test(html) ? 'YouTube video' : /vimeo/i.test(html) ? 'Vimeo video' : /<video/i.test(html) ? 'Uploaded video' : 'Embedded HTML';
+    const label = /youtube|data-yt=/i.test(html) ? 'YouTube video (plays on click)' : /vimeo/i.test(html) ? 'Vimeo video' : /data-loop/i.test(html) ? 'Silent loop' : /<video/i.test(html) ? 'Uploaded video' : 'Embedded HTML';
     return ['div', { 'data-html-block': '', 'data-html': html, class: 'blk-html', contenteditable: 'false' }, ['span', { class: 'blk-html__label' }, label], ['code', { class: 'blk-html__src' }, summarize(html)]];
   },
   renderMarkdown: (node) => String(node.attrs?.html || ''),

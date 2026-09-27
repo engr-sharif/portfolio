@@ -1,0 +1,49 @@
+---
+/**
+ * California as a dot-relief with every mapped project pinned and numbered —
+ * a static figure (no WebGL) for index pages and the CV. Positions are the
+ * projects' public positions (see publicPosition in lib/atlas).
+ */
+import { withBase } from '../../lib/path';
+import { toUV, VIEW_W, VIEW_H } from '../../lib/terrain';
+
+export interface Pin { no: string; lat: number; lng: number; label: string; href?: string; active?: boolean }
+export interface Props { pins: Pin[]; no?: string; caption?: string; class?: string }
+const { pins, no, caption, class: cls } = Astro.props;
+const relief = `--relief-url: url('${withBase('/data/ca-relief.svg')}')`;
+---
+<figure class:list={['fig statemap', cls]}>
+  <div class="statemap__frame fig__frame">
+    <div class="statemap__plate" style={`aspect-ratio: ${VIEW_W} / ${VIEW_H}`}>
+      <div class="relief" style={relief}></div>
+      {pins.map((p) => {
+        const { u, v } = toUV(p.lat, p.lng);
+        const Tag = p.href ? 'a' : 'span';
+        return (
+          <Tag class:list={['statemap__pin', p.active && 'is-active']} href={p.href} style={`left: ${(u * 100).toFixed(2)}%; top: ${(v * 100).toFixed(2)}%`} aria-label={`${p.no}: ${p.label}`}>
+            <span class="statemap__dot" aria-hidden="true"></span>
+            <span class="statemap__no mono" aria-hidden="true">{p.no}</span>
+          </Tag>
+        );
+      })}
+      <span class="statemap__water">Pacific<br />Ocean</span>
+    </div>
+  </div>
+  {(no || caption) && (
+    <figcaption class="fig__cap">
+      {no && <span class="fig__no">Fig. {no}</span>}
+      {caption && <span>{caption}</span>}
+    </figcaption>
+  )}
+</figure>
+
+<style>
+  .statemap__frame { background: var(--ground-2); padding: 6% 10%; }
+  .statemap__plate { position: relative; }
+  .statemap__pin { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 0.3rem; text-decoration: none; color: var(--ink); }
+  .statemap__dot { width: 0.75rem; height: 0.75rem; border-radius: 50%; border: 1.5px solid var(--ink); background: var(--ground-2); flex: none; }
+  .statemap__pin.is-active .statemap__dot { border-color: var(--cinnabar); background: var(--cinnabar); box-shadow: 0 0 0 3px var(--cinnabar-wash); }
+  .statemap__no { position: absolute; left: 1rem; font-size: 0.6875rem; padding: 0 0.2rem; background: var(--scrim); color: var(--cinnabar-ink); }
+  a.statemap__pin:hover .statemap__dot { border-color: var(--cinnabar); }
+  .statemap__water { position: absolute; left: 6%; top: 76%; font-family: var(--f-text); font-style: italic; font-size: 0.8125rem; line-height: 1.15; color: var(--water); }
+</style>

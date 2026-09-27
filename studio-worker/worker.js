@@ -13,7 +13,7 @@
  *   GET  /api/list?dir=…       -> [{ name, path, sha }]        (list a directory)
  *   GET  /api/status          -> { ok, repo, branch }         (auth check)
  *   GET  /api/deploy-status?commit=<sha>  -> { state: live|building|failed|unknown } (host's commit status)
- *   POST /api/assist          { task, text, system?, image? } (Workers AI)
+ *   POST /api/preview   {files,message} -> commit to the preview branch (reset to live first)
  *
  * All routes except /login require: Authorization: Bearer <token>.
  *
@@ -24,80 +24,22 @@
  * VARS (wrangler.toml [vars] or dashboard):
  *   GITHUB_REPO         e.g. "engr-sharif/portfolio"
  *   GITHUB_BRANCH       e.g. "main"
+ *   PREVIEW_BRANCH      optional, default "preview" — the Studio's unlisted preview
  *   ALLOWED_ORIGIN      e.g. "https://mosharif.pages.dev" — REQUIRED. Comma-separate
  *                       several (e.g. add "http://localhost:4321" for local dev).
- *   AI_TEXT_MODEL / AI_VISION_MODEL   optional model overrides
- * BINDINGS:
- *   AI                  Workers AI binding (optional; /api/assist returns 501 without it)
  *
  * Security posture (this revision):
  *   - CORS fails CLOSED: no ALLOWED_ORIGIN → no cross-origin access at all.
  *   - JWT verification pins alg=HS256 and rejects anything else.
- *   - /api/login and /api/assist are rate-limited per client IP (in-memory,
+ *   - /api/login is rate-limited per client IP (in-memory,
  *     per-isolate — a speed bump, not a guarantee; pair with Cloudflare WAF
  *     rules for hard limits).
- *   - /api/assist only fetches images from this repo's raw.githubusercontent
- *     path (closes the SSRF hole of fetching arbitrary URLs).
  *   - Repo paths are validated: relative, no "..", no control characters.
  */
 
 const GH = 'https://api.github.com';
 const enc = new TextEncoder();
 
-/* ------------------------------------------------------- AI writing guide */
-// The "master guide" the model follows for voice, tone, and structure. Used as
-// the default system prompt for every assist; the Studio can override it by
-// saving a non-empty guide in src/content/settings/ai.json.
-const DEFAULT_GUIDE = `You are the writing assistant for Mohammad Sharif — an Environmental
-Engineer (EIT) at Jacobs in Sacramento, California. His work is field-based site
-characterization, remediation, and construction quality assurance: groundwater
-and soil sampling, landfill-gas and compliance monitoring, XRF scanning, PFAS and
-mercury sites, Title 27 work — and he builds Python field tools on the side.
-
-You help him write and edit content for his portfolio. Match HIS voice. Write as
-a working engineer, not a marketer.
-
-VOICE & TONE
-- First person, grounded, and precise. Plainspoken and direct.
-- Quiet confidence. Let the work speak; never oversell.
-- Technical but accessible — explain methods without jargon soup.
-- Concrete and specific over vague. Prefer "collected 40 groundwater samples
-  across 12 wells" to "performed extensive sampling."
-- Active voice. Short, clear sentences. Vary length for rhythm.
-
-HARD RULES
-- Never invent facts, numbers, dates, clients, or outcomes. If a detail isn't in
-  the input, leave it out — do not fill gaps with plausible-sounding specifics.
-- Respect confidentiality: do not add client names or exact site locations that
-  aren't already in the text.
-- US spelling. Use real units (mg/kg, ft bgs, µg/L) when the input has them.
-- No emoji in professional content. No hype.
-- Avoid clichés and AI tells: "passionate," "cutting-edge," "leverage," "delve,"
-  "tapestry," "in today's world," "seamless," "robust," "game-changer,"
-  "testament to," "spearheaded," em-dash pile-ups, and empty intensifiers.
-- Return ONLY the requested text — no preamble, no "Here is…," no explanation,
-  no quotation marks around the whole thing.
-
-CONTENT TYPES
-- Project write-ups: what the site/problem was, your role, the methods and field
-  work, and the outcome — factual and scoped.
-- Field notes / blog: a bit more personal and observational; still grounded.
-- Photo captions: one short factual sentence — what's happening, and where/what
-  technique if it's evident. No hype.
-- Alt text: one objective sentence describing what's visible, for screen readers.`;
-
-// Per-task instruction appended to the guide.
-const TASKS = {
-  polish: 'TASK: Improve the clarity, flow, and concision of the text below. Preserve the meaning, every fact, and the author\'s voice. Fix awkward phrasing. Return only the improved text.',
-  grammar: 'TASK: Correct grammar, spelling, and punctuation only. Do not change wording, style, or content beyond what correctness requires. Return only the corrected text.',
-  summarize: 'TASK: Write a tight 1–2 sentence summary of the text below, leading with the key outcome or point. Return only the summary.',
-  expand: 'TASK: The text below is rough notes or bullet points. Expand it into clear, well-structured prose that follows the guide. Do not add facts that are not present in the notes. Return only the prose.',
-  alt: 'TASK: Look at the image and write one objective sentence describing what is visible, suitable as alt text for a screen reader. Be factual and specific. Return only the sentence.',
-  caption: 'TASK: Look at the image and write one short, factual caption — what is happening, and the setting or technique if evident. No hype. Return only the caption.',
-};
-
-const MAX_ASSIST_CHARS = 20_000;     // ~5k tokens of input is plenty for a write-up
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const MAX_UPLOAD_B64 = 70 * 1024 * 1024; // ~50 MB binary (GitHub Contents API ceiling is 100 MB)
 const MAX_COMMIT_FILES = 60;             // one reorder touches every entry of a collection; 60 is generous
 const MAX_COMMIT_CHARS = 20 * 1024 * 1024; // total payload of one atomic commit (text + base64)
@@ -221,6 +163,24 @@ function safeRepoPath(p) {
 
 async function readJson(request) {
   try { return await request.json(); } catch { return null; }
+}
+
+/** Validate the `files` of a commit request → { writes, seen } or { error, status }. */
+function parseWrites(files) {
+  const seen = new Set();
+  const writes = [];
+  let chars = 0;
+  for (const f of files) {
+    const path = safeRepoPath(f?.path);
+    if (!path || typeof f.content !== 'string') return { error: 'Every file needs a valid path and string content', status: 400 };
+    if (seen.has(path)) return { error: `Duplicate path in commit: ${path}`, status: 400 };
+    seen.add(path);
+    chars += f.content.length;
+    if (chars > MAX_COMMIT_CHARS) return { error: 'That commit is too large.', status: 413 };
+    if (f.sha != null && !isGitSha(f.sha)) return { error: `Bad sha for ${path}`, status: 400 };
+    writes.push({ path, content: f.content, encoding: f.encoding === 'base64' ? 'base64' : 'utf-8', sha: f.sha || null });
+  }
+  return { writes, seen };
 }
 
 async function gh(env, path, init = {}) {
@@ -512,19 +472,9 @@ export default {
       const deletes = Array.isArray(body?.deletes) ? body.deletes : [];
       if (files.length + deletes.length === 0) return json({ error: 'Nothing to commit' }, env, request, 400);
       if (files.length + deletes.length > MAX_COMMIT_FILES) return json({ error: `Too many files in one commit (max ${MAX_COMMIT_FILES}).` }, env, request, 400);
-      const seen = new Set();
-      const writes = [];
-      let chars = 0;
-      for (const f of files) {
-        const path = safeRepoPath(f?.path);
-        if (!path || typeof f.content !== 'string') return json({ error: 'Every file needs a valid path and string content' }, env, request, 400);
-        if (seen.has(path)) return json({ error: `Duplicate path in commit: ${path}` }, env, request, 400);
-        seen.add(path);
-        chars += f.content.length;
-        if (chars > MAX_COMMIT_CHARS) return json({ error: 'That commit is too large.' }, env, request, 413);
-        if (f.sha != null && !isGitSha(f.sha)) return json({ error: `Bad sha for ${path}` }, env, request, 400);
-        writes.push({ path, content: f.content, encoding: f.encoding === 'base64' ? 'base64' : 'utf-8', sha: f.sha || null });
-      }
+      const parsed = parseWrites(files);
+      if (parsed.error) return json({ error: parsed.error }, env, request, parsed.status);
+      const { writes, seen } = parsed;
       const removals = [];
       for (const d of deletes) {
         const path = safeRepoPath(typeof d === 'string' ? d : d?.path);
@@ -539,6 +489,46 @@ export default {
       const message = String(body.message || `studio: update ${writes.length + removals.length} files`).slice(0, 500);
       const out = await atomicCommit(env, repo, branch, { message, writes, removals, expectedHead });
       return json(out.body, env, request, out.status);
+    }
+
+    // --- unlisted preview: one change on top of the live site, on its own branch ---
+    // Resets the preview branch to the live branch, then commits the files
+    // there. Cloudflare Pages builds it at the branch alias
+    // (https://preview.<project>.pages.dev), where unpublished entries show and
+    // nothing is indexed. The live branch is never touched.
+    if (pathname === '/api/preview' && request.method === 'POST') {
+      if (rateLimited(request, 'preview', 20, 10 * 60 * 1000)) {
+        return json({ error: 'Too many previews in a short time. Wait a few minutes and try again.' }, env, request, 429);
+      }
+      const previewBranch = env.PREVIEW_BRANCH || 'preview';
+      if (previewBranch === branch) return json({ error: 'PREVIEW_BRANCH must differ from GITHUB_BRANCH.' }, env, request, 500);
+      const body = await readJson(request);
+      const files = Array.isArray(body?.files) ? body.files : [];
+      if (files.length === 0) return json({ error: 'Nothing to preview' }, env, request, 400);
+      if (files.length > MAX_COMMIT_FILES) return json({ error: `Too many files in one preview (max ${MAX_COMMIT_FILES}).` }, env, request, 400);
+      const parsed = parseWrites(files);
+      if (parsed.error) return json({ error: parsed.error }, env, request, parsed.status);
+
+      const live = await gh(env, `/repos/${repo}/git/ref/heads/${encodeURIComponent(branch)}`);
+      if (!live.ok) return json({ error: `GitHub ${live.status} while reading the live branch` }, env, request, 502);
+      const liveHead = (await live.json()).object?.sha;
+      if (!isGitSha(liveHead)) return json({ error: 'GitHub returned no branch head' }, env, request, 502);
+      let reset = await gh(env, `/repos/${repo}/git/refs/heads/${encodeURIComponent(previewBranch)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ sha: liveHead, force: true }),
+      });
+      if (reset.status === 422 || reset.status === 404) {
+        reset = await gh(env, `/repos/${repo}/git/refs`, {
+          method: 'POST',
+          body: JSON.stringify({ ref: `refs/heads/${previewBranch}`, sha: liveHead }),
+        });
+      }
+      if (!reset.ok) return json({ error: `GitHub ${reset.status} while preparing the preview branch` }, env, request, 502);
+
+      const writes = parsed.writes.map((w) => ({ ...w, sha: null })); // the branch was just reset; nothing to race
+      const message = String(body.message || 'studio: preview').slice(0, 500);
+      const out = await atomicCommit(env, repo, previewBranch, { message, writes, removals: [] });
+      return json({ ...out.body, branch: previewBranch }, env, request, out.status);
     }
 
     // --- upload binary (image / pdf / video) ---
@@ -578,56 +568,6 @@ export default {
       if (!res.ok) return json({ error: `GitHub ${res.status}` }, env, request, 502);
       const d = await res.json().catch(() => ({}));
       return json({ ok: true, commit: d?.commit?.sha }, env, request);
-    }
-
-    // --- AI assist (Cloudflare Workers AI): polish / summarize / caption … ---
-    if (pathname === '/api/assist' && request.method === 'POST') {
-      if (!env.AI) {
-        return json({ error: 'AI is not enabled yet. Add a Workers AI binding named "AI" to this Worker.' }, env, request, 501);
-      }
-      if (rateLimited(request, 'assist', 40, 10 * 60 * 1000)) {
-        return json({ error: 'Slow down — the assistant is limited to 40 requests every 10 minutes.' }, env, request, 429);
-      }
-      const body = (await readJson(request)) || {};
-      const { task = 'polish', text = '', system, image } = body;
-      if (!Object.prototype.hasOwnProperty.call(TASKS, task)) return json({ error: 'Unknown task' }, env, request, 400);
-      if (typeof text === 'string' && text.length > MAX_ASSIST_CHARS) {
-        return json({ error: `That's a lot of text — select a section under ${MAX_ASSIST_CHARS.toLocaleString()} characters.` }, env, request, 413);
-      }
-      const guide = (typeof system === 'string' && system.trim()) || DEFAULT_GUIDE;
-      const instruction = TASKS[task];
-      const isVision = task === 'alt' || task === 'caption';
-      try {
-        let out = '';
-        if (isVision) {
-          // SSRF guard: the only images we will ever fetch live in THIS repo.
-          const allowedPrefix = `https://raw.githubusercontent.com/${repo}/`;
-          if (typeof image !== 'string' || !image.startsWith(allowedPrefix)) {
-            return json({ error: 'Only images stored in this site\'s repository can be described.' }, env, request, 400);
-          }
-          const imgRes = await fetch(image, { headers: { 'User-Agent': 'studio-worker' } });
-          if (!imgRes.ok) return json({ error: 'Could not fetch the image (has it finished publishing?).' }, env, request, 502);
-          const buf = await imgRes.arrayBuffer();
-          if (buf.byteLength > MAX_IMAGE_BYTES) return json({ error: 'Image too large to describe (max 8 MB).' }, env, request, 413);
-          const bytes = [...new Uint8Array(buf)];
-          const model = env.AI_VISION_MODEL || '@cf/llava-hf/llava-1.5-7b-hf';
-          const r = await env.AI.run(model, { image: bytes, prompt: `${guide}\n\n${instruction}`, max_tokens: 256 });
-          out = r.description ?? r.response ?? '';
-        } else {
-          const model = env.AI_TEXT_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
-          const r = await env.AI.run(model, {
-            max_tokens: 1024,
-            messages: [
-              { role: 'system', content: `${guide}\n\n${instruction}` },
-              { role: 'user', content: String(text || '') },
-            ],
-          });
-          out = r.response ?? '';
-        }
-        return json({ result: String(out || '').trim() }, env, request);
-      } catch (e) {
-        return json({ error: 'AI request failed', detail: String((e && e.message) || e).slice(0, 300) }, env, request, 502);
-      }
     }
 
     return json({ error: 'Not found' }, env, request, 404);

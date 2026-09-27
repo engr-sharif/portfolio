@@ -1,195 +1,217 @@
 ---
 import { render } from 'astro:content';
-import { Image, getImage } from 'astro:assets';
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import TableOfContents from '../../components/blog/TableOfContents.astro';
-import StatusBadge from '../../components/atlas/StatusBadge.astro';
-import Breadcrumb from '../../components/atlas/Breadcrumb.astro';
-import LiveRegulatoryStatus from '../../components/LiveRegulatoryStatus.tsx';
-import { getCover, getGalleryImage } from '../../lib/images';
-import { getCaption } from '../../lib/captions';
-import { withBase } from '../../lib/path';
+import TitleBlock from '../../components/ui/TitleBlock.astro';
+import Figure from '../../components/ui/Figure.astro';
+import Locator from '../../components/ui/Locator.astro';
+import Status from '../../components/ui/Status.astro';
+import YouTube from '../../components/media/YouTube.astro';
+import Audio from '../../components/media/Audio.astro';
 import { getProjects, dateRange } from '../../lib/projects';
-import { site } from '../../lib/site';
+import { getPosts } from '../../lib/blog';
+import { getImage } from '../../lib/images';
+import { getCaption } from '../../lib/captions';
+import { publicPosition } from '../../lib/atlas';
+import { withBase } from '../../lib/path';
 
 export async function getStaticPaths() {
   const projects = await getProjects();
-  return projects.map((project) => ({
+  return projects.map((project, i) => ({
     params: { slug: project.id },
-    props: { project },
+    props: { project, prev: projects[i - 1] ?? null, next: projects[i + 1] ?? null },
   }));
 }
 
-const { project } = Astro.props;
-const { data } = project;
+const { project, prev, next } = Astro.props;
+const d = project.data;
 const { Content, headings } = await render(project);
-const group = `project-${project.id}`;
-
-const cover = getCover(data.coverImage);
-const coverFull = cover ? (await getImage({ src: cover, width: 2400, format: 'webp' })).src : undefined;
-const coverCaption = getCaption(data.coverImage);
-// Social share image: the build-time card for this project (src/pages/og/).
-const ogImage = `/og/projects/${project.id}.png`;
-
-// Gallery items with high-res sources + captions (cover joins the same viewer group).
-const galleryItems = await Promise.all(
-  data.gallery
-    .map((path) => ({ path, img: getGalleryImage(path) }))
-    .filter((g) => g.img)
-    .map(async (g) => ({
-      img: g.img!,
-      full: (await getImage({ src: g.img!, width: 2400, format: 'webp' })).src,
-      caption: getCaption(g.path),
-      alt: getCaption(g.path) || `${data.title} — field photo`,
-    })),
-);
+const toc = headings.filter((h) => h.depth === 2);
+const cover = getImage(d.coverImage);
+const pos = publicPosition(d);
+const shortTitle = d.title.replace(/ — .*$/, '');
+const figures = d.gallery
+  .filter((g) => g !== d.coverImage)
+  .map((g) => ({ name: g, img: getImage(g), caption: getCaption(g) }))
+  .filter((f): f is typeof f & { img: NonNullable<typeof f.img> } => !!f.img);
+const related = (await getPosts()).filter((p) => p.data.relatedProject === project.id);
+const hasBrief = d.problem || d.approach || d.outcome;
+// Figures are numbered in reading order: the key map beside the title (when
+// there is a photo to open with), then the opening figure, then the gallery.
+const locNo = cover && pos ? '1' : undefined;
+const openNo = locNo ? '2' : '1';
+const firstGallery = Number(openNo) + 1;
+const privacyNote = d.privacy === 'region' ? 'about 50 km' : d.privacy === 'town' ? 'about 10 km' : 'about 1 km';
+const cleared = d.clearance?.date ? new Date(d.clearance.date) : null;
 ---
-<BaseLayout title={`${data.title} — ${data.siteType} · ${site.name}`} description={data.summary} image={ogImage} ogType="article"
-  scene={data.lat && data.lng ? 'site' : 'page'} sceneLat={data.lat} sceneLng={data.lng}>
-  <article class="detail">
-    <div class="u-container">
-      <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Projects', href: 'projects/' }, { label: data.title }]} />
-
-      <header class="detail__header" data-reveal>
-        <StatusBadge status={data.status} />
-        <h1 class="detail__title">{data.title}</h1>
-        <dl class="detail__facts">
-          <div><dt>Client / Site</dt><dd>{data.client}</dd></div>
-          <div><dt>Type</dt><dd>{data.siteType}</dd></div>
-          <div><dt>Role</dt><dd>{data.role}</dd></div>
-          <div><dt>Dates</dt><dd class="u-mono">{dateRange(data.startDate, data.endDate, data.status)}</dd></div>
-        </dl>
-        {(data.problem || data.approach || data.outcome) && (
-          <dl class="brief">
-            {data.problem && <div><dt>Problem</dt><dd>{data.problem}</dd></div>}
-            {data.approach && <div><dt>Approach</dt><dd>{data.approach}</dd></div>}
-            {data.outcome && <div><dt>Outcome</dt><dd>{data.outcome}</dd></div>}
-          </dl>
-        )}
-        <ul class="card__tags" style="margin-top:1.4rem;display:flex;flex-wrap:wrap;gap:0.4rem;list-style:none;padding:0;">
-          {data.techniques.map((t) => <li class="chip">{t}</li>)}
-        </ul>
-        {data.envirostorQuery && (
-          <div style="margin-top:1.8rem;max-width:42rem;">
-            <LiveRegulatoryStatus query={data.envirostorQuery} client:visible />
+<BaseLayout title={`${d.title} — Mohammad Sharif`} description={d.summary} ogType="article" rail railLabel="Report">
+  <article class="report">
+    <div class="wrap">
+      <header class:list={['phead', locNo && pos && 'phead--key']} id="summary" data-stratum="Summary" data-code="OL" data-pattern="lith-topsoil">
+        <ol class="phead__crumbs"><li><a href={withBase('/')}>Home</a></li><li><a href={withBase('/projects/')}>Work</a></li><li aria-current="page">{shortTitle}</li></ol>
+        <div class="report__kicker"><span class="label">{d.siteType}</span><Status status={d.status} /></div>
+        <h1 class="phead__title report__title" style={`view-transition-name: title-${project.id}`}>{d.title}</h1>
+        <p class="lede phead__lede">{d.summary}</p>
+        <div class="report__tb"><TitleBlock wideCols={5} cells={[
+          { label: 'Client / program', value: d.client },
+          { label: 'My role', value: d.role },
+          { label: 'Dates', value: dateRange(d.startDate, d.endDate, d.status), mono: true },
+          { label: 'Location', value: d.location ?? 'Several sites in California' },
+          { label: 'Status', value: d.status === 'active' ? 'Active' : d.status === 'complete' ? 'Complete' : 'Proposed' },
+        ]} /></div>
+        {locNo && pos && (
+          <div class="phead__key">
+            <Locator lat={pos.lat} lng={pos.lng} name={shortTitle} place={d.location} no={locNo} compact caption={`Key map. Position shown to ${privacyNote}.`} />
           </div>
         )}
       </header>
-    </div>
 
-    {cover && (
-      <div class="u-container">
-        <button
-          class="detail__cover-btn"
-          data-lightbox
-          data-figure
-          data-gallery={group}
-          data-full={coverFull}
-          data-caption={coverCaption}
-          aria-label="Open cover image"
-        >
-          <Image
-            src={cover}
-            alt={coverCaption || `${data.title} — ${data.siteType}`}
-            widths={[600, 1000, 1600, 2000]}
-            sizes="(max-width: 900px) 92vw, 80rem"
-            class="detail__cover"
-            style={`view-transition-name: cover-${project.id}`}
-          />
-        </button>
-      </div>
-    )}
-
-    <div class="u-container detail__bodywrap">
-      <div class="detail__body prose" data-reveal>
-        <Content />
+      <div class="report__lead">
+        {cover ? (
+          <Figure image={cover} alt={d.coverAlt || getCaption(d.coverImage) || `${d.title}, ${d.siteType}`} no={openNo} caption={getCaption(d.coverImage) || d.siteType} group="report" eager aspect="16 / 9" vt={`fig-${project.id}`} sizes="(min-width: 90rem) 1300px, 94vw" widths={[800, 1200, 1600, 2000]} marked />
+        ) : pos ? (
+          <Locator lat={pos.lat} lng={pos.lng} name={shortTitle} place={d.location} no="1" vt={`fig-${project.id}`} caption={`Site location. The position is shown to ${privacyNote}, rounded for confidentiality.`} />
+        ) : null}
       </div>
 
-      <aside class="detail__aside" data-reveal>
-        <TableOfContents headings={headings} />
-        {data.externalLink && (
-          <a href={data.externalLink} class="btn btn--ghost" target="_blank" rel="noopener" data-magnetic="0.3">
-            External reference ↗
-          </a>
-        )}
-        <a href={withBase('#contact')} class="btn" data-magnetic="0.3">Discuss this work</a>
-      </aside>
-    </div>
+      {hasBrief && (
+        <section class="brief" aria-label="Brief">
+          {d.problem && <div><p class="label">Problem</p><p>{d.problem}</p></div>}
+          {d.approach && <div><p class="label">Approach</p><p>{d.approach}</p></div>}
+          {d.outcome && <div><p class="label">Outcome</p><p>{d.outcome}</p></div>}
+        </section>
+      )}
 
-    {galleryItems.length > 0 && (
-      <div class="u-container">
-        <h2 style="font-size:var(--text-xl);margin:3rem 0 1.5rem;">Field gallery</h2>
-        <div class="gallery" data-reveal-stagger>
-          {galleryItems.map((g) => (
-            <button
-              class="gallery__item"
-              data-lightbox
-              data-gallery={group}
-              data-full={g.full}
-              data-caption={g.caption}
-              aria-label={`Open photo: ${g.alt}`}
-            >
-              <Image src={g.img} alt={g.alt} widths={[400, 800]} sizes="(max-width: 640px) 45vw, 18rem" loading="lazy" />
-            </button>
-          ))}
+      <div class="report__body" id="report" data-stratum="Report" data-code="CL" data-pattern="lith-clay">
+        <aside class="report__aside">
+          {toc.length > 1 && (
+            <nav aria-label="Contents" class="report__toc">
+              <p class="label">Contents</p>
+              <ol>
+                {toc.map((h, i) => <li><a href={`#${h.slug}`}><span class="mono">{i + 1}.0</span>{h.text}</a></li>)}
+              </ol>
+            </nav>
+          )}
+          {d.techniques.length > 0 && (
+            <div>
+              <p class="label">Methods</p>
+              <ul class="chips" style="margin-top: var(--s-3);">{d.techniques.map((t) => <li class="chip">{t}</li>)}</ul>
+            </div>
+          )}
+          {d.envirostorQuery && (
+            <div class="reg" data-envirostor={d.envirostorQuery} hidden>
+              <p class="reg__head label">Live · California EnviroStor</p>
+              <dl>
+                <dt>Program</dt><dd data-f="program"></dd>
+                <dt>Status</dt><dd data-f="status"></dd>
+                <dt>NPL</dt><dd data-f="npl"></dd>
+                <dt>County</dt><dd data-f="county"></dd>
+              </dl>
+            </div>
+          )}
+          {(d.documents.length > 0 || d.externalLink) && (
+            <div>
+              <p class="label">Documents and links</p>
+              <ul class="report__links">
+                {d.documents.map((doc) => <li><a href={withBase(doc.file)}>{doc.title} <span class="mono">PDF</span></a></li>)}
+                {d.externalLink && <li><a href={d.externalLink} rel="noopener">Program reference <span aria-hidden="true">↗</span></a></li>}
+              </ul>
+            </div>
+          )}
+        </aside>
+        <div class="report__main">
+          <div class="prose">
+            <Content />
+          </div>
+
+          {(d.video || d.audio) && (
+            <section class="report__media" aria-label="Video and audio">
+              {d.video && <YouTube video={d.video} title={d.videoTitle || `${shortTitle}: video`} />}
+              {d.audio && <Audio src={d.audio} peaks={d.audioPeaks} title="Voice note from the field" transcript={d.audioTranscript} />}
+            </section>
+          )}
         </div>
       </div>
-    )}
+
+      {figures.length > 0 && (
+        <section class="report__figs" id="figures" data-stratum="Figures" data-code="GP" data-pattern="lith-gravel" aria-labelledby="figs-title">
+          <h2 class="report__h2" id="figs-title"><span class="mono">Figures</span>From the site</h2>
+          <div class="report__grid" data-reveal="stagger">
+            {figures.map((f, i) => (
+              <Figure image={f.img} alt={f.caption || `${shortTitle}, field photograph`} no={String(firstGallery + i)} caption={f.caption} group="report" aspect="4 / 3" sizes="(min-width: 64rem) 30vw, (min-width: 40rem) 46vw, 92vw" widths={[480, 720, 960]} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {related.length > 0 && (
+        <section class="report__related" aria-labelledby="rel-title">
+          <h2 class="report__h2" id="rel-title"><span class="mono">Notes</span>Written about this project</h2>
+          <ul class="rows">
+            {related.map((p) => (
+              <li><a class="report__note" href={withBase(`/notes/${p.id}/`)}><span class="report__note-t">{p.data.title}</span><span class="report__note-d">{p.data.description}</span></a></li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <footer class="report__foot" data-stratum="End" data-code="BR" data-pattern="lith-rock" id="end">
+        <p class="mono report__clear">
+          {cleared
+            ? `Names, photos and location on this page were cleared for public release${d.clearance?.by ? ` by ${d.clearance.by}` : ''} on ${cleared.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}. No sample results or controlled site data are shown.`
+            : 'Public, high-level description. No sample results or controlled site data are shown.'}
+        </p>
+        <nav class="pager" aria-label="More projects">
+          {prev && <a href={withBase(`/projects/${prev.id}/`)}><span class="label">← Previous</span><span class="t">{prev.data.title}</span></a>}
+          {next && <a href={withBase(`/projects/${next.id}/`)}><span class="label">Next →</span><span class="t">{next.data.title}</span></a>}
+        </nav>
+      </footer>
+    </div>
   </article>
 </BaseLayout>
 
-<script>
-  import '../../lib/lightbox';
-</script>
-
-<script>
-  // Scroll-spy for the case-study TOC (no progress bar here — that element
-  // doesn't exist on project pages, so initProgress no-ops).
-  import '../../lib/blogpost';
-</script>
-
 <style>
-  .detail { padding-top: 7rem; }
-  .detail__back { display: inline-block; color: var(--color-muted); font-size: var(--text-sm); margin-bottom: 2.5rem; }
-  .detail__title { font-size: var(--text-3xl); margin: 1rem 0 2rem; max-width: 18ch; }
-  .detail__facts {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-    gap: 1.4rem;
-    border-top: 1px solid color-mix(in srgb, var(--color-paper) 12%, transparent);
-    padding-top: 1.6rem;
-    max-width: 56rem;
+  .report__kicker { display: flex; flex-wrap: wrap; gap: var(--s-3) var(--s-5); align-items: center; margin-bottom: var(--s-5); }
+  .report__title { max-width: 20ch; }
+  .report__tb { margin-top: var(--s-7); }
+  /* A report's cover sheet carries a key map: beside the title on wide
+     screens, after the title block on narrow ones. */
+  .phead__key { margin-top: var(--s-7); max-width: 26rem; }
+  @media (min-width: 64rem) {
+    .phead--key { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); }
+    .phead--key > * { grid-column: 1 / span 7; }
+    .phead--key > .report__tb { grid-column: 1 / -1; }
+    .phead--key > .phead__key { grid-column: 9 / span 4; grid-row: 1 / span 4; align-self: end; margin-top: 0; max-width: none; }
   }
-  .detail__facts dt { color: var(--color-muted); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.12em; }
-  .detail__facts dd { margin-top: 0.4rem; font-size: var(--text-base); }
-  /* case-study brief: Problem / Approach / Outcome */
-  .brief {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 1.4rem;
-    margin-top: 1.8rem; padding: 1.4rem; max-width: 56rem;
-    border: 1px solid var(--color-line); border-radius: 8px; background: var(--color-ink-1);
+  .report__lead { margin-top: var(--s-7); }
+  .brief { display: grid; gap: var(--s-6); margin-top: var(--s-8); padding-top: var(--s-5); border-top: 1px solid var(--rule-2); }
+  .brief p:not(.label) { font-family: var(--f-text); font-size: var(--t-body); line-height: 1.55; margin-top: var(--s-2); }
+  @media (min-width: 56rem) { .brief { grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: var(--gap); } }
+
+  .report__body { display: grid; gap: var(--s-7); margin-top: clamp(3.5rem, 2.5rem + 3vw, 6rem); }
+  .report__aside { display: grid; gap: var(--s-6); align-content: start; }
+  .report__toc ol { list-style: none; padding: 0; margin-top: var(--s-3); display: grid; border-top: 1px solid var(--rule); }
+  .report__toc a { display: flex; gap: var(--s-3); padding: 0.55rem 0; border-bottom: 1px solid var(--rule); text-decoration: none; font-size: 0.9375rem; }
+  .report__toc a .mono { color: var(--cinnabar-ink); font-size: 0.75rem; padding-top: 0.12rem; }
+  .report__toc a:hover { color: var(--cinnabar-ink); }
+  .report__links { list-style: none; padding: 0; margin-top: var(--s-3); display: grid; gap: var(--s-2); }
+  .report__links .mono { font-size: 0.6875rem; color: var(--ink-3); margin-left: 0.3rem; }
+  .report__media { display: grid; gap: var(--s-6); margin-top: var(--s-8); max-width: var(--measure); }
+  @media (min-width: 64rem) {
+    .report__body { grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); }
+    .report__aside { grid-column: 1 / span 3; position: sticky; top: calc(var(--nav-h) + var(--s-6)); }
+    .report__main { grid-column: 5 / span 8; }
   }
-  .brief dt { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-field-bright); }
-  .brief dd { margin-top: 0.45rem; color: var(--color-paper-soft); line-height: 1.6; }
-  .detail__cover-btn { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
-  .detail__cover { width: 100%; height: auto; border-radius: 6px; margin: clamp(2rem, 6vw, 4rem) 0; aspect-ratio: 16 / 9; object-fit: cover; transition: transform 0.5s var(--ease-out-expo); border: 1px solid var(--color-line); }
-  .detail__cover-btn:hover .detail__cover { transform: scale(1.01); }
-  .detail__bodywrap { display: grid; grid-template-columns: 1fr; gap: 2.5rem; }
-  @media (min-width: 900px) {
-    .detail__bodywrap { grid-template-columns: minmax(0, 1fr) 18rem; align-items: start; }
-  }
-  .detail__aside { display: flex; flex-direction: column; gap: 0.9rem; position: sticky; top: 6rem; }
-  .prose { max-width: 62ch; line-height: 1.75; color: var(--color-paper-soft); }
-  .prose :global(h2) { font-size: var(--text-xl); margin: 2rem 0 1rem; color: var(--color-paper); }
-  .prose :global(p) { margin-bottom: 1.1rem; }
-  .prose :global(blockquote) {
-    border-left: 2px solid var(--color-field-bright);
-    padding: 0.6rem 1.2rem;
-    margin: 1.5rem 0;
-    color: var(--color-muted);
-    font-size: var(--text-sm);
-    background: color-mix(in srgb, var(--color-field-dim) 30%, transparent);
-    border-radius: 0 8px 8px 0;
-  }
-  .prose :global(strong) { color: var(--color-paper); }
-  .prose :global(a) { color: var(--color-field-bright); text-decoration: underline; }
+
+  .report__h2 { display: grid; gap: var(--s-2); font-size: var(--t-h2); font-weight: 520; letter-spacing: -0.028em; margin-bottom: var(--s-7); padding-top: var(--s-4); border-top: 1px solid var(--rule-2); }
+  .report__h2 .mono { color: var(--cinnabar-ink); font-size: 0.8125rem; letter-spacing: 0; font-weight: 400; }
+  .report__figs, .report__related { margin-top: var(--section); }
+  .report__grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-7) var(--gap); }
+  @media (min-width: 40rem) { .report__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (min-width: 64rem) { .report__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .report__note { display: grid; gap: var(--s-2); padding: var(--s-5) 0; text-decoration: none; }
+  .report__note-t { font-size: var(--t-h4); font-weight: 580; }
+  .report__note:hover .report__note-t { color: var(--cinnabar-ink); }
+  .report__note-d { font-family: var(--f-text); color: var(--ink-2); max-width: 62ch; }
+  .report__foot { margin-top: var(--section); display: grid; gap: var(--s-6); }
+  .report__clear { color: var(--ink-3); font-size: 0.75rem; max-width: 70ch; }
 </style>

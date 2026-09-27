@@ -1,11 +1,12 @@
 import { getCollection, type CollectionEntry } from 'astro:content';
+import { SHOW_UNPUBLISHED } from './build-env';
 
 export type Post = CollectionEntry<'blog'>;
 
 /** Published posts (drafts hidden in production, shown in dev), newest first. */
 export async function getPosts(): Promise<Post[]> {
   const all = await getCollection('blog', ({ data }) =>
-    import.meta.env.PROD ? !data.draft : true,
+    import.meta.env.PROD ? !data.draft || SHOW_UNPUBLISHED : true,
   );
   return all.sort((a, b) => +b.data.pubDate - +a.data.pubDate);
 }

@@ -1,0 +1,12 @@
+---
+import { withBase } from '../../lib/path';
+---
+<dialog class="search" aria-label="Search the site" data-search data-index={withBase('/search.json')}>
+  <div class="search__bar">
+    <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="4.75"/><path d="m10.5 10.5 3.75 3.75"/></svg>
+    <input class="search__input" type="search" placeholder="Search projects, tools and notes" aria-label="Search" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="search-results" aria-autocomplete="list" data-search-input />
+    <button class="kbd" type="button" data-search-close aria-label="Close search">Esc</button>
+  </div>
+  <ul class="search__list" id="search-results" role="listbox" aria-label="Results" data-search-list></ul>
+  <div class="search__foot" aria-hidden="true"><span>↑↓ to move</span><span>↵ to open</span><span>/ or ⌘K to search</span></div>
+</dialog>

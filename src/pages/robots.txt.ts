@@ -1,13 +1,17 @@
 import type { APIRoute } from 'astro';
+import { IS_PREVIEW } from '../lib/build-env';
 
 /** robots.txt built from the configured site + base, so it stays correct on any host. */
 export const GET: APIRoute = ({ site }) => {
   const base = import.meta.env.BASE_URL;
   const root = new URL(base, site);
+  // Preview deployments (any branch but main) are for review, not search.
+  if (IS_PREVIEW) return new Response('User-agent: *\nDisallow: /\n', { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
   const body = [
     'User-agent: *',
     'Allow: /',
     `Disallow: ${base}studio/`,
+    `Disallow: ${base}styleguide/`,
     '',
     `Sitemap: ${new URL('sitemap-index.xml', root).href}`,
     '',

@@ -1,0 +1,61 @@
+---
+/**
+ * 3.0 Built for the field — the software, shown as figures: a short loop
+ * when one exists, otherwise a schematic of what the tool does.
+ */
+import { getTools } from '../../lib/tools';
+import { withBase } from '../../lib/path';
+import SectionHead from '../ui/SectionHead.astro';
+import Schematic from '../tools/Schematic.astro';
+import Loop from '../media/Loop.astro';
+
+const tools = await getTools();
+---
+<section class="sec tools" id="tools" data-stratum="Built for the field" data-code="SP" data-pattern="lith-sand" aria-labelledby="tools-title">
+  <div class="wrap">
+    <SectionHead no="3.0" id="tools-title" title="Built for the field" intro="Software I wrote because a job on site needed it. Each one started as a specific, slightly annoying problem." />
+    <ul class="tools__grid" data-reveal="stagger">
+      {tools.map((t, i) => (
+        <li class="tool">
+          <a class="tool__link" href={withBase(`/tools/${t.id}/`)}>
+            <span class="tool__fig" style={`view-transition-name: tool-${t.id}`}>
+              {t.data.loop ? <Loop src={t.data.loop} poster={t.data.loopPoster} label={`${t.data.name}, screen recording`} /> : <Schematic slug={t.id} label={`Schematic: ${t.data.summary}`} />}
+              <span class="tool__no mono">T-{String(i + 1).padStart(2, '0')}</span>
+            </span>
+            <span class="tool__name">{t.data.name}</span>
+            <span class="tool__sum">{t.data.summary}</span>
+            <span class="tool__tech mono">{t.data.tech.join(' · ')}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+
+<style>
+  .tools__grid {
+    list-style: none; padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+    gap: clamp(2.5rem, 2rem + 2vw, 4rem) var(--gap);
+  }
+  .tool__link { display: grid; gap: var(--s-3); text-decoration: none; }
+  .tool__fig {
+    position: relative;
+    display: block;
+    aspect-ratio: 16 / 10;
+    padding: 7% 8% 9%;
+    background: var(--ground-2);
+    border: 1px solid var(--rule);
+    transition: border-color var(--d-2) var(--ease);
+    margin-bottom: var(--s-2);
+    overflow: hidden;
+  }
+  .tool__fig :global(.loop) { position: absolute; inset: 0; }
+  .tool__link:hover .tool__fig { border-color: var(--ink-2); }
+  .tool__no { position: absolute; left: 0.7rem; top: 0.55rem; font-size: 0.6875rem; color: var(--ink-3); }
+  .tool__name { font-size: var(--t-h4); font-weight: 600; letter-spacing: -0.01em; transition: color var(--d-1) var(--ease); }
+  .tool__link:hover .tool__name { color: var(--cinnabar-ink); }
+  .tool__sum { font-family: var(--f-text); font-size: 1.0625rem; line-height: 1.5; color: var(--ink-2); }
+  .tool__tech { color: var(--ink-3); font-size: 0.75rem; }
+</style>

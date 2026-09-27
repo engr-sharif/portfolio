@@ -1,0 +1,11 @@
+---
+/** Numbered section head: "2.0 · Selected work", title, and an optional intro. */
+export interface Props { no: string; title: string; intro?: string; id?: string }
+const { no, title, intro, id } = Astro.props;
+---
+<header class="sec-head">
+  <p class="sec-head__no" aria-hidden="true">{no}</p>
+  <h2 class="sec-head__title" id={id}>{title}</h2>
+  {intro && <p class="sec-head__intro">{intro}</p>}
+  {Astro.slots.has('default') && <div class="sec-head__aside"><slot /></div>}
+</header>

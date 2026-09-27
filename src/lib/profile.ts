@@ -56,6 +56,7 @@ export function buildSkillMatrix(
   const groups = SKILL_GROUPS.map(({ group, match }) => {
     const skills = [...counts.entries()]
       .filter(([name]) => {
+        if (assigned.has(name)) return false; // each skill appears in one group only
         const lower = name.toLowerCase();
         const hit = match.some((m) => lower.includes(m));
         if (hit) assigned.add(name);

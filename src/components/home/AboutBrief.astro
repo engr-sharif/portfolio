@@ -1,0 +1,66 @@
+---
+/** 6.0 About — the person, briefly, with the credentials a hiring manager checks. */
+import { site } from '../../lib/site';
+import { profile } from '../../lib/profile';
+import { getImage } from '../../lib/images';
+import { withBase } from '../../lib/path';
+import SectionHead from '../ui/SectionHead.astro';
+import Figure from '../ui/Figure.astro';
+
+const portrait = getImage(site.avatar);
+const creds = [
+  ...profile.credentials.map((c) => ({ label: c.label, detail: `${c.issuer} · ${c.status === 'Active' ? c.date : c.date}` })),
+  ...profile.certifications.map((c) => ({ label: c.label, detail: c.expires ? `${c.date} · renews ${c.expires}` : c.date })),
+];
+---
+<section class="sec about" id="about" data-stratum="About" data-code="SW" data-pattern="lith-sand" aria-labelledby="about-title">
+  <div class="wrap">
+    <SectionHead no="6.0" id="about-title" title="About" />
+    <div class="about__grid">
+      {portrait && (
+        <div class="about__portrait">
+          <Figure image={portrait} alt={`Portrait of ${site.name}`} aspect="4 / 5" sizes="(min-width: 64rem) 30vw, 70vw" widths={[480, 720, 900]} position="50% 18%" />
+        </div>
+      )}
+      <div class="about__text">
+        <p class="about__lede">{site.bio}</p>
+        <table class="about__creds">
+          <caption class="label">Credentials</caption>
+          <tbody>
+            {creds.map((c) => (
+              <tr><th scope="row">{c.label}</th><td class="mono">{c.detail}</td></tr>
+            ))}
+          </tbody>
+        </table>
+        <div class="about__links">
+          <a class="btn btn--line" href={withBase('/about/')}>More about me</a>
+          <a class="go" href={withBase('/cv/')}>Read the CV <span class="arrow" aria-hidden="true">→</span></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .about__grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-7); }
+  .about__portrait { width: 100%; max-width: 26rem; }
+  .about__text { display: grid; gap: var(--s-6); align-content: start; min-width: 0; }
+  .about__lede { font-family: var(--f-text); font-size: var(--t-lede); line-height: 1.45; max-width: 36ch; }
+  .about__creds { width: 100%; max-width: 38rem; }
+  .about__creds caption { text-align: left; padding-bottom: var(--s-3); }
+  .about__creds th, .about__creds td { text-align: left; vertical-align: baseline; padding: 0.7rem 0; border-top: 1px solid var(--rule); }
+  .about__creds th { font-weight: 560; padding-right: var(--s-5); }
+  .about__creds td { color: var(--ink-3); font-size: 0.75rem; text-align: right; white-space: nowrap; }
+  .about__creds tr:last-child th, .about__creds tr:last-child td { border-bottom: 1px solid var(--rule); }
+  @media (max-width: 40rem) {
+    .about__creds tr { display: grid; gap: 0.2rem; padding: 0.7rem 0; border-top: 1px solid var(--rule); }
+    .about__creds tr:last-child { border-bottom: 1px solid var(--rule); }
+    .about__creds th, .about__creds td { border: 0 !important; padding: 0; text-align: left; white-space: normal; }
+  }
+  .about__links { display: flex; flex-wrap: wrap; gap: var(--s-5); align-items: center; }
+  @media (min-width: 64rem) {
+    .about__grid { grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); }
+    .about__portrait { grid-column: 1 / span 4; }
+    .about__text { grid-column: 6 / span 7; }
+  }
+</style>

@@ -1,0 +1,93 @@
+---
+/**
+ * The Ground Truth design system on one page: tokens, type, and the shared
+ * components in both themes. Not linked from the site; kept out of search.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SectionHead from '../../components/ui/SectionHead.astro';
+import TitleBlock from '../../components/ui/TitleBlock.astro';
+import Locator from '../../components/ui/Locator.astro';
+import StateMap from '../../components/ui/StateMap.astro';
+import Schematic from '../../components/tools/Schematic.astro';
+import YouTube from '../../components/media/YouTube.astro';
+
+const colors = ['ground', 'ground-2', 'ground-3', 'ink', 'ink-2', 'ink-3', 'rule', 'rule-2', 'cinnabar', 'cinnabar-ink', 'cinnabar-fill', 'cinnabar-wash', 'water', 'clay', 'relief'];
+const steps = [['display', 't-display'], ['h1', 't-h1'], ['h2', 't-h2'], ['h3', 't-h3'], ['h4', 't-h4'], ['lede', 't-lede'], ['body', 't-body'], ['ui', 't-ui'], ['small', 't-small'], ['label', 't-label']];
+---
+<BaseLayout title="Styleguide — Ground Truth" noindex>
+  <div class="wrap">
+    <header class="phead">
+      <h1 class="phead__title">Ground truth</h1>
+      <p class="lede phead__lede">The design system behind this site. Switch the theme in the top bar to see both palettes.</p>
+    </header>
+
+    <section class="sec">
+      <SectionHead no="1.0" title="Colour tokens" />
+      <ul class="sg__colors">
+        {colors.map((c) => <li><span class="sg__sw" style={`background: var(--${c})`}></span><code class="mono">--{c}</code></li>)}
+      </ul>
+    </section>
+
+    <section class="sec">
+      <SectionHead no="2.0" title="Type scale" intro="A 1.25 ratio, fluid from phone to desk." />
+      <ol class="rows">
+        {steps.map(([n, t]) => (
+          <li class="sg__type"><span class="mono">{n}</span><span style={`font-size: var(--${t}); ${n === 'body' || n === 'lede' ? 'font-family: var(--f-text);' : ''} line-height: 1.1; ${n === 'label' ? 'text-transform: uppercase; letter-spacing: .13em; font-stretch: 112%; font-weight: 600;' : ''}`}>{n === 'display' ? 'Datum' : 'Ground truth'}</span></li>
+        ))}
+      </ol>
+    </section>
+
+    <section class="sec">
+      <SectionHead no="3.0" title="Controls" />
+      <div class="sg__row">
+        <a class="btn" href="#">Primary</a>
+        <a class="btn btn--line" href="#">Secondary</a>
+        <a class="btn btn--sm" href="#">Small</a>
+        <a class="go" href="#">Read the report <span class="arrow" aria-hidden="true">→</span></a>
+        <span class="status status--active">Active</span>
+        <span class="status status--complete">Complete</span>
+        <span class="status status--proposed">Proposed</span>
+      </div>
+      <ul class="chips" style="margin-top: var(--s-5);"><li class="chip">XRF scanning</li><li class="chip">Grid sampling</li><li class="chip">Title 27</li></ul>
+      <div style="margin-top: var(--s-6); max-width: 30rem;"><label class="field"><span>Field label</span><input class="input" placeholder="Placeholder" /></label></div>
+    </section>
+
+    <section class="sec">
+      <SectionHead no="4.0" title="Title block" />
+      <TitleBlock cells={[{ label: 'Client', value: 'City of Roseville' }, { label: 'Role', value: 'Report author' }, { label: 'Dates', value: 'Jan 2025 — Present', mono: true }, { label: 'Status', value: 'Active' }]} wideCols={4} />
+    </section>
+
+    <section class="sec">
+      <SectionHead no="5.0" title="Figures" />
+      <div class="sg__figs">
+        <Locator lat={39.0} lng={-122.66} name="Sulphur Bank" place="Clearlake Oaks, CA" no="1" />
+        <StateMap no="2" caption="Pins at public positions." pins={[{ no: '01', lat: 38.75, lng: -121.29, label: 'Roseville', active: true }, { no: '02', lat: 35.37, lng: -119.02, label: 'Bakersfield' }]} />
+        <figure class="fig"><div class="fig__frame" style="padding: 6% 8%; background: var(--ground-2);"><Schematic slug="xrf-data-app" label="XRF reconciliation schematic" /></div><figcaption class="fig__cap"><span class="fig__no">Fig. 3</span><span>Schematic.</span></figcaption></figure>
+        <YouTube video="https://youtu.be/dQw4w9WgXcQ" title="Video facade (click to load)" />
+      </div>
+    </section>
+
+    <section class="sec">
+      <SectionHead no="6.0" title="Prose" />
+      <div class="prose">
+        <p>Reading text in Newsreader at a 64-character measure. <strong>Strong</strong>, <a href="#">a link</a>, and <code>inline code</code>.</p>
+        <h2>Section heading</h2>
+        <p>Report sections are numbered with counters.</p>
+        <h3>Subsection</h3>
+        <blockquote><p>A quoted passage sits on a cinnabar rule.</p></blockquote>
+        <ul><li>First item</li><li>Second item</li></ul>
+      </div>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .sg__colors { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: var(--s-4); }
+  .sg__colors li { display: grid; gap: var(--s-2); }
+  .sg__sw { height: 3.5rem; border: 1px solid var(--rule-2); }
+  .sg__type { display: grid; grid-template-columns: 5rem 1fr; align-items: baseline; gap: var(--s-4); padding: var(--s-4) 0; overflow: hidden; }
+  .sg__type .mono { color: var(--ink-3); }
+  .sg__row { display: flex; flex-wrap: wrap; gap: var(--s-4); align-items: center; }
+  .sg__figs { display: grid; gap: var(--s-7) var(--gap); }
+  @media (min-width: 64rem) { .sg__figs { grid-template-columns: 1fr 1fr; } }
+</style>
