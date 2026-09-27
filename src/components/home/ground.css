@@ -18,11 +18,18 @@
 /* ------------------------------------------------------------------ layer */
 .ground {
   position: fixed;
-  inset: 0;
+  top: 0; left: 0; right: 0;
+  /* the LARGE viewport: on phones the address bar slides in and out while
+     scrolling, and a layer sized to the visible height would resize (and
+     clear) on every slide. Sized to the largest height, it never changes. */
+  height: 100vh;
+  height: 100lvh;
   z-index: 0;
   view-transition-name: ground;
   background: var(--ground-2);
   overflow: hidden;
+  contain: strict;
+  transform: translateZ(0); /* its own compositor layer: scrolling never repaints it */
 }
 .ground__canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: pan-y; }
 @media (pointer: fine) {

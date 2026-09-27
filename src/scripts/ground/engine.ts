@@ -228,12 +228,18 @@ export async function createGround(cfg: GroundConfig): Promise<GroundEngine | nu
 
   const resize = () => {
     const r = canvas.getBoundingClientRect();
-    dpr = Math.min(coarse ? 1.5 : 2, window.devicePixelRatio || 1);
-    cw = Math.max(1, r.width); ch = Math.max(1, r.height);
+    const nextDpr = Math.min(coarse ? 1.5 : 2, window.devicePixelRatio || 1);
+    const w = Math.max(1, r.width), h = Math.max(1, r.height);
+    // Setting a canvas's size clears it, so only do it when the size really
+    // changed (not for a sub-pixel wobble), and draw again at once rather
+    // than showing a blank frame until the next animation frame.
+    if (Math.abs(w - cw) < 1 && Math.abs(h - ch) < 1 && nextDpr === dpr) return;
+    dpr = nextDpr; cw = w; ch = h;
     canvas.width = Math.round(cw * dpr); canvas.height = Math.round(ch * dpr);
     gl.viewport(0, 0, canvas.width, canvas.height);
     screenK = (canvas.height * 0.5) / Math.tan(FOV / 2);
-    request();
+    if (frame) { cancelAnimationFrame(frame); frame = 0; }
+    if (running) render(performance.now());
   };
 
   const settled = () => {

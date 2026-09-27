@@ -154,6 +154,16 @@ async function start() {
   }
 
   /* --------------------------------------------------------------- anchors */
+  // A steady screen height: phones grow and shrink innerHeight as the address
+  // bar slides while scrolling, which would nudge the camera on every slide.
+  // Keep the largest height seen at the current width.
+  let stableW = window.innerWidth, stableH = window.innerHeight;
+  const viewH = () => {
+    if (window.innerWidth !== stableW) { stableW = window.innerWidth; stableH = window.innerHeight; }
+    else stableH = Math.max(stableH, window.innerHeight);
+    return stableH;
+  };
+
   let anchors: Anchor[] = [];
   let measured = false;
   const measure = () => {
@@ -177,7 +187,7 @@ async function start() {
   let shown: Anchor | null = null;
   function update(snap = false) {
     if (!anchors.length) return;
-    const focus = window.scrollY + window.innerHeight * 0.5;
+    const focus = window.scrollY + viewH() * 0.5;
     let i = anchors.findIndex((x) => x.y > focus) - 1;
     if (i < -1) i = anchors.length - 1;
     const a = anchors[Math.max(0, i)], b = anchors[Math.min(anchors.length - 1, i + 1)];

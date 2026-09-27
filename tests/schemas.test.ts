@@ -25,6 +25,12 @@ describe('validateEntry', () => {
     expect(validateEntry('projects', cleanForSchema({ ...okProject, externalLink: '' }))).toEqual({});
   });
 
+  it('takes a clearance day saved as text or read back as a date', () => {
+    const clearance = { names: true, photos: true, location: true, data: true };
+    expect(validateEntry('projects', { ...okProject, clearance: { ...clearance, date: '2026-09-27' } })).toEqual({});
+    expect(validateEntry('projects', { ...okProject, clearance: { ...clearance, date: new Date('2026-09-27') } })).toEqual({});
+  });
+
   it('checks date formats and coordinate ranges', () => {
     expect(validateEntry('projects', { ...okProject, startDate: 'March 2024' })).toHaveProperty('startDate');
     expect(validateEntry('projects', { ...okProject, lat: 120 })).toHaveProperty('lat');
