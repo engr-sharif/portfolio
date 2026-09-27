@@ -30,6 +30,18 @@ gallery:
   - /src/assets/covers/tc-02908.jpg
   - /src/assets/covers/img-9940.jpg
   - /src/assets/covers/img-9937.jpg
+  - /src/assets/covers/img-9884.jpg
+  - /src/assets/covers/tc-02840.jpg
+  - /src/assets/covers/tc-02848.jpg
+  - /src/assets/covers/img-9737.jpg
+  - /src/assets/covers/img-9540.jpg
+  - /src/assets/covers/img-9489.jpg
+  - /src/assets/covers/img-9487.jpg
+  - /src/assets/covers/img-9486.jpg
+  - /src/assets/covers/img-9483.jpg
+  - /src/assets/covers/img-9481.jpg
+  - /src/assets/covers/img-9479.jpg
+  - /src/assets/covers/img-9474.jpg
 externalLink: https://www.epa.gov/superfund
 featured: true
 order: 1
@@ -42,7 +54,7 @@ clearance:
   photos: true
   location: true
   data: true
-  date: 2026-09-27
+  date: "2026-09-27"
 ---
 Site characterization support at a former mercury-mining operation now managed
 as a federal Superfund site. Work centered on **systematic grid sampling** and
