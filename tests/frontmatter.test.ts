@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { load } from 'js-yaml';
 import { parse, stringify, cleanForSchema } from '../src/studio/frontmatter';
 
 /**
@@ -9,6 +10,14 @@ import { parse, stringify, cleanForSchema } from '../src/studio/frontmatter';
 const roundTrip = (data: Record<string, unknown>, body = '') => parse(stringify({ data, body }));
 
 describe('frontmatter round-trip', () => {
+  it('writes days so the build (YAML 1.1) still reads them as text', () => {
+    const out = stringify({ data: { clearance: { photos: true, date: '2026-09-27' }, answer: 'yes' }, body: '' });
+    const built = load(out.split('---\n')[1]) as any;
+    expect(built.clearance.date).toBe('2026-09-27');
+    expect(built.answer).toBe('yes');
+    expect(parse(out).data.clearance.date).toBe('2026-09-27');
+  });
+
   it('preserves multiline strings (code snippets)', () => {
     const codeSnippet = 'const x = 1;\nconst y = 2;\n\nprint(x + y)';
     expect(roundTrip({ codeSnippet }).data.codeSnippet).toBe(codeSnippet);

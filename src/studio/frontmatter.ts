@@ -44,7 +44,10 @@ function normalize(data: Record<string, any>): Record<string, any> {
 /* ------------------------------------------------------------ serializing */
 export function stringify(doc: Doc): string {
   const data = stripEmpty(doc.data);
-  const yaml = Object.keys(data).length ? stringifyYaml(data, { lineWidth: 0 }) : '';
+  // Written as YAML 1.1, the version Astro reads at build time: it quotes
+  // values 1.1 would otherwise turn into something else (2026-09-27 into a
+  // date, yes/no into booleans).
+  const yaml = Object.keys(data).length ? stringifyYaml(data, { lineWidth: 0, version: '1.1' }) : '';
   const body = (doc.body ?? '').replace(/^\r?\n/, '');
   return `---\n${yaml}---\n${body}`;
 }
