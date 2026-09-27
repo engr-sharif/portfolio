@@ -10,11 +10,22 @@ import exifr from 'exifr';
  *      so rotated phone shots come out upright. Astro then generates the
  *      responsive sizes at build time from this high-quality source.
  * Non-images (PDFs) and vector/animated formats (SVG/GIF) pass through.
+ *
+ * Privacy: a photo is only ever committed after step 3 — the canvas re-encode
+ * is what strips EXIF (GPS, device, timestamps). If conversion or re-encoding
+ * fails we STOP rather than upload the original with its metadata intact, and
+ * coordinates are rounded to 0.01° (~1 km) the moment they are read, so an
+ * exact site position never reaches the repo or its history.
  */
 const MAX_EDGE = 2400;       // longest side; ample for retina portfolio display
 const JPEG_QUALITY = 0.85;   // visually lossless-ish, big file savings
 
 export interface ImageMeta { lat?: number; lng?: number; takenAt?: string }
+
+/** Round a coordinate to 0.01° (~1.1 km N–S) — the public precision. */
+export const roundCoord = (n: number) => Math.round(n * 100) / 100;
+
+const PROCESS_FAILED = 'Couldn’t prepare this photo for upload, so it was not sent (its location data would have gone with it). Try exporting it as a JPEG first.';
 export interface Processed { file: File; meta: ImageMeta }
 
 const isHeic = (f: File) => /heic|heif/i.test(f.type) || /\.(heic|heif)$/i.test(f.name);
@@ -31,8 +42,8 @@ export async function readImageMeta(file: File): Promise<ImageMeta> {
   try {
     const gps = await exifr.gps(file);
     if (gps && Number.isFinite(gps.latitude) && Number.isFinite(gps.longitude)) {
-      meta.lat = +gps.latitude.toFixed(6);
-      meta.lng = +gps.longitude.toFixed(6);
+      meta.lat = roundCoord(gps.latitude);
+      meta.lng = roundCoord(gps.longitude);
     }
   } catch { /* no GPS — fine */ }
   try {
@@ -57,7 +68,7 @@ export async function processImage(file: File): Promise<Processed> {
       source = Array.isArray(out) ? out[0] : out;
       name = name.replace(/\.(heic|heif)$/i, '.jpg');
     } catch {
-      return { file, meta }; // conversion failed — upload original rather than block
+      throw new Error(PROCESS_FAILED);
     }
   }
 
@@ -70,7 +81,7 @@ export async function processImage(file: File): Promise<Processed> {
     const canvas = document.createElement('canvas');
     canvas.width = w; canvas.height = h;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return { file: new File([source], name, { type: source.type || 'image/jpeg' }), meta };
+    if (!ctx) throw new Error(PROCESS_FAILED);
     ctx.drawImage(bitmap, 0, 0, w, h);
     bitmap.close?.();
 
@@ -82,7 +93,7 @@ export async function processImage(file: File): Promise<Processed> {
     );
     if (!keepPng) name = name.replace(/\.[^.]+$/, '') + '.jpg';
     return { file: new File([blob], name, { type }), meta };
-  } catch {
-    return { file: new File([source], name, { type: source.type || 'image/jpeg' }), meta };
+  } catch (e) {
+    throw e instanceof Error && e.message === PROCESS_FAILED ? e : new Error(PROCESS_FAILED);
   }
 }

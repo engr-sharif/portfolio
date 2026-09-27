@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Upload, Trash2, Copy, Check, FileText, Film, Image as ImageIcon, Search, X, ExternalLink } from 'lucide-react';
 import { MEDIA_DIRS, mediaDirById } from '../../media-dirs';
 import { useDir, keys } from '../../app/queries';
-import { commitFiles, uploadImage, rawRepoUrl, isMissingRoute, type ListEntry } from '../../api';
+import { commitFiles, uploadImage, rawRepoUrl, isMissingRoute, freeNames, type ListEntry } from '../../api';
 import { processImage } from '../../image-process';
 import { useToast } from '../../ui/Toaster';
 import { Button, Confirm, EmptyState, IconButton, Input, Skeleton } from '../../ui/primitives';
@@ -43,13 +43,16 @@ export const MediaPage: FC<{ dirId?: string }> = ({ dirId }) => {
     if (!picked.length) return;
     setBusy(`Preparing ${picked.length} file${picked.length === 1 ? '' : 's'}…`);
     try {
-      const prepared: { path: string; content: string; encoding: 'base64'; bytes: number }[] = [];
+      const outs: File[] = [];
       for (let i = 0; i < picked.length; i++) {
         const f = picked[i];
         setBusy(`Preparing ${i + 1} of ${picked.length}…`);
-        const out = md.kind === 'image' || f.type.startsWith('image/') ? (await processImage(f)).file : f;
-        prepared.push({ path: `${md.dir}/${slugify(out.name)}`, content: await readB64(out), encoding: 'base64', bytes: out.size });
+        outs.push(md.kind === 'image' || f.type.startsWith('image/') ? (await processImage(f)).file : f);
       }
+      // Never replace a file that's already there: same-named uploads get -2, -3…
+      const names = await freeNames(md.dir, outs.map((o) => slugify(o.name)));
+      const prepared: { path: string; content: string; encoding: 'base64'; bytes: number }[] = [];
+      for (let i = 0; i < outs.length; i++) prepared.push({ path: `${md.dir}/${names[i]}`, content: await readB64(outs[i]), encoding: 'base64', bytes: outs[i].size });
       setBusy(`Committing ${prepared.length} file${prepared.length === 1 ? '' : 's'}…`);
       let commit: string | undefined;
       try {

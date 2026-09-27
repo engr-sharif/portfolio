@@ -10,6 +10,17 @@
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   Cross-Origin-Opener-Policy: same-origin
 
+# The Studio's field log needs the phone's location (GPS fix), camera (photos)
+# and microphone (voice memos). "! Header" detaches the site-wide policy above,
+# then the Studio gets its own — same-origin only, never for embedded frames.
+/studio
+  ! Permissions-Policy
+  Permissions-Policy: camera=(self), microphone=(self), geolocation=(self), payment=()
+
+/studio/*
+  ! Permissions-Policy
+  Permissions-Policy: camera=(self), microphone=(self), geolocation=(self), payment=()
+
 /_astro/*
   Cache-Control: public, max-age=31536000, immutable
 

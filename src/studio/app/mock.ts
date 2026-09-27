@@ -60,14 +60,6 @@ function fileAt(path: string, ref: string): string | null | undefined {
   return val;
 }
 
-const TASK_REPLY: Record<string, (t: string) => string> = {
-  polish: (t) => t.replace(/\s+/g, ' ').trim().replace(/^./, (c) => c.toUpperCase()).replace(/\bwas fine\b/g, 'were within expected ranges'),
-  grammar: (t) => t.replace(/\s+/g, ' ').trim().replace(/^./, (c) => c.toUpperCase()),
-  summarize: (t) => (t.replace(/\s+/g, ' ').trim().split(/(?<=\.)\s/)[0] || '').slice(0, 160),
-  expand: (t) => t.split(/\n+/).filter(Boolean).map((l) => l.replace(/^[-*]\s*/, '')).map((l) => `${l.replace(/\.?$/, '')}. This step followed the site's standard field procedure and was documented in the daily log.`).join('\n\n'),
-  alt: () => 'A field technician holds a handheld instrument over a marked sampling grid on bare soil.',
-  caption: () => 'Handheld XRF screening across the sampling grid before confirmation samples were collected.',
-};
 
 export async function mockFetch(input: string, init: RequestInit = {}): Promise<Response> {
   await seed();
@@ -154,12 +146,6 @@ export async function mockFetch(input: string, init: RequestInit = {}): Promise<
     const limit = Math.min(Number(url.searchParams.get('limit')) || 20, 50);
     const list = commits.filter((c) => !p || c.changes.has(p)).slice().reverse().slice(0, limit);
     return json(list.map((c) => ({ sha: c.sha, message: c.message, date: c.date, author: c.author, url: `https://github.com/engr-sharif/portfolio/commit/${c.sha}` })));
-  }
-  if (path === '/api/assist' && method === 'POST') {
-    const fn = TASK_REPLY[body.task];
-    if (!fn) return json({ error: 'Unknown task' }, 400);
-    await sleep(600);
-    return json({ result: fn(String(body.text || '')) });
   }
   return json({ error: 'Not found' }, 404);
 }

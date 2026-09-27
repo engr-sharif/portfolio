@@ -152,19 +152,3 @@ export async function uniqueEntryPath(dir: string, slug: string): Promise<string
   }
   return `${dir}/${base}-${Date.now()}.md`;
 }
-
-export const AI_GUIDE_PATH = 'src/content/settings/ai.json';
-
-/** The AI writing guide (from settings/ai.json). Empty string means "use the
- * Worker's built-in default guide". Cached until the guide is saved. */
-let _aiGuide: string | undefined;
-export async function aiGuide(): Promise<string> {
-  if (_aiGuide !== undefined) return _aiGuide;
-  try {
-    const f = await readFile(AI_GUIDE_PATH);
-    _aiGuide = f.content ? (JSON.parse(f.content).guide || '') : '';
-  } catch { _aiGuide = ''; }
-  return _aiGuide ?? '';
-}
-/** Call after saving ai.json so the next assist uses the new guide. */
-export const invalidateAiGuide = () => { _aiGuide = undefined; };

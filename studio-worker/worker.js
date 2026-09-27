@@ -13,7 +13,6 @@
  *   GET  /api/list?dir=…       -> [{ name, path, sha }]        (list a directory)
  *   GET  /api/status          -> { ok, repo, branch }         (auth check)
  *   GET  /api/deploy-status?commit=<sha>  -> { state: live|building|failed|unknown } (host's commit status)
- *   POST /api/assist          { task, text, system?, image? } (Workers AI)
  *
  * All routes except /login require: Authorization: Bearer <token>.
  *
@@ -26,78 +25,19 @@
  *   GITHUB_BRANCH       e.g. "main"
  *   ALLOWED_ORIGIN      e.g. "https://mosharif.pages.dev" — REQUIRED. Comma-separate
  *                       several (e.g. add "http://localhost:4321" for local dev).
- *   AI_TEXT_MODEL / AI_VISION_MODEL   optional model overrides
- * BINDINGS:
- *   AI                  Workers AI binding (optional; /api/assist returns 501 without it)
  *
  * Security posture (this revision):
  *   - CORS fails CLOSED: no ALLOWED_ORIGIN → no cross-origin access at all.
  *   - JWT verification pins alg=HS256 and rejects anything else.
- *   - /api/login and /api/assist are rate-limited per client IP (in-memory,
+ *   - /api/login is rate-limited per client IP (in-memory,
  *     per-isolate — a speed bump, not a guarantee; pair with Cloudflare WAF
  *     rules for hard limits).
- *   - /api/assist only fetches images from this repo's raw.githubusercontent
- *     path (closes the SSRF hole of fetching arbitrary URLs).
  *   - Repo paths are validated: relative, no "..", no control characters.
  */
 
 const GH = 'https://api.github.com';
 const enc = new TextEncoder();
 
-/* ------------------------------------------------------- AI writing guide */
-// The "master guide" the model follows for voice, tone, and structure. Used as
-// the default system prompt for every assist; the Studio can override it by
-// saving a non-empty guide in src/content/settings/ai.json.
-const DEFAULT_GUIDE = `You are the writing assistant for Mohammad Sharif — an Environmental
-Engineer (EIT) at Jacobs in Sacramento, California. His work is field-based site
-characterization, remediation, and construction quality assurance: groundwater
-and soil sampling, landfill-gas and compliance monitoring, XRF scanning, PFAS and
-mercury sites, Title 27 work — and he builds Python field tools on the side.
-
-You help him write and edit content for his portfolio. Match HIS voice. Write as
-a working engineer, not a marketer.
-
-VOICE & TONE
-- First person, grounded, and precise. Plainspoken and direct.
-- Quiet confidence. Let the work speak; never oversell.
-- Technical but accessible — explain methods without jargon soup.
-- Concrete and specific over vague. Prefer "collected 40 groundwater samples
-  across 12 wells" to "performed extensive sampling."
-- Active voice. Short, clear sentences. Vary length for rhythm.
-
-HARD RULES
-- Never invent facts, numbers, dates, clients, or outcomes. If a detail isn't in
-  the input, leave it out — do not fill gaps with plausible-sounding specifics.
-- Respect confidentiality: do not add client names or exact site locations that
-  aren't already in the text.
-- US spelling. Use real units (mg/kg, ft bgs, µg/L) when the input has them.
-- No emoji in professional content. No hype.
-- Avoid clichés and AI tells: "passionate," "cutting-edge," "leverage," "delve,"
-  "tapestry," "in today's world," "seamless," "robust," "game-changer,"
-  "testament to," "spearheaded," em-dash pile-ups, and empty intensifiers.
-- Return ONLY the requested text — no preamble, no "Here is…," no explanation,
-  no quotation marks around the whole thing.
-
-CONTENT TYPES
-- Project write-ups: what the site/problem was, your role, the methods and field
-  work, and the outcome — factual and scoped.
-- Field notes / blog: a bit more personal and observational; still grounded.
-- Photo captions: one short factual sentence — what's happening, and where/what
-  technique if it's evident. No hype.
-- Alt text: one objective sentence describing what's visible, for screen readers.`;
-
-// Per-task instruction appended to the guide.
-const TASKS = {
-  polish: 'TASK: Improve the clarity, flow, and concision of the text below. Preserve the meaning, every fact, and the author\'s voice. Fix awkward phrasing. Return only the improved text.',
-  grammar: 'TASK: Correct grammar, spelling, and punctuation only. Do not change wording, style, or content beyond what correctness requires. Return only the corrected text.',
-  summarize: 'TASK: Write a tight 1–2 sentence summary of the text below, leading with the key outcome or point. Return only the summary.',
-  expand: 'TASK: The text below is rough notes or bullet points. Expand it into clear, well-structured prose that follows the guide. Do not add facts that are not present in the notes. Return only the prose.',
-  alt: 'TASK: Look at the image and write one objective sentence describing what is visible, suitable as alt text for a screen reader. Be factual and specific. Return only the sentence.',
-  caption: 'TASK: Look at the image and write one short, factual caption — what is happening, and the setting or technique if evident. No hype. Return only the caption.',
-};
-
-const MAX_ASSIST_CHARS = 20_000;     // ~5k tokens of input is plenty for a write-up
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const MAX_UPLOAD_B64 = 70 * 1024 * 1024; // ~50 MB binary (GitHub Contents API ceiling is 100 MB)
 const MAX_COMMIT_FILES = 60;             // one reorder touches every entry of a collection; 60 is generous
 const MAX_COMMIT_CHARS = 20 * 1024 * 1024; // total payload of one atomic commit (text + base64)
@@ -578,56 +518,6 @@ export default {
       if (!res.ok) return json({ error: `GitHub ${res.status}` }, env, request, 502);
       const d = await res.json().catch(() => ({}));
       return json({ ok: true, commit: d?.commit?.sha }, env, request);
-    }
-
-    // --- AI assist (Cloudflare Workers AI): polish / summarize / caption … ---
-    if (pathname === '/api/assist' && request.method === 'POST') {
-      if (!env.AI) {
-        return json({ error: 'AI is not enabled yet. Add a Workers AI binding named "AI" to this Worker.' }, env, request, 501);
-      }
-      if (rateLimited(request, 'assist', 40, 10 * 60 * 1000)) {
-        return json({ error: 'Slow down — the assistant is limited to 40 requests every 10 minutes.' }, env, request, 429);
-      }
-      const body = (await readJson(request)) || {};
-      const { task = 'polish', text = '', system, image } = body;
-      if (!Object.prototype.hasOwnProperty.call(TASKS, task)) return json({ error: 'Unknown task' }, env, request, 400);
-      if (typeof text === 'string' && text.length > MAX_ASSIST_CHARS) {
-        return json({ error: `That's a lot of text — select a section under ${MAX_ASSIST_CHARS.toLocaleString()} characters.` }, env, request, 413);
-      }
-      const guide = (typeof system === 'string' && system.trim()) || DEFAULT_GUIDE;
-      const instruction = TASKS[task];
-      const isVision = task === 'alt' || task === 'caption';
-      try {
-        let out = '';
-        if (isVision) {
-          // SSRF guard: the only images we will ever fetch live in THIS repo.
-          const allowedPrefix = `https://raw.githubusercontent.com/${repo}/`;
-          if (typeof image !== 'string' || !image.startsWith(allowedPrefix)) {
-            return json({ error: 'Only images stored in this site\'s repository can be described.' }, env, request, 400);
-          }
-          const imgRes = await fetch(image, { headers: { 'User-Agent': 'studio-worker' } });
-          if (!imgRes.ok) return json({ error: 'Could not fetch the image (has it finished publishing?).' }, env, request, 502);
-          const buf = await imgRes.arrayBuffer();
-          if (buf.byteLength > MAX_IMAGE_BYTES) return json({ error: 'Image too large to describe (max 8 MB).' }, env, request, 413);
-          const bytes = [...new Uint8Array(buf)];
-          const model = env.AI_VISION_MODEL || '@cf/llava-hf/llava-1.5-7b-hf';
-          const r = await env.AI.run(model, { image: bytes, prompt: `${guide}\n\n${instruction}`, max_tokens: 256 });
-          out = r.description ?? r.response ?? '';
-        } else {
-          const model = env.AI_TEXT_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
-          const r = await env.AI.run(model, {
-            max_tokens: 1024,
-            messages: [
-              { role: 'system', content: `${guide}\n\n${instruction}` },
-              { role: 'user', content: String(text || '') },
-            ],
-          });
-          out = r.response ?? '';
-        }
-        return json({ result: String(out || '').trim() }, env, request);
-      } catch (e) {
-        return json({ error: 'AI request failed', detail: String((e && e.message) || e).slice(0, 300) }, env, request, 502);
-      }
     }
 
     return json({ error: 'Not found' }, env, request, 404);

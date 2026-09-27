@@ -207,18 +207,34 @@ export interface ListEntry { name: string; path: string; sha: string; type: stri
 export const listDir = (dir: string): Promise<ListEntry[]> =>
   call(`/api/list?dir=${encodeURIComponent(dir)}`);
 
+/**
+ * Pick free file names in a repo folder so an upload never silently replaces
+ * an existing file (the Worker updates a file in place when the path exists).
+ * "photo.jpg" → "photo-2.jpg" → "photo-3.jpg"…; names within the same batch
+ * are kept distinct too. A folder that doesn't exist yet counts as empty.
+ */
+export async function freeNames(dir: string, names: string[]): Promise<string[]> {
+  let existing: string[] = [];
+  try { existing = (await listDir(dir)).map((e) => e.name); } catch { /* new folder */ }
+  return pickFreeNames(existing, names);
+}
+/** Pure core of freeNames (case-insensitive, like most file systems). */
+export function pickFreeNames(existing: string[], names: string[]): string[] {
+  const taken = new Set(existing.map((n) => n.toLowerCase()));
+  return names.map((name) => {
+    const dot = name.lastIndexOf('.');
+    const stem = dot > 0 ? name.slice(0, dot) : name;
+    const ext = dot > 0 ? name.slice(dot) : '';
+    let candidate = name;
+    for (let n = 2; taken.has(candidate.toLowerCase()); n++) candidate = `${stem}-${n}${ext}`;
+    taken.add(candidate.toLowerCase());
+    return candidate;
+  });
+}
+export const freeName = async (dir: string, name: string) => (await freeNames(dir, [name]))[0];
+
 export const uploadImage = (path: string, base64: string, message: string) =>
   call('/api/upload', { method: 'POST', body: JSON.stringify({ path, base64, message }) });
-
-/** AI assist via the Worker's Cloudflare Workers AI binding. `task` is one of
- * polish|grammar|summarize|expand (text) or alt|caption (vision, needs image
- * URL). Returns { result }. */
-export const aiAssist = (
-  task: string,
-  text: string,
-  opts: { system?: string; image?: string } = {},
-): Promise<{ result: string }> =>
-  call('/api/assist', { method: 'POST', body: JSON.stringify({ task, text, ...opts }) });
 
 /** Public raw-content URL for a repo image (the repo is public, so no auth).
  * Accepts stored values like "/src/assets/covers/x.jpg" or "x.jpg". */

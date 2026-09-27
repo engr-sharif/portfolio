@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FC, type ReactNode } from 'r
 import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
-import { Search, LayoutDashboard, Plus, FileText, MapPin, Settings, Sparkles, Images, LogOut, Moon, Sun, FlaskConical, Wrench, FolderKanban, PenLine } from 'lucide-react';
+import { Search, LayoutDashboard, Plus, FileText, MapPin, Settings, Images, LogOut, Moon, Sun, FlaskConical, Wrench, FolderKanban, PenLine } from 'lucide-react';
 import { collections } from '../schema';
 import type { EntryRow } from '../studio-lib';
 import { Kbd } from './primitives';
@@ -16,7 +16,7 @@ export interface PaletteContext { theme: 'dark' | 'light'; toggleTheme: () => vo
 interface Item { id: string; group: string; label: string; hint?: string; icon: ReactNode; run: () => void; keywords?: string }
 
 export const collectionIcon = (id: string, size = 16) =>
-  id === 'projects' ? <FolderKanban size={size} /> : id === 'blog' ? <PenLine size={size} /> : id === 'tools' ? <Wrench size={size} /> : id === 'gallery' ? <Images size={size} /> : id === 'ai' ? <Sparkles size={size} /> : <Settings size={size} />;
+  id === 'projects' ? <FolderKanban size={size} /> : id === 'blog' ? <PenLine size={size} /> : id === 'tools' ? <Wrench size={size} /> : id === 'gallery' ? <Images size={size} /> : <Settings size={size} />;
 
 export const CommandPalette: FC<{ open: boolean; onClose: () => void; ctx: PaletteContext }> = ({ open, onClose, ctx }) => {
   const [, navigate] = useLocation();

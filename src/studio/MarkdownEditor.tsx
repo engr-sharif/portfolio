@@ -1,14 +1,6 @@
 import { useRef, useState, type FC } from 'react';
-import { uploadImage, aiAssist } from './api';
+import { uploadImage, freeName } from './api';
 import { processImage } from './image-process';
-import { aiGuide } from './studio-lib';
-
-const AI_ACTIONS: { key: string; label: string }[] = [
-  { key: 'polish', label: 'Polish' },
-  { key: 'grammar', label: 'Fix grammar' },
-  { key: 'summarize', label: 'Summarize' },
-  { key: 'expand', label: 'Expand from notes' },
-];
 
 interface Props {
   value: string;
@@ -54,44 +46,6 @@ export const MarkdownEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/ass
   const [videoOpen, setVideoOpen] = useState(false);
   const [videoUrl, setVideoUrl] = useState('');
   const [videoErr, setVideoErr] = useState('');
-  // AI assist
-  const [aiOpen, setAiOpen] = useState(false);
-  const [aiBusy, setAiBusy] = useState('');
-  const [aiResult, setAiResult] = useState('');
-  const [aiErr, setAiErr] = useState('');
-  const [aiOnSelection, setAiOnSelection] = useState(false);
-
-  const runAi = async (task: string) => {
-    const ta = ref.current;
-    const sel = ta && ta.selectionEnd > ta.selectionStart ? ta.value.slice(ta.selectionStart, ta.selectionEnd) : '';
-    const input = sel || value;
-    if (!input.trim()) { setAiErr('Write something first, or select text to work on.'); return; }
-    setAiOnSelection(!!sel);
-    setAiBusy(task); setAiErr(''); setAiResult('');
-    try {
-      const guide = await aiGuide();
-      const { result } = await aiAssist(task, input, guide ? { system: guide } : {});
-      if (!result) { setAiErr('The assistant returned nothing — try again.'); }
-      else setAiResult(result);
-    } catch (e: any) {
-      setAiErr(e?.message || 'AI request failed.');
-    } finally { setAiBusy(''); }
-  };
-
-  const acceptAi = (mode: 'replace' | 'insert') => {
-    const ta = ref.current;
-    if (mode === 'replace' && aiOnSelection && ta && ta.selectionEnd > ta.selectionStart) {
-      const { selectionStart: s, selectionEnd: e } = ta;
-      onChange(value.slice(0, s) + aiResult + value.slice(e));
-    } else if (mode === 'replace') {
-      onChange(aiResult);
-    } else {
-      const at = ta ? ta.selectionStart : value.length;
-      onChange(value.slice(0, at) + `\n\n${aiResult}\n\n` + value.slice(at));
-    }
-    setAiResult(''); setAiOpen(false); setAiErr('');
-  };
-
   const apply = (fn: (ta: HTMLTextAreaElement) => { next: string; caret: number }) => {
     const ta = ref.current; if (!ta) return;
     const { next, caret } = fn(ta);
@@ -121,7 +75,7 @@ export const MarkdownEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/ass
       const base64 = await new Promise<string>((res, rej) => {
         const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(file);
       });
-      const name = slugify(file.name);
+      const name = await freeName('public/videos', slugify(file.name));
       const path = `public/videos/${name}`;
       await uploadImage(path, base64, `studio: upload ${name}`);
       // Root-relative under the site's base path (import.meta.env.BASE_URL).
@@ -140,7 +94,7 @@ export const MarkdownEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/ass
       const base64 = await new Promise<string>((res, rej) => {
         const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(new Error('Could not read that file.')); r.readAsDataURL(out);
       });
-      const name = slugify(out.name);
+      const name = await freeName(mediaDir, slugify(out.name));
       const path = `${mediaDir}/${name}`;
       await uploadImage(path, base64, `studio: upload ${name}`);
       const ta = ref.current;
@@ -179,37 +133,9 @@ export const MarkdownEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/ass
         </label>
         <button type="button" className="md__btn" title="Insert video"
           onMouseDown={(e) => { e.preventDefault(); setVideoOpen((o) => !o); setVideoErr(''); }}>▶</button>
-        <button type="button" className={`md__btn md__btn--ai${aiOpen ? ' is-on' : ''}`} title="AI assist"
-          onMouseDown={(e) => { e.preventDefault(); setAiOpen((o) => !o); setAiErr(''); setAiResult(''); }}>✨</button>
       </div>
 
       {uploadErr && <p className="md__ai-err" role="alert">{uploadErr} <button type="button" className="md__dismiss" onClick={() => setUploadErr('')}>dismiss</button></p>}
-
-      {aiOpen && (
-        <div className="md__ai">
-          <p className="md__ai-label">Work on the selected text, or the whole write-up if nothing is selected:</p>
-          <div className="md__ai-actions">
-            {AI_ACTIONS.map((a) => (
-              <button key={a.key} type="button" className="sf__btn" disabled={!!aiBusy}
-                onClick={() => runAi(a.key)}>
-                {aiBusy === a.key ? 'Working…' : a.label}
-              </button>
-            ))}
-            <button type="button" className="sf__btn sf__btn--ghost" onClick={() => { setAiOpen(false); setAiResult(''); setAiErr(''); }}>Close</button>
-          </div>
-          {aiErr && <p className="md__ai-err">{aiErr}</p>}
-          {aiResult && (
-            <div className="md__ai-result">
-              <textarea className="sf__input sf__textarea" rows={6} value={aiResult} onChange={(e) => setAiResult(e.target.value)} />
-              <div className="md__ai-row">
-                <button type="button" className="sf__btn sf__btn--upload" onClick={() => acceptAi('replace')}>{aiOnSelection ? 'Replace selection' : 'Replace all'}</button>
-                <button type="button" className="sf__btn" onClick={() => acceptAi('insert')}>Insert below</button>
-                <button type="button" className="sf__btn sf__btn--ghost" onClick={() => setAiResult('')}>Discard</button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       {videoOpen && (
         <div className="md__video">

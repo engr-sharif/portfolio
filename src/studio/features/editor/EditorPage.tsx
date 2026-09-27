@@ -5,7 +5,7 @@ import type { Collection, Field as FieldDef } from '../../schema';
 import { readFile, isSessionExpired, isConflict, type HistoryEntry } from '../../api';
 import { parse, stringify, cleanForSchema } from '../../frontmatter';
 import { validateEntry, type FieldErrors } from '../../../content/schemas';
-import { uniqueEntryPath, invalidateAiGuide, AI_GUIDE_PATH, timeAgo } from '../../studio-lib';
+import { uniqueEntryPath, timeAgo } from '../../studio-lib';
 import { useSaveEntry, useDeleteEntry, useDuplicate } from '../../app/queries';
 import { useToast } from '../../ui/Toaster';
 import { Button, Callout, Confirm, IconButton, Kbd, Menu, Pill, Skeleton } from '../../ui/primitives';
@@ -119,7 +119,6 @@ export const EditorPage: FC<Props> = ({ collection, path, onDirtyChange }) => {
       }
       const res = await save.mutateAsync({ path: target!, content, message, sha });
       setSha(res.sha ?? null); setDirty(false); clearDraft(key);
-      if (isFile && collection.file === AI_GUIDE_PATH) invalidateAiGuide();
       publish(res.commit);
       if (!path && !isFile) navigate(`/c/${collection.id}/e/${slugOf(target!)}`, { replace: true });
     } catch (e: any) {

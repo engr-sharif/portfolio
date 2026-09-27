@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FC } from 'react';
 import { getCollection } from './schema';
 import { listEntries, uniqueEntryPath, timeAgo } from './studio-lib';
 import { commitFiles, uploadImage, writeFile, isMissingRoute, isLoggedIn } from './api';
-import { processImage, readImageMeta } from './image-process';
+import { processImage, readImageMeta, roundCoord } from './image-process';
 import { buildFieldNote, fieldNoteSlug } from './fieldlog-build';
 import { listCaptures, saveCapture, deleteCapture, newId, storageInfo, type Capture, type CapturePhoto } from './fieldlog-store';
 
@@ -74,7 +74,7 @@ export const FieldLog: FC<Props> = ({ onPublished, onOpen }) => {
     if (!navigator.geolocation) { setError('This device has no location service available to the browser.'); return; }
     setLocating(true); setError('');
     navigator.geolocation.getCurrentPosition(
-      (pos) => { setFix({ lat: +pos.coords.latitude.toFixed(6), lng: +pos.coords.longitude.toFixed(6), accuracy: Math.round(pos.coords.accuracy) }); setLocating(false); },
+      (pos) => { setFix({ lat: roundCoord(pos.coords.latitude), lng: roundCoord(pos.coords.longitude), accuracy: Math.round(pos.coords.accuracy) }); setLocating(false); },
       (err) => { setLocating(false); setError(err.code === 1 ? 'Location permission was refused. You can type coordinates instead.' : 'Could not get a GPS fix. Try again outdoors, or type coordinates.'); },
       { enableHighAccuracy: true, timeout: 20000, maximumAge: 30000 },
     );
@@ -239,7 +239,7 @@ export const FieldLog: FC<Props> = ({ onPublished, onOpen }) => {
             <li key={c.id} className={`st-fl__card is-${c.status}`}>
               <div className="st-fl__card-main">
                 <strong>{c.title || 'Untitled capture'}</strong>
-                <span className="st-fl__meta u-mono">{timeAgo(c.createdAt)} · {c.photos.length} photo{c.photos.length === 1 ? '' : 's'}{c.lat != null ? ` · ${c.lat.toFixed(4)}, ${c.lng?.toFixed(4)}` : ''}{c.project ? ` · ${c.project}` : ''}</span>
+                <span className="st-fl__meta u-mono">{timeAgo(c.createdAt)} · {c.photos.length} photo{c.photos.length === 1 ? '' : 's'}{c.lat != null ? ` · ${c.lat.toFixed(2)}, ${c.lng?.toFixed(2)}` : ''}{c.project ? ` · ${c.project}` : ''}</span>
                 {c.note && <p className="st-fl__preview">{c.note.length > 160 ? `${c.note.slice(0, 160)}…` : c.note}</p>}
                 {c.error && <p className="sf__err">{c.error}</p>}
               </div>

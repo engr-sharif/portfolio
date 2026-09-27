@@ -387,7 +387,6 @@ code, kbd, pre { font-family: var(--mono); }
 .imgfield__side { display: grid; gap: 0.5rem; min-width: 0; flex: 1; }
 .imgfield__name { font-size: 0.75rem; color: var(--text-2); overflow-wrap: anywhere; }
 .imgfield__name.is-empty { color: var(--muted); }
-.ai-draft { display: grid; gap: 0.4rem; }
 .media { display: grid; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); gap: 0.6rem; }
 .media__item { display: flex; flex-direction: column; padding: 0; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--bg); text-align: left; transition: border-color 0.15s; }
 .media__item:hover { border-color: var(--accent); }
@@ -478,15 +477,13 @@ code, kbd, pre { font-family: var(--mono); }
 .md__bar { display: flex; flex-wrap: wrap; gap: 0.2rem; padding: 0.4rem; background: var(--panel-2); border-bottom: 1px solid var(--line); }
 .md__btn { background: var(--panel); border: 1px solid var(--line); color: var(--text-2); min-width: 30px; height: 30px; border-radius: 6px; font-size: 0.8rem; font-family: var(--mono); display: inline-grid; place-content: center; padding: 0 0.4rem; }
 .md__btn:hover { color: var(--text); border-color: var(--accent); }
-.md__btn--ai.is-on { color: var(--accent); border-color: var(--accent); }
 .md__btn--img { cursor: pointer; }
 .md .sf__textarea { border: 0; border-radius: 0; min-height: 22rem; font-family: var(--mono); font-size: 0.86rem; line-height: 1.7; }
-.md__ai, .md__video { padding: 0.8rem; background: var(--panel); border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 0.5rem; }
-.md__ai-label, .md__video-label { margin: 0; color: var(--muted); font-size: 0.8rem; }
-.md__ai-actions, .md__ai-row, .md__video-row { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.md__video { padding: 0.8rem; background: var(--panel); border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 0.5rem; }
+.md__video-label { margin: 0; color: var(--muted); font-size: 0.8rem; }
+.md__video-row { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
 .md__video-row .sf__input { flex: 1; min-width: 12rem; }
 .md__ai-err, .md__video-err { margin: 0; color: var(--danger); font-size: 0.8rem; }
-.md__ai-result { display: flex; flex-direction: column; gap: 0.4rem; }
 
 /* preview pane */
 .st-preview { border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--panel); overflow: hidden; }
@@ -554,16 +551,12 @@ code, kbd, pre { font-family: var(--mono); }
 .blk-tb__btn:hover { background: var(--panel-3); color: var(--text); }
 .blk-tb__btn.is-on { background: var(--accent-soft); color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
 .blk-tb__btn:disabled { opacity: 0.4; cursor: default; background: none; }
-.blk-tb__btn--ai { color: var(--accent); font-size: 0.82rem; font-weight: 500; }
 .blk-tb__select { height: 30px; padding: 0 0.5rem; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--text); font-size: 0.82rem; }
 .blk-tb__sep { width: 1px; height: 18px; background: var(--line-2); margin: 0 0.25rem; }
 .blk-tb__spacer { flex: 1; }
 .blk-tb__busy { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--muted); font-size: 0.78rem; margin-right: 0.5rem; }
 .seg--sm .seg__btn { height: 26px; padding: 0 0.6rem; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 0.3rem; text-transform: none; }
 .blk-err { padding: 0.5rem 0.9rem 0; }
-.blk-ai { margin: 0.75rem; padding: 0.8rem 0.9rem; border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); background: var(--accent-soft); border-radius: var(--r); display: grid; gap: 0.5rem; }
-.blk-ai__head { display: flex; align-items: center; gap: 0.4rem; font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
-.blk-ai__text { margin: 0; white-space: pre-wrap; font-family: var(--sans); font-size: 0.92rem; line-height: 1.6; max-height: 16rem; overflow: auto; }
 .blk-body { position: relative; }
 .blk--source .md { border: 0; border-radius: 0 0 var(--r-lg) var(--r-lg); }
 .blk--source .md__bar { border-radius: 0; }
