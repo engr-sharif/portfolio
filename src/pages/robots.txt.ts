@@ -4,10 +4,14 @@ import type { APIRoute } from 'astro';
 export const GET: APIRoute = ({ site }) => {
   const base = import.meta.env.BASE_URL;
   const root = new URL(base, site);
+  // Preview deployments (any branch but main) are for review, not search.
+  const preview = !!process.env.CF_PAGES_BRANCH && process.env.CF_PAGES_BRANCH !== 'main';
+  if (preview) return new Response('User-agent: *\nDisallow: /\n', { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
   const body = [
     'User-agent: *',
     'Allow: /',
     `Disallow: ${base}studio/`,
+    `Disallow: ${base}styleguide/`,
     '',
     `Sitemap: ${new URL('sitemap-index.xml', root).href}`,
     '',

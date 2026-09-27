@@ -1,0 +1,87 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getPosts, CATEGORY_LABEL } from '../../lib/blog';
+import { readingMinutes } from '../../lib/reading';
+import { withBase } from '../../lib/path';
+
+const posts = await getPosts();
+const years = [...new Set(posts.map((p) => p.data.pubDate.getFullYear()))].sort((a, b) => b - a);
+const cats = [...new Set(posts.map((p) => p.data.category).filter(Boolean))] as string[];
+const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+---
+<BaseLayout title="Notes — Mohammad Sharif" description="Field notes and technical writing on site characterization, remediation, compliance reporting and the tools behind the work.">
+  <div class="wrap">
+    <header class="phead">
+      <ol class="phead__crumbs"><li><a href={withBase('/')}>Home</a></li><li aria-current="page">Notes</li></ol>
+      <h1 class="phead__title">Field notes</h1>
+      <p class="lede phead__lede">Methods, lessons from site, and how the tools came about. Written for other people who do this work.</p>
+    </header>
+
+    {cats.length > 1 && (
+      <div class="nidx__filter" role="group" aria-label="Filter notes by kind" data-note-filter>
+        <button class="chip" type="button" aria-pressed="true" data-cat="">All <span>{posts.length}</span></button>
+        {cats.map((c) => <button class="chip" type="button" aria-pressed="false" data-cat={c}>{CATEGORY_LABEL[c]} <span>{posts.filter((p) => p.data.category === c).length}</span></button>)}
+      </div>
+    )}
+
+    <div class="nidx">
+      {years.map((y) => (
+        <section class="nidx__year" data-year>
+          <h2 class="nidx__y mono">{y}</h2>
+          <ol class="rows">
+            {posts.filter((p) => p.data.pubDate.getFullYear() === y).map((p) => (
+              <li data-cat={p.data.category ?? ''}>
+                <a class="nidx__row" href={withBase(`/notes/${p.id}/`)}>
+                  <span class="nidx__date mono"><time datetime={p.data.pubDate.toISOString()}>{fmt(p.data.pubDate)}</time></span>
+                  <span class="nidx__main">
+                    <span class="nidx__title">{p.data.title}</span>
+                    <span class="nidx__desc">{p.data.description}</span>
+                  </span>
+                  <span class="nidx__side">
+                    <span class="label">{p.data.category ? CATEGORY_LABEL[p.data.category] : 'Note'}</span>
+                    <span class="mono">{readingMinutes(p.body)} min{p.data.audio ? ' · audio' : ''}{p.data.video ? ' · video' : ''}</span>
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ))}
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  const group = document.querySelector<HTMLElement>('[data-note-filter]');
+  group?.addEventListener('click', (e) => {
+    const btn = (e.target as Element).closest<HTMLButtonElement>('button[data-cat]');
+    if (!btn) return;
+    const cat = btn.dataset.cat!;
+    group.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+    document.querySelectorAll<HTMLElement>('.nidx li[data-cat]').forEach((li) => { li.hidden = !!cat && li.dataset.cat !== cat; });
+    document.querySelectorAll<HTMLElement>('[data-year]').forEach((s) => { s.hidden = !s.querySelector('li[data-cat]:not([hidden])'); });
+  });
+</script>
+
+<style>
+  .nidx__filter { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-7); }
+  .nidx__filter .chip { cursor: pointer; font-size: 0.8125rem; padding: 0.5rem 0.7rem; }
+  .nidx__filter .chip span { opacity: 0.6; margin-left: 0.25rem; }
+  .nidx { margin-top: var(--s-7); display: grid; gap: var(--s-8); }
+  .nidx__year[hidden] { display: none; }
+  .nidx__y { font-size: 0.8125rem; color: var(--cinnabar-ink); margin-bottom: var(--s-3); }
+  .nidx__row { display: grid; gap: var(--s-2) var(--gap); padding: var(--s-5) 0; text-decoration: none; }
+  .nidx__date { color: var(--ink-3); }
+  .nidx__main { display: grid; gap: var(--s-2); }
+  .nidx__title { font-size: var(--t-h3); font-weight: 540; letter-spacing: -0.02em; line-height: 1.15; transition: color var(--d-1) var(--ease); }
+  .nidx__row:hover .nidx__title { color: var(--cinnabar-ink); }
+  .nidx__desc { font-family: var(--f-text); font-size: 1.0625rem; line-height: 1.5; color: var(--ink-2); max-width: 60ch; }
+  .nidx__side { display: flex; gap: var(--s-3); align-items: baseline; color: var(--ink-3); }
+  @media (min-width: 56rem) {
+    .nidx__row { grid-template-columns: repeat(12, minmax(0, 1fr)); align-items: baseline; }
+    .nidx__date { grid-column: 1 / span 2; }
+    .nidx__main { grid-column: 3 / span 7; }
+    .nidx__side { grid-column: 11 / span 2; flex-direction: column; align-items: flex-end; gap: 0.3rem; }
+  }
+  li[hidden] { display: none; }
+</style>

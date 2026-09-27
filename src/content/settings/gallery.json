@@ -1,35 +1,55 @@
 {
-  "note": "Drop photos here from /admin → Field Gallery → Upload, or add files to src/assets/gallery/.",
+  "note": "Field photographs shown in \"From the field\" on the home page. Captions come from here; order is the display order.",
   "photos": [
     {
+      "image": "/src/assets/covers/IMG_0030.JPG",
+      "alt": "Black-and-white photograph of the open-pit mercury mine, its terraced benches descending to the pit floor",
+      "caption": "Historical view of the open-pit mercury mine and its terraced benches."
+    },
+    {
+      "image": "/src/assets/covers/IMG_9852.jpeg",
+      "alt": "A pit lake with an orange, iron-stained shoreline under a clear sky",
+      "caption": "The mine's pit lake — iron-stained shoreline and pale mineral crust along the water's edge."
+    },
+    {
+      "image": "/src/assets/gallery/IMG_2950.jpeg",
+      "alt": "A gloved hand holding a handheld XRF analyzer against a rock",
+      "caption": "Taking a handheld XRF reading directly on exposed rock."
+    },
+    {
+      "image": "/src/assets/covers/img-3057.jpeg",
+      "alt": "A bright red rock among grey stones and leaf litter",
+      "caption": "A cinnabar-red rock among the mine waste."
+    },
+    {
       "image": "/src/assets/gallery/IMG_2955.jpeg",
-      "alt": "Field sampling work on site",
-      "caption": ""
+      "alt": "A gloved hand holding a sealed glass sample jar of soil",
+      "caption": "A soil sample collected and sealed in a labeled jar."
     },
     {
-      "image": "field-02.jpg",
-      "alt": "Environmental monitoring in the field",
-      "caption": ""
+      "image": "/src/assets/gallery/IMG_3196.jpeg",
+      "alt": "A drill bit working into a rock beside a plastic sample bag",
+      "caption": "Drilling a rock chip to collect a sample in the field."
     },
     {
-      "image": "field-03.jpg",
-      "alt": "Site characterization fieldwork",
-      "caption": ""
+      "image": "/src/assets/covers/tc-02437.jpg",
+      "alt": "A yellow excavator among large boulders and scrub oak",
+      "caption": "An excavator working among boulders."
     },
     {
-      "image": "field-04.jpg",
-      "alt": "Sampling grid layout on site",
-      "caption": ""
+      "image": "/src/assets/gallery/IMG_3182.jpeg",
+      "alt": "Pink and red crystals scattered across a white rock surface",
+      "caption": "Red mineral crystals on a pale rock face."
     },
     {
-      "image": "field-05.jpg",
-      "alt": "Field instrumentation and monitoring",
-      "caption": ""
+      "image": "/src/assets/gallery/IMG_2915.jpeg",
+      "alt": "A handheld XRF analyzer and batteries in a foam-lined case",
+      "caption": "A handheld XRF analyzer in its field case."
     },
     {
-      "image": "field-06.jpg",
-      "alt": "Environmental field operations",
-      "caption": ""
+      "image": "/src/assets/covers/tc-02391.jpg",
+      "alt": "An excavator cutting a slope while a hose sprays water to control dust",
+      "caption": "Excavation with a water spray to keep the dust down."
     }
   ]
 }

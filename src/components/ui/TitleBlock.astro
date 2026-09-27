@@ -1,0 +1,14 @@
+---
+/** The title block from the corner of a drawing sheet. */
+export interface Cell { label: string; value: string; mono?: boolean; wide?: boolean }
+export interface Props { cells: Cell[]; wideCols?: number; class?: string }
+const { cells, wideCols, class: cls } = Astro.props;
+---
+<dl class:list={['tb tb--wide', cls]} style={wideCols ? `--tb-wide-cols: ${wideCols}` : undefined}>
+  {cells.map((c) => (
+    <div class="tb__cell">
+      <dt class="label">{c.label}</dt>
+      <dd class:list={[c.mono && 'mono']}>{c.value}</dd>
+    </div>
+  ))}
+</dl>

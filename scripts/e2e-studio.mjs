@@ -19,7 +19,7 @@ const astroBin = new URL('../node_modules/astro/bin/astro.mjs', import.meta.url)
 const WATCHDOG_MS = 5 * 60 * 1000;
 setTimeout(() => { console.error(`e2e:studio: watchdog fired after ${WATCHDOG_MS / 1000}s — aborting`); shutdown(2); }, WATCHDOG_MS).unref();
 
-const server = spawn(process.execPath, [fileURLToPath(astroBin), 'preview', '--port', String(PORT)], { stdio: ['ignore', 'pipe', 'pipe'], detached: true });
+const server = spawn(process.execPath, [fileURLToPath(astroBin), 'preview', '--port', String(PORT), '--ignore-lock'], { stdio: ['ignore', 'pipe', 'pipe'], detached: true });
 let browser;
 function shutdown(code) {
   try { browser?.close?.(); } catch { /* closed */ }

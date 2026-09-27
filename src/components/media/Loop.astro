@@ -1,0 +1,12 @@
+---
+/**
+ * A short silent loop (screen recording or field clip), stored in the repo
+ * under public/media/loops. Plays only while visible; the poster stands in
+ * under reduced motion. Path is site-relative, e.g. "/media/loops/xrf.mp4".
+ */
+import { withBase } from '../../lib/path';
+export interface Props { src: string; poster?: string; label: string; aspect?: string }
+const { src, poster, label, aspect = '16 / 10' } = Astro.props;
+---
+<video class="loop" data-loop muted loop playsinline preload="none" aria-label={label}
+  src={withBase(src)} poster={poster ? withBase(poster) : undefined} style={`aspect-ratio: ${aspect}`}></video>

@@ -33,10 +33,10 @@ export interface SiteSettings {
 
 export const site = siteJson as SiteSettings;
 
+/** Primary navigation. `match` is the path prefix that marks it current. */
 export const nav = [
-  { label: 'Projects', href: '/projects/' },
-  { label: 'Tools', href: '/tools/' },
-  { label: 'Writing', href: '/blog/' },
-  { label: 'About', href: '/about/' },
-  { label: 'Contact', href: '/#contact' },
+  { label: 'Work', href: '/projects/', match: '/projects/' },
+  { label: 'Tools', href: '/tools/', match: '/tools/' },
+  { label: 'Notes', href: '/notes/', match: '/notes/' },
+  { label: 'About', href: '/about/', match: '/about/' },
 ];

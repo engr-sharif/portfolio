@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState, type FC } from 'react';
 import 'maplibre-gl/dist/maplibre-gl.css';
+// MapLibre 6 loads its worker from a URL; let Vite bundle it (with its shared
+// chunk) into one file and hand MapLibre that URL.
+import mapWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { MapPin, X, Crosshair } from 'lucide-react';
 import { Button, Input } from '../../ui/primitives';
 
@@ -7,7 +10,8 @@ import { Button, Input } from '../../ui/primitives';
  * Map picker for a project's approximate location. Click the map (or drag the
  * pin) to set lat/lng; type to fine-tune; Clear to keep the project off the
  * map. MapLibre loads lazily so it costs nothing until a geo entry is open.
- * Precision is deliberately coarse (4 dp here, ~1 km on the public site).
+ * Positions are stored at 0.01° (~1 km): this file is public, and git never
+ * forgets an exact site.
  */
 interface Props { lat?: number | null; lng?: number | null; onChange: (lat: number | undefined, lng: number | undefined) => void }
 const STYLE = {
@@ -16,7 +20,7 @@ const STYLE = {
 };
 const CA: [number, number] = [-119.7, 37.2];
 const theme = () => (document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
-const round = (n: number) => Math.round(n * 1e4) / 1e4;
+const round = (n: number) => Math.round(n * 100) / 100;
 
 export const LocationPicker: FC<Props> = ({ lat, lng, onChange }) => {
   const el = useRef<HTMLDivElement>(null);
@@ -30,7 +34,8 @@ export const LocationPicker: FC<Props> = ({ lat, lng, onChange }) => {
     let disposed = false;
     (async () => {
       try {
-        const maplibregl = (await import('maplibre-gl')).default;
+        const maplibregl = await import('maplibre-gl');
+        maplibregl.setWorkerUrl(mapWorkerUrl);
         if (disposed || !el.current) return;
         const map = new maplibregl.Map({ container: el.current, style: STYLE[theme()], center: has ? [lng!, lat!] : CA, zoom: has ? 8 : 5, attributionControl: false, cooperativeGestures: true });
         map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
@@ -54,7 +59,7 @@ export const LocationPicker: FC<Props> = ({ lat, lng, onChange }) => {
     (async () => {
       const map = mapRef.current; if (!map) return;
       if (!has) { markerRef.current?.remove(); markerRef.current = null; return; }
-      const maplibregl = (await import('maplibre-gl')).default;
+      const maplibregl = await import('maplibre-gl');
       if (!markerRef.current) {
         const pin = document.createElement('div'); pin.className = 'locpin'; pin.setAttribute('aria-label', 'Project location');
         markerRef.current = new maplibregl.Marker({ element: pin, draggable: true }).setLngLat([lng!, lat!]).addTo(map);

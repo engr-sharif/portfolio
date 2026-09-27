@@ -1,0 +1,46 @@
+---
+import { nav, site } from '../../lib/site';
+import { withBase } from '../../lib/path';
+import terrain from '../../data/ca-terrain.json';
+
+const year = new Date().getFullYear();
+const built = new Date().toISOString().slice(0, 10);
+---
+<footer class="foot">
+  <div class="wrap">
+    <div class="grid foot__grid">
+      <div class="col-a">
+        <p class="foot__name">{site.name}</p>
+        <p style="margin-top: var(--s-3); max-width: 36ch;">Environmental engineer, EIT, in {site.location}. Site characterization, remediation and the tools that make fieldwork faster.</p>
+      </div>
+      <nav class="col-b" aria-label="Footer">
+        <p class="label" style="margin-bottom: var(--s-3);">Site</p>
+        <ul class="foot__list">
+          <li><a href={withBase('/')}>Home</a></li>
+          {nav.map((item) => <li><a href={withBase(item.href)}>{item.label}</a></li>)}
+          <li><a href={withBase('/cv/')}>CV</a></li>
+        </ul>
+      </nav>
+      <div class="col-c">
+        <p class="label" style="margin-bottom: var(--s-3);">Elsewhere</p>
+        <ul class="foot__list">
+          <li><a href={`mailto:${site.email}`}>Email</a></li>
+          <li><a href={site.linkedin} rel="me noopener">LinkedIn</a></li>
+          <li><a href={site.github} rel="me noopener">GitHub</a></li>
+          <li><a href={withBase('/rss.xml')}>RSS</a></li>
+        </ul>
+      </div>
+      <div class="col-d">
+        <p class="label" style="margin-bottom: var(--s-3);">About the site</p>
+        <ul class="foot__list">
+          <li><a href={withBase('/colophon/')}>Colophon</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot__base" style="margin-top: var(--s-7);">
+      <span>© {year} {site.name}</span>
+      <span class="mono">{terrain.credits.replace(/\.$/, '')}</span>
+      <span class="mono">Built {built}</span>
+    </div>
+  </div>
+</footer>

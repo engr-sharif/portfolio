@@ -2,8 +2,6 @@
 title: "Building a Field-Navigation Tool for Grid Sampling"
 description: "Why I built a lightweight tool to find sampling-grid nodes in the field, and what it changed about how the team collects data."
 pubDate: 2026-05-09
-coverImage: "field-tool.jpg"
-coverAlt: "Sampling grid overlaid on a site map"
 tags: ["Tools", "Grid sampling", "Field navigation"]
 category: "professional"
 relatedProject: "sulphur-bank-mercury-mine"

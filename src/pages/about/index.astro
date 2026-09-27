@@ -1,31 +1,134 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import PageHeader from '../../components/atlas/PageHeader.astro';
-import About from '../../components/About.astro';
-import SkillsMatrix from '../../components/SkillsMatrix.astro';
-import Timeline from '../../components/Timeline.astro';
-import WorkMap from '../../components/WorkMap.astro';
-import Credentials from '../../components/Credentials.astro';
-import Testimonials from '../../components/Testimonials.astro';
+import Figure from '../../components/ui/Figure.astro';
+import SectionHead from '../../components/ui/SectionHead.astro';
 import { site } from '../../lib/site';
----
-<BaseLayout
-  title={`About — ${site.name}`}
-  description={site.bio}
->
-  <main class="u-container">
-    <PageHeader
-      eyebrow="About"
-      title="Environmental engineer, EIT"
-      intro={site.bio}
-      crumbs={[{ label: 'Home', href: '/' }, { label: 'About' }]}
-    />
-  </main>
+import { profile, buildSkillMatrix } from '../../lib/profile';
+import { getProjects } from '../../lib/projects';
+import { getTools } from '../../lib/tools';
+import { getImage } from '../../lib/images';
+import { withBase } from '../../lib/path';
+import { resumeReady } from '../../lib/resume';
 
-  <SkillsMatrix />
-  <Timeline />
-  <WorkMap />
-  <Credentials />
-  <Testimonials />
-  <About />
+const portrait = getImage(site.avatar);
+const projects = await getProjects();
+const tools = await getTools();
+const skills = buildSkillMatrix(projects);
+const software = [...new Set(tools.flatMap((t) => t.data.tech))];
+// The career log reads from the surface down: the present at the top.
+const log = [...profile.timeline].reverse();
+const patterns = ['sand', 'clay', 'gravel', 'silt', 'rock'];
+---
+<BaseLayout title="About — Mohammad Sharif" description={site.bio} rail railLabel="About">
+  <div class="wrap">
+    <header class="phead" id="intro" data-stratum="Introduction" data-code="OL" data-pattern="lith-topsoil">
+      <ol class="phead__crumbs"><li><a href={withBase('/')}>Home</a></li><li aria-current="page">About</li></ol>
+      <div class="ab__top">
+        <div class="ab__text">
+          <h1 class="phead__title">About</h1>
+          <p class="lede phead__lede">{site.bio}</p>
+          <p class="ab__p">Most of my days split between two places. On site: sampling grids, XRF readings, groundwater and landfill-gas rounds. At the desk: turning that data into reports a regulator can rely on, and writing small programs when the same problem keeps costing the team time.</p>
+          <div class="ab__links">
+            <a class="btn" href={withBase('/cv/')}>Read the CV</a>
+            {resumeReady && <a class="btn btn--line" href={withBase(site.resume)} download>Download PDF résumé</a>}
+            <a class="go" href={withBase('/#contact')}>Get in touch <span class="arrow" aria-hidden="true">→</span></a>
+          </div>
+        </div>
+        {portrait && (
+          <div class="ab__portrait">
+            <Figure image={portrait} alt={`Portrait of ${site.name}`} aspect="4 / 5" eager sizes="(min-width: 64rem) 32vw, 80vw" widths={[480, 720, 900]} position="50% 18%" />
+          </div>
+        )}
+      </div>
+    </header>
+
+    <section class="sec" id="log" data-stratum="Career log" data-code="SM" data-pattern="lith-silty-sand" aria-labelledby="log-title">
+      <SectionHead no="1.0" id="log-title" title="Career log" intro="Read from the surface down, like a boring log: the present at the top." />
+      <ol class="log">
+        {log.map((t, i) => (
+          <li class="log__row">
+            <span class="log__depth mono">{t.date}</span>
+            <span class={`log__col lith lith--${patterns[i % patterns.length]}`} aria-hidden="true"></span>
+            <div class="log__desc">
+              <h3 class="log__title">{t.title}</h3>
+              <p class="log__org">{t.org}</p>
+              <p class="log__detail">{t.detail}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <section class="sec" id="credentials" data-stratum="Credentials" data-code="CL" data-pattern="lith-clay" aria-labelledby="cred-title">
+      <SectionHead no="2.0" id="cred-title" title="Credentials" />
+      <table class="ab__table">
+        <thead><tr><th scope="col">Credential</th><th scope="col">Issued by</th><th scope="col">Status</th><th scope="col">Date</th></tr></thead>
+        <tbody>
+          {profile.credentials.map((c) => <tr><th scope="row">{c.label}</th><td>{c.issuer}</td><td>{c.status}</td><td class="mono">{c.date}</td></tr>)}
+          {profile.certifications.map((c) => <tr><th scope="row">{c.label}</th><td>{c.issuer}</td><td>{c.expires ? `Renews ${c.expires}` : 'Current'}</td><td class="mono">{c.date}</td></tr>)}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="sec" id="methods" data-stratum="Methods" data-code="SP" data-pattern="lith-sand" aria-labelledby="skills-title">
+      <SectionHead no="3.0" id="skills-title" title="Methods and tools" intro="Taken from the projects on this site, so every item here has a project behind it." />
+      <div class="ab__skills">
+        {skills.map((g) => (
+          <div>
+            <p class="label">{g.group}</p>
+            <ul class="chips">{g.skills.map((s) => <li class="chip">{s.name}{s.count > 1 && <span class="ab__count"> ×{s.count}</span>}</li>)}</ul>
+          </div>
+        ))}
+        <div>
+          <p class="label">Software</p>
+          <ul class="chips">{software.map((s) => <li class="chip">{s}</li>)}</ul>
+        </div>
+      </div>
+    </section>
+  </div>
 </BaseLayout>
+
+<style>
+  .ab__top { display: grid; gap: var(--s-8); }
+  .ab__text { display: grid; gap: var(--s-5); align-content: start; }
+  .ab__p { font-family: var(--f-text); font-size: var(--t-body); line-height: var(--lh-text); color: var(--ink-2); max-width: 52ch; }
+  .ab__links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3) var(--s-5); margin-top: var(--s-3); }
+  .ab__portrait { max-width: 28rem; width: 100%; }
+  @media (min-width: 64rem) {
+    .ab__top { grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); }
+    .ab__text { grid-column: 1 / span 7; }
+    .ab__portrait { grid-column: 9 / span 4; }
+  }
+
+  .log { list-style: none; padding: 0; border-top: 1px solid var(--rule-2); }
+  .log__row { display: grid; grid-template-columns: 5.5rem 2.5rem minmax(0, 1fr); gap: var(--s-5); border-bottom: 1px solid var(--rule); }
+  .log__depth { padding-top: var(--s-5); color: var(--cinnabar-ink); font-size: 0.75rem; }
+  .log__col { border-left: 1px solid var(--ink-3); border-right: 1px solid var(--ink-3); min-height: 100%; }
+  .log__desc { padding-block: var(--s-5) var(--s-6); display: grid; gap: var(--s-2); }
+  .log__title { font-size: var(--t-h4); font-weight: 600; }
+  .log__org { color: var(--ink-2); }
+  .log__detail { font-family: var(--f-text); font-size: 1.0625rem; color: var(--ink-2); max-width: 56ch; }
+  .lith { color: var(--ink-3); }
+  .lith--sand { background-image: radial-gradient(currentColor 0.7px, transparent 0.9px), radial-gradient(currentColor 0.7px, transparent 0.9px); background-size: 6px 6px; background-position: 0 0, 3px 3px; }
+  .lith--clay { background-image: repeating-linear-gradient(to bottom, transparent 0 4px, currentColor 4px 5px); }
+  .lith--gravel { background-image: radial-gradient(circle, transparent 2px, currentColor 2.2px, currentColor 2.9px, transparent 3.1px); background-size: 11px 10px; }
+  .lith--silt { background-image: repeating-linear-gradient(to right, currentColor 0 4px, transparent 4px 8px); background-size: 100% 6px; background-repeat: repeat-y; mask: repeating-linear-gradient(to bottom, #000 0 1px, transparent 1px 6px); }
+  .lith--rock { background-image: repeating-linear-gradient(to bottom, transparent 0 7px, currentColor 7px 8px), repeating-linear-gradient(to right, transparent 0 11px, currentColor 11px 12px); }
+  @media (min-width: 56rem) { .log__row { grid-template-columns: 9rem 3rem minmax(0, 1fr); } }
+
+  .ab__table { width: 100%; border-top: 1px solid var(--rule-2); font-size: 0.9375rem; }
+  .ab__table th, .ab__table td { text-align: left; vertical-align: baseline; padding: 0.85rem var(--s-4) 0.85rem 0; border-bottom: 1px solid var(--rule); }
+  .ab__table thead th { font-size: var(--t-label); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .ab__table tbody th { font-weight: 580; }
+  .ab__table td { color: var(--ink-2); }
+  .ab__table td.mono { color: var(--ink-3); font-size: 0.75rem; }
+  @media (max-width: 40rem) {
+    .ab__table thead { display: none; }
+    .ab__table tr { display: grid; gap: 0.2rem; padding: 0.8rem 0; border-bottom: 1px solid var(--rule); }
+    .ab__table th, .ab__table td { border: 0; padding: 0; }
+  }
+  .ab__skills { display: grid; gap: var(--s-6) var(--gap); }
+  .ab__skills .label { margin-bottom: var(--s-3); }
+  .ab__count { color: var(--ink-3); }
+  @media (min-width: 56rem) { .ab__skills { grid-template-columns: 1fr 1fr; } }
+</style>

@@ -3,9 +3,6 @@ import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import expressiveCode from 'astro-expressive-code';
-import pagefind from 'astro-pagefind';
-import tailwindcss from '@tailwindcss/vite';
-import { remarkReadingTime } from './src/lib/remark-reading-time.mjs';
 
 // DEPLOY TARGET — configurable per host, defaults to Cloudflare Pages (production):
 //   Cloudflare Pages (default)   SITE_URL=https://mosharif.pages.dev     BASE_PATH=/
@@ -27,29 +24,20 @@ export default defineConfig({
   trailingSlash: 'always',
   // Expressive Code must be registered before React/MDX.
   integrations: [
-    expressiveCode({
-      themes: ['github-dark'],
-      styleOverrides: {
-        borderRadius: '0.6rem',
-        codeFontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-      },
-    }),
+    // Options live in ec.config.mjs (functions can't be serialised here).
+    expressiveCode(),
     react(),
     sitemap({
       // Keep the private admin out of the public sitemap.
-      filter: (page) => !page.includes('/studio'),
+      filter: (page) => !page.includes('/studio') && !page.includes('/styleguide'),
     }),
-    pagefind(),
   ],
-  markdown: {
-    remarkPlugins: [remarkReadingTime],
-  },
-  // Near-instant navigation: every internal link is prefetched as it enters
-  // the viewport. (Speculation-Rules prerendering is deliberately off: Chromium
-  // ignores 'inline-speculation-rules' whenever script-src carries hashes
-  // unless 'strict-dynamic' is also set, and strict-dynamic would block
-  // Astro's parser-inserted module scripts. Revisit when Astro emits SRI.)
-  prefetch: { prefetchAll: true, defaultStrategy: 'viewport' },
+  // Astro 7 defaults to JSX-style whitespace stripping, which would eat the
+  // spaces between inline elements in running text. Keep HTML-aware output.
+  compressHTML: true,
+  // Prefetching is done by the public site itself (src/scripts/prefetch.ts,
+  // on hover and focus) so the Studio, a client-side app, is left alone.
+  prefetch: false,
   // Content-Security-Policy on every page. Astro hashes its own inline
   // scripts/styles (islands, hoisted modules, View Transitions); the site's
   // one deliberate inline script (the `js` class gate) is hashed in
@@ -69,13 +57,9 @@ export default defineConfig({
         "base-uri 'self'",
         'upgrade-insecure-requests',
       ],
-      // 'wasm-unsafe-eval' → Pagefind's search index runs as WebAssembly
-      scriptDirective: { resources: ["'self'", "'wasm-unsafe-eval'"] },
+      scriptDirective: { resources: ["'self'"] },
       styleDirective: { resources: ["'self'"] },
     },
-  },
-  vite: {
-    plugins: [tailwindcss()],
   },
   image: {
     // Allow Astro's built-in sharp optimization at build time.

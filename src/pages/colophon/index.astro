@@ -1,0 +1,92 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SectionHead from '../../components/ui/SectionHead.astro';
+import { withBase } from '../../lib/path';
+import terrain from '../../data/ca-terrain.json';
+
+const swatches = [
+  { name: 'Datum', role: 'The page', field: '#edede7', lab: '#111311' },
+  { name: 'Bedrock', role: 'Text and marks', field: '#1a1c19', lab: '#e8e9e3' },
+  { name: 'Silt', role: 'Secondary text', field: '#474a43', lab: '#b1b4ab' },
+  { name: 'Clay', role: 'Strata and figures', field: '#9a7650', lab: '#b8926a' },
+  { name: 'Water', role: 'Hydrography only', field: '#3c6878', lab: '#86aebb' },
+  { name: 'Cinnabar', role: 'Only what’s live', field: '#d8431f', lab: '#ff6a45' },
+];
+const built = new Date().toISOString().slice(0, 10);
+---
+<BaseLayout title="Colophon — Mohammad Sharif" description="How this site is designed and built: the idea, typefaces, colour, data, motion, performance, accessibility and privacy.">
+  <div class="wrap">
+    <header class="phead">
+      <ol class="phead__crumbs"><li><a href={withBase('/')}>Home</a></li><li aria-current="page">Colophon</li></ol>
+      <h1 class="phead__title">Colophon</h1>
+      <p class="lede phead__lede">How this site is made. The design is called <em>Ground truth</em>: in surveying, checking a map against what’s actually on the ground.</p>
+    </header>
+
+    <section class="sec">
+      <SectionHead no="1.0" title="Type" />
+      <dl class="co">
+        <div><dt><span class="co__spec" style="font-family: var(--f-display); font-weight: 520; letter-spacing: -0.03em;">Archivo</span></dt><dd>Display and interface. A variable width axis (62–125) gives condensed labels, wide capitals and the opening animation from one family. By Omnibus-Type.</dd></div>
+        <div><dt><span class="co__spec" style="font-family: var(--f-text);">Newsreader</span></dt><dd>Reading: case studies and notes. By Production Type.</dd></div>
+        <div><dt><span class="co__spec" style="font-family: var(--f-mono); font-size: 0.72em;">IBM Plex Mono</span></dt><dd>Data only: coordinates, dates, depths, figure numbers.</dd></div>
+      </dl>
+      <p class="co__note">All three are open-licensed and served from this site, not a font CDN.</p>
+    </section>
+
+    <section class="sec">
+      <SectionHead no="2.0" title="Colour" intro="Two themes named for where the work happens: Field by day, Lab at night. The accent is cinnabar, mercury’s ore, and it marks only what is live." />
+      <table class="co__sw">
+        <thead><tr><th>Name</th><th>Role</th><th>Field</th><th>Lab</th></tr></thead>
+        <tbody>
+          {swatches.map((s) => (
+            <tr>
+              <th scope="row">{s.name}</th><td>{s.role}</td>
+              <td><span class="co__chip" style={`background: ${s.field}`}></span><span class="mono">{s.field}</span></td>
+              <td><span class="co__chip" style={`background: ${s.lab}`}></span><span class="mono">{s.lab}</span></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="sec">
+      <SectionHead no="3.0" title="Data and maps" />
+      <div class="prose unnumbered">
+        <p>The terrain on the home page and every locator figure come from one 192 × 216 heightmap of California baked from public elevation tiles. {terrain.credits} Project positions are rounded to about a kilometre, or more where a project asks for it, before they reach any page.</p>
+        <p>The map lettering follows USGS convention: water in italic serif, sites in semibold with a stake.</p>
+      </div>
+    </section>
+
+    <section class="sec">
+      <SectionHead no="4.0" title="Build" />
+      <div class="prose unnumbered">
+        <p>Pages are rendered to static HTML with Astro and served by Cloudflare Pages. Public pages ship no framework JavaScript: the terrain is a few hundred lines of hand-written WebGL2 that runs only while it’s on screen, and motion uses CSS scroll-driven animation and native view transitions. Every moment has a finished, still version for readers who prefer reduced motion.</p>
+        <p>A strict Content-Security-Policy covers every page. Nothing is embedded from a third party until you ask for it: videos load YouTube only after you press play.</p>
+        <p>The content is edited in a private Studio I built, which commits to the site’s repository. Photos are resized and stripped of location data in the browser before they’re uploaded.</p>
+      </div>
+    </section>
+
+    <section class="sec">
+      <SectionHead no="5.0" title="Accessibility and privacy" />
+      <div class="prose unnumbered">
+        <p>Text meets WCAG AA contrast in both themes, everything works from the keyboard, and the site reads in order with a screen reader. If something doesn’t work for you, <a href={withBase('/#contact')}>tell me</a>.</p>
+        <p>No cookies, no tracking pixels, no fingerprinting.</p>
+      </div>
+      <p class="co__note mono">Built {built}.</p>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .co { display: grid; border-top: 1px solid var(--rule-2); }
+  .co > div { display: grid; gap: var(--s-3); padding: var(--s-6) 0; border-bottom: 1px solid var(--rule); }
+  .co__spec { font-size: clamp(2.5rem, 1.8rem + 3vw, 4.5rem); line-height: 1; }
+  .co dd { margin: 0; font-family: var(--f-text); font-size: var(--t-body); color: var(--ink-2); max-width: 56ch; }
+  @media (min-width: 56rem) { .co > div { grid-template-columns: 5fr 7fr; align-items: center; column-gap: var(--gap); } }
+  .co__note { margin-top: var(--s-5); color: var(--ink-3); font-size: var(--t-small); }
+  .co__sw { width: 100%; border-top: 1px solid var(--rule-2); font-size: 0.9375rem; }
+  .co__sw th, .co__sw td { text-align: left; padding: 0.8rem var(--s-4) 0.8rem 0; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+  .co__sw thead th { font-size: var(--t-label); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+  .co__sw td { color: var(--ink-2); }
+  .co__chip { display: inline-block; width: 1.75rem; height: 1.1rem; border: 1px solid var(--rule-2); vertical-align: middle; margin-right: 0.6rem; }
+  @media (max-width: 40rem) { .co__sw thead { display: none; } .co__sw tr { display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem; padding: 0.8rem 0; border-bottom: 1px solid var(--rule); } .co__sw th, .co__sw td { border: 0; padding: 0; } }
+</style>

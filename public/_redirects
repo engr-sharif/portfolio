@@ -2,3 +2,9 @@
 # (e.g. /studio/c/projects) rewrite to its shell with a 200 so reloads and
 # shared links work. Everything else is a real static file.
 /studio/* /studio/index.html 200
+
+# The blog became Notes (the Ground Truth redesign). Old links keep working.
+/blog /notes/ 301
+/blog/ /notes/ 301
+/blog/tags/* /notes/ 301
+/blog/* /notes/:splat 301

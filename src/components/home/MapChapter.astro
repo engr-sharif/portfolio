@@ -1,0 +1,265 @@
+---
+/**
+ * Home, chapter one: the opening and the atlas share one map. On wide screens
+ * the map sticks beside the text: oblique while you read the opening, a plan
+ * view when the atlas arrives, flying to each site as its row reaches the
+ * middle of the screen, and cutting a section as you leave. On phones the map
+ * sits between the opening and the list, never under text.
+ */
+import { withBase } from '../../lib/path';
+import { site } from '../../lib/site';
+import { profile } from '../../lib/profile';
+import { getAtlasPoints } from '../../lib/atlas';
+import { getProjects } from '../../lib/projects';
+import meta from '../../data/ca-terrain.json';
+import Status from '../ui/Status.astro';
+import SectionHead from '../ui/SectionHead.astro';
+
+const { projects: points } = await getAtlasPoints();
+const all = await getProjects();
+const unmapped = all.filter((p) => !points.some((x) => x.slug === p.id));
+const stations = points.map((p, i) => ({
+  slug: p.slug, lat: p.lat, lng: p.lng, label: p.title.replace(/ — .*$/, ''), place: p.location, status: p.status,
+  no: String(i + 1).padStart(2, '0'), href: withBase(`/projects/${p.slug}/`),
+}));
+const pe = profile.credentials.find((c) => /PE|Professional/.test(c.label));
+// Vertical exaggeration of the relief: 1.05 plane units over 4,400 m, with
+// 10 units spanning the state north–south.
+const kmPerPlaneUnit = ((meta.bbox.north - meta.bbox.south) * 111.2) / 10;
+const exaggeration = Math.round((1.05 * kmPerPlaneUnit) / (meta.metersMax / 1000));
+---
+<div class="chapter wrap">
+  <div class="chapter__text">
+    <section class="opening" id="top" data-stratum="Opening" data-code="OL" data-pattern="lith-topsoil" aria-labelledby="opening-name">
+      <dl class="opening__tb">
+        <div><dt class="label">Discipline</dt><dd>Environmental Engineer, EIT</dd></div>
+        <div><dt class="label">Based in</dt><dd>{site.location}</dd></div>
+        {pe && <div><dt class="label">Licensure</dt><dd>PE, {pe.date.toLowerCase()}</dd></div>}
+        <div><dt class="label">Status</dt><dd><span class="status status--active">Open to roles</span></dd></div>
+      </dl>
+      <h1 class="opening__name" id="opening-name"><span>Mohammad</span> <span>Sharif</span></h1>
+      <p class="opening__thesis">I investigate and help clean up contaminated ground: a Superfund mercury mine, closed landfills, PFAS in groundwater. I also build the software my field crews use.</p>
+      <div class="opening__actions">
+        <a class="btn" href="#work">See the work <span class="arrow" aria-hidden="true">↓</span></a>
+        <a class="btn btn--line" href={withBase('/cv/')}>Read the CV</a>
+      </div>
+    </section>
+
+    <div class="chapter__mapslot" aria-hidden="true"></div>
+
+    <section class="atlas" id="atlas" data-stratum="Where the work is" data-code="SM" data-pattern="lith-silty-sand" aria-labelledby="atlas-title">
+      <SectionHead no="1.0" id="atlas-title" title="Where the work is" />
+      <p class="atlas__intro">Every project on the map sits on its real coordinates, rounded to about a kilometre. Select one to read the report.</p>
+      <ol class="rows atlas__list">
+        {points.map((p, i) => (
+          <li data-station={p.slug}>
+            <a class="atlas__row" href={withBase(`/projects/${p.slug}/`)}>
+              <span class="atlas__no mono">{String(i + 1).padStart(2, '0')}</span>
+              <span class="atlas__main">
+                <span class="atlas__title">{p.title}</span>
+                <span class="atlas__meta">{p.location} · {p.siteType}</span>
+              </span>
+              <span class="atlas__side">
+                <Status status={p.status} />
+                <span class="mono atlas__dates">{p.dates}</span>
+              </span>
+            </a>
+          </li>
+        ))}
+        {unmapped.map((p) => (
+          <li>
+            <a class="atlas__row" href={withBase(`/projects/${p.id}/`)}>
+              <span class="atlas__no mono" aria-label="Not mapped">—</span>
+              <span class="atlas__main">
+                <span class="atlas__title">{p.data.title}</span>
+                <span class="atlas__meta">Several sites, not mapped · {p.data.siteType}</span>
+              </span>
+              <span class="atlas__side"><Status status={p.data.status} /></span>
+            </a>
+          </li>
+        ))}
+      </ol>
+      <div class="atlas__end" data-cut-sentinel aria-hidden="true"></div>
+    </section>
+  </div>
+
+  <div class="chapter__map">
+    <figure class="terrain" data-terrain data-src={withBase('/data/ca-terrain.png')} data-bbox={JSON.stringify(meta.bbox)} data-stations={JSON.stringify(stations)}>
+      <div class="terrain__still relief" style={`--relief-url: url('${withBase('/data/ca-relief.svg')}')`} aria-hidden="true"></div>
+      <canvas class="terrain__canvas" role="img" aria-label="California drawn as a point cloud on real elevation, with the project sites marked."></canvas>
+      <div class="terrain__stakes" data-stakes></div>
+      <svg class="terrain__north" viewBox="0 0 20 34" aria-hidden="true"><path d="M10 1 16.5 21 10 16.5 3.5 21Z" /><text x="10" y="32" text-anchor="middle">N</text></svg>
+      <figcaption class="terrain__hud">
+        <span class="fig__no">Fig. 0</span>
+        <span>California on real elevation (SRTM). Vertical exaggeration ≈ {exaggeration}×.</span>
+        <span class="mono terrain__state" data-terrain-state>Relief 0 – 4,400 m</span>
+      </figcaption>
+    </figure>
+  </div>
+</div>
+
+<script>
+  import '../../scripts/home';
+</script>
+
+<style>
+  .chapter { display: grid; grid-template-columns: minmax(0, 1fr); column-gap: var(--gap); }
+  .chapter__text { min-width: 0; container-type: inline-size; }
+
+  /* ---------- opening */
+  .opening { container-type: inline-size; padding-top: clamp(1.5rem, 1rem + 2vw, 3rem); display: grid; align-content: start; gap: clamp(1.75rem, 1.2rem + 2vw, 3rem); }
+  .opening__tb {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-top: 1px solid var(--rule-2);
+    border-left: 1px solid var(--rule-2);
+  }
+  @container (min-width: 36rem) { .opening__tb { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .opening__tb > div { padding: 0.6rem 0.8rem 0.7rem; border-right: 1px solid var(--rule-2); border-bottom: 1px solid var(--rule-2); display: grid; gap: 0.25rem; background: var(--ground-2); }
+  .opening__tb dd { margin: 0; font-size: 0.9375rem; font-weight: 520; }
+  .opening__name {
+    font-size: min(var(--t-display), 19.5cqi);
+    font-weight: 500;
+    line-height: 0.86;
+    letter-spacing: -0.045em;
+    font-stretch: 100%;
+    margin-left: -0.05em;
+  }
+  .opening__name span { display: block; }
+  .opening__thesis { font-family: var(--f-text); font-size: var(--t-lede); line-height: 1.4; max-width: 30ch; color: var(--ink); }
+  .opening__actions { display: flex; flex-wrap: wrap; gap: var(--s-3); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .opening__name span { animation: survey-in 1.7s var(--ease-out) both; }
+    .opening__name span + span { animation-delay: 90ms; }
+    .opening__thesis, .opening__actions { animation: settle 1.1s var(--ease-out) 0.45s both; }
+  }
+  @keyframes survey-in {
+    from { font-stretch: 62%; letter-spacing: 0.02em; opacity: 0.15; }
+    to { font-stretch: 100%; letter-spacing: -0.045em; opacity: 1; }
+  }
+  @keyframes settle { from { opacity: 0; transform: translateY(0.75rem); } to { opacity: 1; transform: none; } }
+
+  /* ---------- the map */
+  .chapter__map { min-width: 0; }
+  .terrain {
+    position: relative;
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    background: var(--ground-2);
+    aspect-ratio: 4 / 5;
+  }
+  .terrain__still { opacity: 0.9; inset: 8%; transition: opacity var(--d-3) var(--ease); }
+  .terrain.is-live .terrain__still { opacity: 0; }
+  .terrain.is-static .terrain__still { opacity: 0.9; }
+  .terrain__canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .terrain__stakes { position: absolute; inset: 0; pointer-events: none; }
+  .terrain__north { position: absolute; top: 1rem; right: 1rem; width: 1.15rem; fill: var(--ink-2); }
+  .terrain__north text { font-family: var(--f-mono); font-size: 9px; fill: var(--ink-2); }
+  .terrain__hud {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.35rem 0.9rem;
+    padding: 0.8rem 1rem;
+    font-family: var(--f-text);
+    font-size: 0.875rem;
+    color: var(--ink-2);
+    background: linear-gradient(to top, var(--ground-2) 55%, transparent);
+  }
+  .terrain__state { margin-left: auto; color: var(--ink-3); font-size: 0.75rem; }
+
+  /* stakes (created by the terrain script) */
+  .terrain :global(.stake) {
+    position: absolute; left: 0; top: 0;
+    pointer-events: auto;
+    text-decoration: none;
+    color: var(--ink);
+    opacity: 0;
+    will-change: transform;
+  }
+  .terrain :global(.stake__pole) {
+    position: absolute; left: 0; bottom: 0;
+    width: 1.5px; height: calc(1.75rem * var(--grow, 1));
+    background: var(--ink);
+    transform-origin: bottom;
+  }
+  .terrain :global(.stake__flag) {
+    position: absolute; left: 1.5px; bottom: calc(1.75rem * var(--grow, 1) - 0.55rem);
+    width: 0.7rem; height: 0.55rem;
+    background: var(--ink-3);
+    clip-path: polygon(0 0, 100% 50%, 0 100%);
+  }
+  .terrain :global(.stake--active .stake__flag) { background: var(--cinnabar); }
+  .terrain :global(.stake__label) {
+    position: absolute; left: 0.95rem; bottom: calc(1.75rem * var(--grow, 1) - 0.72rem);
+    display: flex; gap: 0.4rem; align-items: baseline;
+    white-space: nowrap;
+    font-size: 0.75rem; font-weight: 600;
+    padding: 0.15rem 0.35rem;
+    background: var(--scrim);
+  }
+  .terrain :global(.stake__label b) { font-family: var(--f-mono); font-weight: 500; color: var(--cinnabar-ink); }
+  .terrain :global(.stake__label span) { display: none; }
+  .terrain :global(.stake.is-hi .stake__label span), .terrain :global(.stake:hover .stake__label span) { display: inline; }
+  .terrain :global(.stake.is-hi .stake__pole) { background: var(--cinnabar); }
+
+  /* ---------- atlas */
+  .atlas { padding-top: var(--section); }
+  .atlas :global(.sec-head) { margin-bottom: var(--s-5); }
+  .atlas__intro { font-family: var(--f-text); font-size: var(--t-body); color: var(--ink-2); max-width: 44ch; margin-bottom: var(--s-6); }
+  .atlas__row {
+    display: grid;
+    grid-template-columns: 2.25rem minmax(0, 1fr);
+    gap: 0.25rem var(--s-4);
+    padding: 1.1rem 0 1.15rem;
+    text-decoration: none;
+    position: relative;
+  }
+  .atlas__row::before {
+    content: '';
+    position: absolute; left: -1rem; top: 1rem; bottom: 1rem;
+    width: 2px; background: var(--cinnabar);
+    transform: scaleY(0); transform-origin: top;
+    transition: transform var(--d-2) var(--ease-out);
+  }
+  li.is-on > .atlas__row::before, .atlas__row:hover::before, .atlas__row:focus-visible::before { transform: scaleY(1); }
+  .atlas__no { color: var(--ink-3); padding-top: 0.2rem; }
+  li.is-on .atlas__no { color: var(--cinnabar-ink); }
+  .atlas__main { display: grid; gap: 0.3rem; }
+  .atlas__title { font-size: var(--t-h4); font-weight: 580; letter-spacing: -0.01em; line-height: 1.2; transition: color var(--d-1) var(--ease); }
+  .atlas__row:hover .atlas__title { color: var(--cinnabar-ink); }
+  .atlas__meta { color: var(--ink-2); font-size: 0.9375rem; }
+  .atlas__side { grid-column: 2; display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); align-items: center; margin-top: 0.3rem; }
+  .atlas__dates { color: var(--ink-3); font-size: 0.75rem; }
+  .atlas__end { height: 1px; }
+
+  /* ---------- phones and tablets: map in the flow */
+  @media (max-width: 63.99rem) {
+    .chapter__map { order: 0; }
+    .chapter { grid-template-areas: 'text' ; }
+    .chapter__mapslot { display: none; }
+    .chapter__text { display: contents; }
+    .opening { order: 1; }
+    .chapter__map { order: 2; margin-top: var(--s-7); }
+    .atlas { order: 3; }
+    .terrain { aspect-ratio: 5 / 6; max-height: 78vh; }
+  }
+
+  /* ---------- wide: text beside a sticky map */
+  @media (min-width: 64rem) {
+    .chapter { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+    .chapter__text { grid-column: 1 / span 6; }
+    .chapter__map { grid-column: 7 / span 6; }
+    .chapter__mapslot { display: none; }
+    .opening { min-height: calc(100svh - var(--nav-h)); padding-bottom: var(--s-8); align-content: center; }
+    .terrain {
+      position: sticky;
+      top: calc(var(--nav-h) + var(--s-4));
+      height: calc(100svh - var(--nav-h) - var(--s-4) * 2);
+      aspect-ratio: auto;
+      margin-top: var(--s-4);
+    }
+    .atlas { padding-bottom: 30vh; }
+  }
+</style>

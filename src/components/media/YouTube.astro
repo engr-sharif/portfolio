@@ -1,0 +1,18 @@
+---
+/**
+ * A YouTube video that costs nothing until it's played: a poster (YouTube's
+ * own thumbnail) and a play button. Clicking swaps in the privacy-enhanced
+ * player. Accepts a full URL or an 11-character id.
+ */
+export interface Props { video: string; title: string; duration?: string }
+const { video, title, duration } = Astro.props;
+const id = video.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/)?.[1] ?? (/^[\w-]{11}$/.test(video) ? video : '');
+const start = video.match(/[?&]t=(\d+)/)?.[1];
+const href = id ? `https://www.youtube.com/watch?v=${id}` : video;
+---
+{id && (
+  <a class="yt" href={href} data-yt={id} data-start={start} data-title={title} aria-label={`Play video: ${title}`}>
+    <img src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`} alt="" loading="lazy" decoding="async" width="480" height="360" />
+    <span class="yt__play">Play video {duration && <span class="yt__time">{duration}</span>}</span>
+  </a>
+)}

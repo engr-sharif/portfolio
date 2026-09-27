@@ -1,8 +1,8 @@
 ---
 name: "This Portfolio"
-summary: "Designed and built this site end-to-end — a static, animated portfolio with a browser-based CMS, so the content stays current without a developer."
-problem: "I wanted a fast, self-managed place to present project work and writing — something I could update myself, that still felt polished."
-tech: ["Astro", "TypeScript", "GSAP", "Three.js", "Tailwind"]
+summary: "Designed and built this site end to end: a static site with a hand-written WebGL terrain of California, and a browser-based Studio I use to publish from the field."
+problem: "I wanted one place to present project work and writing that I could keep current myself, from a laptop or a phone on site, without it looking like a template."
+tech: ["Astro", "TypeScript", "WebGL2", "React (Studio)", "Cloudflare"]
 repoUrl: "https://github.com/engr-sharif/portfolio"
 screenshots: []
 codeLang: "typescript"
@@ -13,18 +13,32 @@ published: true
 
 ## The idea
 
-A portfolio that's genuinely mine to maintain: fast and static (so it's cheap
-and reliable to host), animated where it earns it, and editable from a browser
-so I never have to touch code to add a project or a post.
+The site is built around one idea from my work: *ground truth*, checking a map
+against what's actually on the ground. It opens on a point cloud of California
+drawn from real SRTM elevation data, and the pages read like the reports I
+write, with title blocks, numbered sections and numbered figures.
 
-## What it is
+## How it's built
 
-A static site built with **Astro**, with motion from **GSAP** and a **Three.js**
-hero, styled with **Tailwind**, and a Git-backed **CMS** at `/admin` so projects,
-writing, photos, and credentials are all editable in the browser. Every change
-commits to the repo and redeploys automatically.
+- **Astro** renders every page to static HTML, so it's fast and cheap to host.
+  The public pages ship no framework JavaScript at all.
+- The terrain is about 40,000 points rendered with a **hand-written WebGL2**
+  shader, fed by a 192 × 216 heightmap baked from elevation tiles. It only runs
+  while it's on screen.
+- Motion uses the platform: CSS scroll-driven animations and native view
+  transitions, with a still, finished version of every moment for readers who
+  prefer reduced motion.
+- A strict **Content-Security-Policy** covers every page.
+
+## The Studio
+
+A private admin I built in **React** that commits straight to this repository
+through a small **Cloudflare Worker**. Each save is one atomic commit, every
+file has a version history I can restore from, and a field log works offline
+on my phone. Photos are resized and stripped of location data in the browser
+before they're uploaded.
 
 ## Why it's here
 
-It's the most direct evidence of the "engineer who also builds tools" thread —
-the same instinct that produced the field apps, pointed at my own site.
+It's the most direct evidence of the other half of my work: I build the tools
+I need, and this is one of them.

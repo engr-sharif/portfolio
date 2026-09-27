@@ -2,8 +2,6 @@
 title: "Reading an XRF in the Field"
 description: "What a handheld XRF analyzer actually tells you during site characterization — and the field habits that keep the data defensible."
 pubDate: 2026-04-18
-coverImage: "xrf-field.jpg"
-coverAlt: "Handheld XRF analyzer over a sampling grid"
 tags: ["XRF", "Field methods", "Site characterization"]
 category: "technical"
 featured: true

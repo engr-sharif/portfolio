@@ -1,0 +1,29 @@
+---
+/**
+ * A voice note or audio clip with a scrubbable waveform and an optional
+ * transcript. `peaks` is the comma-separated waveform the Studio stores at
+ * upload (0–255); without it the player decodes one in the browser.
+ */
+import { withBase } from '../../lib/path';
+export interface Props { src: string; title: string; peaks?: string; transcript?: string; date?: string }
+const { src, title, peaks, transcript, date } = Astro.props;
+const url = /^https?:/.test(src) ? src : withBase(src);
+---
+<div class="media-audio">
+  <div class="audio" data-audio data-src={url} data-peaks={peaks || undefined}>
+    <div class="audio__title"><span>{title}</span>{date && <span class="mono">{date}</span>}</div>
+    <button class="audio__btn" type="button" data-audio-btn aria-label="Play"></button>
+    <div class="audio__wave" data-audio-wave role="slider" tabindex="0" aria-label={`Seek: ${title}`} aria-valuemin="0" aria-valuemax="0" aria-valuenow="0"><canvas></canvas></div>
+    <span class="audio__time" data-audio-time>0:00</span>
+    <noscript><audio controls preload="none" src={url}></audio></noscript>
+  </div>
+  {transcript && (
+    <details class="transcript">
+      <summary>Transcript</summary>
+      <p>{transcript}</p>
+    </details>
+  )}
+</div>
+<style>
+  .media-audio { display: grid; gap: var(--s-4); }
+</style>

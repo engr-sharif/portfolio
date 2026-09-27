@@ -1,0 +1,108 @@
+/* ==========================================================================
+   GROUND TRUTH — design tokens
+   Two themes, named for where the work happens:
+     Field  (data-theme="light")  daylight on a survey sheet
+     Lab    (data-theme="dark")   the core shed at night
+   Colour names come from the Munsell soil chart and field gear. Cinnabar —
+   mercury's ore, the red at Sulphur Bank — is the one accent, and it marks
+   only what is live: an active site, the reader's depth, keyboard focus, the
+   one primary action on a page.
+   Contrast: every *-ink / text token clears WCAG AA (4.5:1) on --ground and
+   --ground-2 in its theme; --cinnabar itself is for marks and large type.
+   ========================================================================== */
+
+:root {
+  /* ------------------------------------------------------------- colour */
+  --ground: #edede7;        /* datum paper, 10Y 9/1 */
+  --ground-2: #f6f6f1;      /* raised: figures, title blocks */
+  --ground-3: #e3e4dc;      /* sunken: code, wells */
+  --ink: #1a1c19;           /* bedrock, N 1.5 */
+  --ink-2: #474a43;         /* silt: secondary text (7.7:1) */
+  --ink-3: #62655d;         /* labels and captions (5.1:1) */
+  --rule: #d2d3ca;
+  --rule-2: #a7aa9f;
+  --cinnabar: #d8431f;      /* marks, large type */
+  --cinnabar-ink: #a8310f;  /* cinnabar text (5.7:1) */
+  --cinnabar-fill: #bf3814; /* behind text: buttons, selection */
+  --on-cinnabar: #ffffff;   /* 5.5:1 on the fill */
+  --cinnabar-wash: #f5ddd2;
+  --water: #3c6878;
+  --clay: #9a7650;
+  --scrim: rgb(237 237 231 / 0.86);
+  --relief: #8d9086;        /* dot-relief figures */
+  --relief-hi: #1a1c19;
+
+  color-scheme: light;
+
+  /* --------------------------------------------------------------- type */
+  --f-display: 'Archivo Variable', 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --f-text: 'Newsreader Variable', 'Newsreader', Georgia, 'Times New Roman', serif;
+  --f-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* A 1.25 scale, fluid between a 380px phone and a 1440px desk. */
+  --t-label: 0.75rem;                                        /* 12 */
+  --t-small: 0.875rem;                                       /* 14 */
+  --t-ui: 1rem;                                              /* 16 */
+  --t-body: clamp(1.125rem, 1.08rem + 0.2vw, 1.25rem);       /* 18–20 */
+  --t-lede: clamp(1.3125rem, 1.18rem + 0.55vw, 1.625rem);    /* 21–26 */
+  --t-h4: clamp(1.125rem, 1.06rem + 0.3vw, 1.3125rem);       /* 18–21 */
+  --t-h3: clamp(1.375rem, 1.23rem + 0.6vw, 1.875rem);        /* 22–30 */
+  --t-h2: clamp(2rem, 1.55rem + 1.9vw, 3.5rem);              /* 32–56 */
+  --t-h1: clamp(2.625rem, 1.75rem + 3.7vw, 5.5rem);          /* 42–88 */
+  --t-display: clamp(3.5rem, 1.2rem + 9.6vw, 10.5rem);       /* 56–168 */
+
+  --lh-tight: 0.95;
+  --lh-head: 1.06;
+  --lh-ui: 1.4;
+  --lh-text: 1.62;
+  --measure: 64ch;
+
+  /* ------------------------------------------------------------ spacing */
+  --s-1: 0.25rem;
+  --s-2: 0.5rem;
+  --s-3: 0.75rem;
+  --s-4: 1rem;
+  --s-5: 1.5rem;
+  --s-6: 2rem;
+  --s-7: 3rem;
+  --s-8: 4rem;
+  --s-9: 6rem;
+  --s-10: 8rem;
+  --section: clamp(5rem, 3.4rem + 6.5vw, 10rem);   /* between major sections */
+  --gutter: clamp(1rem, 0.35rem + 2.8vw, 3.5rem);  /* page side padding */
+  --gap: clamp(1rem, 0.7rem + 1.2vw, 2rem);        /* grid gap */
+  --max: 90rem;                                    /* 1440 */
+  --nav-h: 3.75rem;
+
+  /* ------------------------------------------------------------- motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --d-1: 180ms;
+  --d-2: 320ms;
+  --d-3: 700ms;
+}
+
+/* Lab — the night theme. Only tokens change; components never branch on theme. */
+:root[data-theme='dark'] {
+  --ground: #111311;
+  --ground-2: #181b18;
+  --ground-3: #0b0d0b;
+  --ink: #e8e9e3;
+  --ink-2: #b1b4ab;         /* 8.9:1 */
+  --ink-3: #8e928a;         /* 5.9:1 */
+  --rule: #2a2e29;
+  --rule-2: #484d46;
+  --cinnabar: #ff6a45;
+  --cinnabar-ink: #ff8f70;  /* 8.4:1 */
+  --cinnabar-fill: #ff6a45;
+  --on-cinnabar: #111311;   /* 6.6:1 on the fill */
+  --cinnabar-wash: #3b1c12;
+  --water: #86aebb;
+  --clay: #b8926a;
+  --scrim: rgb(17 19 17 / 0.84);
+  --relief: #5c6158;
+  --relief-hi: #e8e9e3;
+
+  color-scheme: dark;
+}

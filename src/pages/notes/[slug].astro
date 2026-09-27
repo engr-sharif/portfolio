@@ -1,0 +1,101 @@
+---
+import { render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Figure from '../../components/ui/Figure.astro';
+import YouTube from '../../components/media/YouTube.astro';
+import Audio from '../../components/media/Audio.astro';
+import { getPosts, CATEGORY_LABEL } from '../../lib/blog';
+import { getProjects } from '../../lib/projects';
+import { getImage } from '../../lib/images';
+import { readingMinutes } from '../../lib/reading';
+import { withBase } from '../../lib/path';
+import { site } from '../../lib/site';
+
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  return posts.map((post, i) => ({ params: { slug: post.id }, props: { post, newer: posts[i - 1] ?? null, older: posts[i + 1] ?? null } }));
+}
+const { post, newer, older } = Astro.props;
+const d = post.data;
+const { Content, headings } = await render(post);
+const toc = headings.filter((h) => h.depth === 2);
+const cover = getImage(d.coverImage);
+const project = d.relatedProject ? (await getProjects()).find((p) => p.id === d.relatedProject) : undefined;
+const date = d.pubDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+const updated = d.updatedDate?.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+const minutes = readingMinutes(post.body);
+const ld = {
+  '@context': 'https://schema.org', '@type': 'BlogPosting', headline: d.title, description: d.description,
+  datePublished: d.pubDate.toISOString(), dateModified: (d.updatedDate ?? d.pubDate).toISOString(),
+  author: { '@type': 'Person', name: site.name, url: Astro.site?.href },
+  mainEntityOfPage: new URL(Astro.url.pathname, Astro.site).href,
+};
+---
+<BaseLayout title={`${d.title} — Mohammad Sharif`} description={d.description} ogType="article" rail railLabel="Note">
+  <script slot="head" type="application/ld+json" is:inline set:html={JSON.stringify(ld)} />
+  <article class="wrap note">
+    <header class="phead note__head" id="top" data-stratum="Summary" data-code="OL" data-pattern="lith-topsoil">
+      <ol class="phead__crumbs"><li><a href={withBase('/')}>Home</a></li><li><a href={withBase('/notes/')}>Notes</a></li><li aria-current="page">{d.category ? CATEGORY_LABEL[d.category] : 'Note'}</li></ol>
+      <p class="note__meta"><span class="label">{d.category ? CATEGORY_LABEL[d.category] : 'Note'}</span><span class="mono"><time datetime={d.pubDate.toISOString()}>{date}</time></span><span class="mono">{minutes} min read</span>{updated && <span class="mono">Updated {updated}</span>}</p>
+      <h1 class="phead__title note__title">{d.title}</h1>
+      <p class="lede phead__lede">{d.description}</p>
+    </header>
+
+    {(cover || d.audio || d.video) && (
+      <div class="note__media">
+        {cover && <Figure image={cover} alt={d.coverAlt || d.title} no="1" caption={d.coverAlt} eager aspect="16 / 9" sizes="(min-width: 64rem) 66vw, 94vw" />}
+        {d.video && <YouTube video={d.video} title={d.title} />}
+        {d.audio && <Audio src={d.audio} peaks={d.audioPeaks} title="Listen: voice note" date={date} transcript={d.transcript} />}
+      </div>
+    )}
+
+    <div class="note__body" id="text" data-stratum="Text" data-code="SM" data-pattern="lith-silty-sand">
+      {toc.length > 2 && (
+        <aside class="note__aside">
+          <nav aria-label="Contents">
+            <p class="label">Contents</p>
+            <ol>{toc.map((h) => <li><a href={`#${h.slug}`}>{h.text}</a></li>)}</ol>
+          </nav>
+        </aside>
+      )}
+      <div class="note__main">
+        <div class="prose unnumbered"><Content /></div>
+        {d.tags.length > 0 && <ul class="chips note__tags" aria-label="Topics">{d.tags.map((t) => <li class="chip">{t}</li>)}</ul>}
+        {project && (
+          <a class="note__proj" href={withBase(`/projects/${project.id}/`)}>
+            <span class="label">From the project</span>
+            <span class="note__proj-t">{project.data.title}</span>
+            <span class="note__proj-d">{project.data.summary}</span>
+          </a>
+        )}
+      </div>
+    </div>
+
+    <nav class="pager note__pager" aria-label="More notes" id="more" data-stratum="More" data-code="BR" data-pattern="lith-rock">
+      {older && <a href={withBase(`/notes/${older.id}/`)}><span class="label">← Earlier</span><span class="t">{older.data.title}</span></a>}
+      {newer && <a href={withBase(`/notes/${newer.id}/`)}><span class="label">Later →</span><span class="t">{newer.data.title}</span></a>}
+    </nav>
+  </article>
+</BaseLayout>
+
+<style>
+  .note__meta { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-5); align-items: baseline; color: var(--ink-3); margin-bottom: var(--s-5); }
+  .note__title { max-width: 22ch; }
+  .note__media { display: grid; gap: var(--s-6); margin-top: var(--s-7); max-width: 60rem; }
+  .note__body { display: grid; gap: var(--s-7); margin-top: clamp(3rem, 2rem + 3vw, 5rem); }
+  .note__aside ol { list-style: none; padding: 0; margin-top: var(--s-3); border-top: 1px solid var(--rule); }
+  .note__aside a { display: block; padding: 0.55rem 0; border-bottom: 1px solid var(--rule); text-decoration: none; font-size: 0.9375rem; }
+  .note__aside a:hover { color: var(--cinnabar-ink); }
+  .note__tags { margin-top: var(--s-8); }
+  .note__proj { display: grid; gap: var(--s-2); margin-top: var(--s-7); padding: var(--s-5); border: 1px solid var(--rule-2); background: var(--ground-2); text-decoration: none; max-width: var(--measure); }
+  .note__proj-t { font-size: var(--t-h4); font-weight: 600; }
+  .note__proj:hover .note__proj-t { color: var(--cinnabar-ink); }
+  .note__proj-d { font-family: var(--f-text); color: var(--ink-2); }
+  @media (min-width: 64rem) {
+    .note__body { grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); }
+    .note__aside { grid-column: 1 / span 3; position: sticky; top: calc(var(--nav-h) + var(--s-6)); align-self: start; }
+    .note__main { grid-column: 4 / span 8; }
+    .note__body:not(:has(.note__aside)) .note__main { grid-column: 3 / span 8; }
+  }
+  .note__pager { margin-top: var(--section); }
+</style>

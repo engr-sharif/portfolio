@@ -1,13 +1,4 @@
 {
   "galleryNote": "Selected frames from field work across California sites.",
-  "videos": [
-    {
-      "title": "Field navigation tool — demo",
-      "provider": "youtube",
-      "id": "",
-      "url": "",
-      "poster": "field-01.jpg",
-      "note": "Add a YouTube/Vimeo ID or URL via the CMS. GitHub is a poor video host (100 MB/file limit, no CDN) — never commit large raw video; embed externally."
-    }
-  ]
+  "videos": []
 }
