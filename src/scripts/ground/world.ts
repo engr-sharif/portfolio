@@ -106,8 +106,10 @@ export function stateCloud(g: Grid, world: World, step: number, home: { x: numbe
       const k = r * g.w + c, f = g.flags[k];
       const kind = f & FLAG.sea ? KIND.sea : f & FLAG.lake ? KIND.lake : f & FLAG.state ? KIND.land : KIND.neighbour;
       if (kind === KIND.sea && (r % (step * 3) !== 0 || c % (step * 3) !== 0)) continue;
-      const x = ((c + 0.5) / g.w - 0.5) * world.planeW + (kind === KIND.sea ? 0 : jit() * cw * step);
-      const z = ((r + 0.5) / g.h - 0.5) * world.planeH + (kind === KIND.sea ? 0 : jit() * chh * step);
+      // the sea's sparse grid gets jitter too: a regular lattice of dashes
+      // shimmers (moiré) on small screens as the camera moves
+      const x = ((c + 0.5) / g.w - 0.5) * world.planeW + jit() * cw * step * (kind === KIND.sea ? 2 : 1);
+      const z = ((r + 0.5) / g.h - 0.5) * world.planeH + jit() * chh * step * (kind === KIND.sea ? 2 : 1);
       const d = Math.hypot(x - home.x, z - home.z);
       maxD = Math.max(maxD, d);
       data.push(x, z, kind === KIND.sea ? 0 : g.elev[k], kind, shade[k], d);
