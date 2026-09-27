@@ -42,6 +42,9 @@ gallery:
   - /src/assets/covers/img-9481.jpg
   - /src/assets/covers/img-9479.jpg
   - /src/assets/covers/img-9474.jpg
+  - /src/assets/covers/img-3057.jpeg
+  - /src/assets/gallery/IMG_3182.jpeg
+  - /src/assets/gallery/IMG_2915.jpeg
 externalLink: https://www.epa.gov/superfund
 featured: true
 order: 1
@@ -64,6 +67,14 @@ To make the fieldwork faster and more repeatable, I built a lightweight
 **field-navigation tool** that helps the team locate predetermined sample nodes
 on a sampling grid — reducing the time spent orienting in the field and
 improving the consistency of where samples are collected.
+
+Fieldwork ran alongside **excavation** in the mine's waste rock and the soils
+around it: work inside roped **exclusion zones**, with **water sprays for dust
+control**, and excavated material laid out on plastic sheeting. The trenches
+open up the ground itself: roots and soil over weathered, hydrothermally
+altered rock, with cinnabar-red pieces turning up in the spoil. The flooded
+open pit, its pit lake, sits at the centre of the site, ringed by
+the terraced benches and bleached, mineral-stained ground of the old workings.
 
 Descriptions here are intentionally high-level and contain no sample results or
 controlled site information.
