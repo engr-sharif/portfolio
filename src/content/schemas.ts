@@ -9,6 +9,7 @@
  */
 import { z } from 'astro/zod';
 import { YOUTUBE_RE } from '../lib/youtube';
+import { smartQuotes } from '../lib/typography';
 
 // Zod 4 probes `new Function("")` to decide whether it may JIT-compile object
 // parsers. That probe is a Content-Security-Policy violation in the Studio
@@ -37,20 +38,20 @@ const yearMonth = z
   .regex(/^\d{4}(-\d{2})?$/, 'Use YYYY or YYYY-MM (e.g. 2024-03)');
 
 export const projectSchema = z.object({
-  title: z.string().min(1, 'Give the project a title'),
+  title: z.string().min(1, 'Give the project a title').transform(smartQuotes),
   client: z.string().min(1, 'Add the client or site (confirm it is public)'),
   siteType: z.string().min(1, 'Add a site type (e.g. "Superfund mercury mine")'),
   status: z.enum(['active', 'complete', 'proposed']),
   role: z.string().min(1, 'Describe your role'),
   startDate: yearMonth,
   endDate: yearMonth.optional(),
-  summary: z.string().min(1, 'Write a short summary — it appears on cards and in search'),
+  summary: z.string().min(1, 'Write a short summary — it appears on cards and in search').transform(smartQuotes),
   // Case-study brief (all optional): one or two sentences each. When present
   // they render as a Problem / Approach / Outcome panel on the homepage rows
   // and at the top of the project page; when absent the summary stands in.
-  problem: z.string().optional(),
-  approach: z.string().optional(),
-  outcome: z.string().optional(),
+  problem: z.string().transform(smartQuotes).optional(),
+  approach: z.string().transform(smartQuotes).optional(),
+  outcome: z.string().transform(smartQuotes).optional(),
   techniques: z.array(z.string()).default([]),
   coverImage: z.string().optional(),
   coverAlt: z.string().optional(),
@@ -94,8 +95,8 @@ export const projectSchema = z.object({
 });
 
 export const blogSchema = z.object({
-  title: z.string().min(1, 'Give the post a title'),
-  description: z.string().min(1, 'Add an excerpt — it is the search/share blurb').max(200, 'Keep the excerpt under 200 characters'),
+  title: z.string().min(1, 'Give the post a title').transform(smartQuotes),
+  description: z.string().min(1, 'Add an excerpt — it is the search/share blurb').max(200, 'Keep the excerpt under 200 characters').transform(smartQuotes),
   pubDate: z.coerce.date({ error: 'Pick a published date' }),
   updatedDate: z.coerce.date().optional(),
   coverImage: z.string().optional(),
@@ -114,9 +115,9 @@ export const blogSchema = z.object({
 });
 
 export const toolSchema = z.object({
-  name: z.string().min(1, 'Give the tool a name'),
-  summary: z.string().min(1, 'Add a one-line summary'),
-  problem: z.string().optional(),
+  name: z.string().min(1, 'Give the tool a name').transform(smartQuotes),
+  summary: z.string().min(1, 'Add a one-line summary').transform(smartQuotes),
+  problem: z.string().transform(smartQuotes).optional(),
   tech: z.array(z.string()).default([]),
   repoUrl: z.url({ error: 'Must be a full URL starting with https://' }).optional(),
   liveUrl: z.url({ error: 'Must be a full URL starting with https://' }).optional(),

@@ -44,7 +44,6 @@ const nice = [5, 10, 20, 25, 50, 100].reduce((a, b) => (Math.abs(b - target) < M
 const barPct = (nice / insetKm) * 100;
 
 const fmt = (n: number, pos: string, neg: string) => `${Math.abs(n).toFixed(2)}° ${n >= 0 ? pos : neg}`;
-const coords = `${fmt(lat, 'N', 'S')}  ${fmt(lng, 'E', 'W')}`;
 ---
 <figure class:list={['fig locator', compact && 'locator--compact']} style={vt ? `view-transition-name: ${vt}` : undefined}>
   <div class="locator__sheet fig__frame">
@@ -71,7 +70,7 @@ const coords = `${fmt(lat, 'N', 'S')}  ${fmt(lng, 'E', 'W')}`;
       <div class="locator__label">
         <span class="locator__name">{name}</span>
         {place && <span class="locator__place">{place}</span>}
-        <span class="mono locator__coords">{coords}</span>
+        <span class="mono locator__coords"><span>{fmt(lat, 'N', 'S')}</span> <span>{fmt(lng, 'E', 'W')}</span></span>
       </div>
       <svg class="locator__north" viewBox="0 0 20 34" aria-hidden="true"><path d="M10 1 16.5 21 10 16.5 3.5 21Z" /><text x="10" y="32" text-anchor="middle">N</text></svg>
       <div class="locator__scale" aria-hidden="true">
@@ -155,7 +154,9 @@ const coords = `${fmt(lat, 'N', 'S')}  ${fmt(lng, 'E', 'W')}`;
   }
   .locator__name { font-weight: 620; font-size: 0.875rem; line-height: 1.2; }
   .locator__place { font-size: 0.8125rem; color: var(--ink-2); line-height: 1.2; }
-  .locator__coords { font-size: 0.6875rem; color: var(--ink-3); white-space: pre; }
+  /* lat and lng wrap as a pair when the label is narrow, never mid-number */
+  .locator__coords { display: flex; flex-wrap: wrap; column-gap: 0.6em; font-size: 0.6875rem; color: var(--ink-3); }
+  .locator__coords span { white-space: nowrap; }
   @container (min-width: 52rem) {
     .locator__sheet { grid-template-columns: minmax(0, 0.62fr) minmax(0, 1fr); }
   }
@@ -175,8 +176,9 @@ const coords = `${fmt(lat, 'N', 'S')}  ${fmt(lng, 'E', 'W')}`;
   @keyframes loc-settle { from { transform: translate(-50%, -50%) scale(2.4) rotate(-45deg); opacity: 0; } to { transform: translate(-50%, -50%); opacity: 1; } }
   .locator__north { position: absolute; top: 0.9rem; right: 0.9rem; width: 1.1rem; fill: var(--ink-2); }
   .locator__north text { font-family: var(--f-mono); font-size: 9px; fill: var(--ink-2); }
-  .locator__scale { position: absolute; left: 0.9rem; bottom: 0.8rem; right: 0.9rem; display: flex; align-items: center; gap: 0.5rem; color: var(--ink-3); }
-  .locator__scale .mono { font-size: 0.6875rem; }
+  .locator__scale { position: absolute; left: 0.9rem; bottom: 0.8rem; right: 0.9rem; display: flex; align-items: center; gap: 0.5rem; color: var(--ink-2); }
+  /* the distance sits on its own plate so it reads over the relief */
+  .locator__scale .mono { font-size: 0.6875rem; white-space: nowrap; padding: 0.1rem 0.35rem; background: var(--scrim); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
   .locator__bar { position: relative; height: 0.4rem; border: 1px solid var(--ink-2); border-top: 0; }
   .locator__bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 50%; background: var(--ink-2); }
 </style>

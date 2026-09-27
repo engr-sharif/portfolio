@@ -4,6 +4,7 @@ import { withBase } from '../lib/path';
 ---
 <BaseLayout title="Refusal — Mohammad Sharif" description="This page doesn't exist." noindex>
   <div class="wrap nf">
+    <div class="nf__text">
     <p class="mono nf__depth">Refusal at 404 ft bgs</p>
     <h1 class="nf__title">Refusal.</h1>
     <p class="lede">In drilling, refusal is where the auger can’t go any deeper. There’s nothing at this address.</p>
@@ -12,12 +13,62 @@ import { withBase } from '../lib/path';
       <a class="btn btn--line" href={withBase('/projects/')}>See the work</a>
       <button class="btn btn--line" type="button" data-search-open>Search the site</button>
     </div>
+    </div>
+    <figure class="nf__log" aria-hidden="true">
+      <svg viewBox="0 0 280 520" role="presentation">
+        <defs>
+          <pattern id="nf-topsoil" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M0 8 4 4l4 4" fill="none" stroke="currentColor" stroke-width=".8"/></pattern>
+          <pattern id="nf-silty-sand" width="10" height="8" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r=".7" fill="currentColor"/><path d="M5 6h4" stroke="currentColor" stroke-width=".8"/></pattern>
+          <pattern id="nf-clay" width="10" height="5" patternUnits="userSpaceOnUse"><path d="M0 2.5h10" stroke="currentColor" stroke-width=".7"/></pattern>
+          <pattern id="nf-sand" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r=".7" fill="currentColor"/><circle cx="4.5" cy="4.5" r=".7" fill="currentColor"/></pattern>
+          <pattern id="nf-gravel" width="14" height="12" patternUnits="userSpaceOnUse"><circle cx="4" cy="4" r="2.4" fill="none" stroke="currentColor" stroke-width=".8"/><circle cx="11" cy="9" r="1.8" fill="none" stroke="currentColor" stroke-width=".8"/></pattern>
+          <pattern id="nf-rock" width="16" height="10" patternUnits="userSpaceOnUse"><path d="M0 0h16M0 5h16M4 0v5M12 5v5" fill="none" stroke="currentColor" stroke-width=".8"/></pattern>
+          <clipPath id="nf-bore"><rect class="nf__bore" x="90" y="24" width="190" height="440" /></clipPath>
+        </defs>
+        <text x="96" y="12" class="nf__head">B-404</text>
+        <text x="74" y="12" class="nf__num" text-anchor="end">ft</text>
+        <line x1="90" x2="90" y1="24" y2="464" class="nf__tick" />
+        <line x1="80" x2="90" y1="24.0" y2="24.0" class="nf__tick" /><text x="74" y="27.0" class="nf__num" text-anchor="end">0</text><line x1="84" x2="90" y1="78.5" y2="78.5" class="nf__tick" /><line x1="80" x2="90" y1="132.9" y2="132.9" class="nf__tick" /><text x="74" y="135.9" class="nf__num" text-anchor="end">100</text><line x1="84" x2="90" y1="187.4" y2="187.4" class="nf__tick" /><line x1="80" x2="90" y1="241.8" y2="241.8" class="nf__tick" /><text x="74" y="244.8" class="nf__num" text-anchor="end">200</text><line x1="84" x2="90" y1="296.3" y2="296.3" class="nf__tick" /><line x1="80" x2="90" y1="350.7" y2="350.7" class="nf__tick" /><text x="74" y="353.7" class="nf__num" text-anchor="end">300</text><line x1="84" x2="90" y1="405.2" y2="405.2" class="nf__tick" /><line x1="80" x2="90" y1="459.6" y2="459.6" class="nf__tick" /><text x="74" y="462.6" class="nf__num" text-anchor="end">400</text>
+        <g clip-path="url(#nf-bore)">
+          <rect x="96" y="24" width="56" height="440" class="nf__col" />
+          <rect x="96" y="24.0" width="56" height="15.2" fill="url(#nf-topsoil)" /><line x1="96" x2="152" y1="39.2" y2="39.2" class="nf__contact" /><rect x="96" y="39.2" width="56" height="80.6" fill="url(#nf-silty-sand)" /><line x1="96" x2="152" y1="119.8" y2="119.8" class="nf__contact" /><rect x="96" y="119.8" width="56" height="95.8" fill="url(#nf-clay)" /><line x1="96" x2="152" y1="215.7" y2="215.7" class="nf__contact" /><rect x="96" y="215.7" width="56" height="93.7" fill="url(#nf-sand)" /><line x1="96" x2="152" y1="309.3" y2="309.3" class="nf__contact" /><rect x="96" y="309.3" width="56" height="91.5" fill="url(#nf-gravel)" /><line x1="96" x2="152" y1="400.8" y2="400.8" class="nf__contact" /><rect x="96" y="400.8" width="56" height="63.2" fill="url(#nf-rock)" /><line x1="96" x2="152" y1="464.0" y2="464.0" class="nf__contact" />
+          <text x="164" y="34.6" class="nf__code">OL</text><text x="164" y="82.5" class="nf__code">SM</text><text x="164" y="170.8" class="nf__code">CL</text><text x="164" y="265.5" class="nf__code">SP</text><text x="164" y="358.1" class="nf__code">GP</text><text x="164" y="435.4" class="nf__code">BR</text>
+        </g>
+        <line x1="84" x2="210" y1="464.0" y2="464.0" class="nf__refusal" />
+        <path d="M112 468.0h24l-12 14z" class="nf__bit" />
+        <text x="164" y="480.0" class="nf__stop">Refusal</text>
+        <text x="164" y="494.0" class="nf__num">404.0 ft bgs</text>
+      </svg>
+    </figure>
   </div>
 </BaseLayout>
 
 <style>
-  .nf { padding-block: clamp(4rem, 3rem + 8vw, 10rem) 0; display: grid; gap: var(--s-6); }
+  .nf { padding-block: clamp(4rem, 3rem + 8vw, 10rem) 0; display: grid; }
+  .nf__text { display: grid; gap: var(--s-6); align-content: start; }
   .nf__depth { color: var(--cinnabar-ink); }
   .nf__title { font-size: var(--t-display); font-weight: 500; letter-spacing: -0.045em; line-height: 0.9; }
   .nf__actions { display: flex; flex-wrap: wrap; gap: var(--s-3); }
+  /* The boring that hit refusal: drilled down on arrival, stopped at 404. */
+  .nf__log { display: none; margin: 0; color: var(--ink-2); }
+  .nf__log svg { width: 100%; height: auto; overflow: visible; }
+  @media (min-width: 56rem) {
+    .nf { grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); column-gap: var(--gap); align-items: start; }
+    .nf__log { display: block; max-width: 17rem; justify-self: end; }
+  }
+  .nf__col { fill: var(--ground-2); stroke: var(--ink); stroke-width: 1; }
+  .nf__contact { stroke: var(--ink); stroke-width: 0.6; }
+  .nf__tick { stroke: var(--ink-3); stroke-width: 0.8; }
+  .nf__num, .nf__code, .nf__head { font: 400 9px var(--f-mono); fill: var(--ink-3); }
+  .nf__head { fill: var(--ink); font-weight: 500; letter-spacing: 0.08em; }
+  .nf__code { fill: var(--ink-2); }
+  .nf__refusal { stroke: var(--cinnabar); stroke-width: 2; }
+  .nf__bit { fill: var(--cinnabar); }
+  .nf__stop { font: 600 11px var(--f-display); fill: var(--cinnabar-ink); letter-spacing: 0.1em; text-transform: uppercase; }
+  @media (prefers-reduced-motion: no-preference) {
+    .nf__bore { animation: nf-drill 2.4s cubic-bezier(0.45, 0, 0.2, 1) 0.2s both; transform-origin: top; transform-box: fill-box; }
+    .nf__refusal, .nf__bit, .nf__stop, .nf__log .nf__num:last-of-type { animation: nf-stop 0.5s var(--ease-out) 2.5s both; }
+  }
+  @keyframes nf-drill { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+  @keyframes nf-stop { from { opacity: 0; } to { opacity: 1; } }
 </style>

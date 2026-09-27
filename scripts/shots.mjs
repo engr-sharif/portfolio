@@ -19,16 +19,22 @@ mkdirSync(OUT, { recursive: true });
 
 const pages = [
   ['home', ''],
-  ['project', 'projects/sulphur-bank-mercury-mine/'],
   ['projects', 'projects/'],
-  ['about', 'about/'],
+  ['project', 'projects/sulphur-bank-mercury-mine/'],
   ['tools', 'tools/'],
-  ['blog', 'blog/'],
+  ['tool', 'tools/boring-data-explorer/'],
+  ['notes', 'notes/'],
+  ['note', 'notes/reading-xrf-in-the-field/'],
+  ['about', 'about/'],
+  ['cv', 'cv/'],
+  ['colophon', 'colophon/'],
+  ['404', 'no-such-page/'],
 ];
+const only = process.env.SHOTS_ONLY ? new Set(process.env.SHOTS_ONLY.split(',')) : null;
 const viewports = { desktop: { width: 1440, height: 900 }, phone: { width: 390, height: 844 } };
 
 const astroBin = fileURLToPath(new URL('../node_modules/astro/bin/astro.mjs', import.meta.url));
-const server = spawn(process.execPath, [astroBin, 'preview', '--port', String(PORT)], { stdio: ['ignore', 'pipe', 'pipe'], detached: true });
+const server = spawn(process.execPath, [astroBin, 'preview', '--port', String(PORT), '--ignore-lock'], { stdio: ['ignore', 'pipe', 'pipe'], detached: true });
 let browser;
 const shutdown = (code) => {
   try { browser?.close?.(); } catch {}
@@ -49,10 +55,12 @@ for (const theme of ['dark', 'light']) {
     const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1, reducedMotion: 'reduce' });
     await ctx.addInitScript((t) => { try { localStorage.setItem('theme', t); sessionStorage.setItem('introSeen', '1'); } catch {} }, theme);
     for (const [name, route] of pages) {
+      if (only && !only.has(name)) continue;
       const page = await ctx.newPage();
       await page.goto(BASE + route, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
       // let lazy islands + fonts settle, scroll through so everything renders
       await page.evaluate(async () => {
+        await document.fonts.ready;
         const h = document.documentElement.scrollHeight;
         for (let y = 0; y <= h; y += 600) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 60)); }
         window.scrollTo(0, 0);

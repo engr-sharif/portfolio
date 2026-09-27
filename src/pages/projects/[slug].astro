@@ -35,18 +35,18 @@ const figures = d.gallery
   .filter((f): f is typeof f & { img: NonNullable<typeof f.img> } => !!f.img);
 const related = (await getPosts()).filter((p) => p.data.relatedProject === project.id);
 const hasBrief = d.problem || d.approach || d.outcome;
-// Figure numbering: 1 is the opening figure; a locator follows as 2 when the
-// opening figure is a photo; then the gallery.
-let fig = 1;
-const locNo = cover && pos ? String(++fig) : undefined;
-const firstGallery = fig + 1;
+// Figures are numbered in reading order: the key map beside the title (when
+// there is a photo to open with), then the opening figure, then the gallery.
+const locNo = cover && pos ? '1' : undefined;
+const openNo = locNo ? '2' : '1';
+const firstGallery = Number(openNo) + 1;
 const privacyNote = d.privacy === 'region' ? 'about 50 km' : d.privacy === 'town' ? 'about 10 km' : 'about 1 km';
 const cleared = d.clearance?.date ? new Date(d.clearance.date) : null;
 ---
 <BaseLayout title={`${d.title} — Mohammad Sharif`} description={d.summary} ogType="article" rail railLabel="Report">
   <article class="report">
     <div class="wrap">
-      <header class="phead" id="summary" data-stratum="Summary" data-code="OL" data-pattern="lith-topsoil">
+      <header class:list={['phead', locNo && pos && 'phead--key']} id="summary" data-stratum="Summary" data-code="OL" data-pattern="lith-topsoil">
         <ol class="phead__crumbs"><li><a href={withBase('/')}>Home</a></li><li><a href={withBase('/projects/')}>Work</a></li><li aria-current="page">{shortTitle}</li></ol>
         <div class="report__kicker"><span class="label">{d.siteType}</span><Status status={d.status} /></div>
         <h1 class="phead__title report__title" style={`view-transition-name: title-${project.id}`}>{d.title}</h1>
@@ -58,11 +58,16 @@ const cleared = d.clearance?.date ? new Date(d.clearance.date) : null;
           { label: 'Location', value: d.location ?? 'Several sites in California' },
           { label: 'Status', value: d.status === 'active' ? 'Active' : d.status === 'complete' ? 'Complete' : 'Proposed' },
         ]} /></div>
+        {locNo && pos && (
+          <div class="phead__key">
+            <Locator lat={pos.lat} lng={pos.lng} name={shortTitle} place={d.location} no={locNo} compact caption={`Key map. Position shown to ${privacyNote}.`} />
+          </div>
+        )}
       </header>
 
       <div class="report__lead">
         {cover ? (
-          <Figure image={cover} alt={d.coverAlt || getCaption(d.coverImage) || `${d.title}, ${d.siteType}`} no="1" caption={getCaption(d.coverImage) || d.siteType} group="report" eager aspect="16 / 9" vt={`fig-${project.id}`} sizes="(min-width: 90rem) 1300px, 94vw" widths={[800, 1200, 1600, 2000]} marked />
+          <Figure image={cover} alt={d.coverAlt || getCaption(d.coverImage) || `${d.title}, ${d.siteType}`} no={openNo} caption={getCaption(d.coverImage) || d.siteType} group="report" eager aspect="16 / 9" vt={`fig-${project.id}`} sizes="(min-width: 90rem) 1300px, 94vw" widths={[800, 1200, 1600, 2000]} marked />
         ) : pos ? (
           <Locator lat={pos.lat} lng={pos.lng} name={shortTitle} place={d.location} no="1" vt={`fig-${project.id}`} caption={`Site location. The position is shown to ${privacyNote}, rounded for confidentiality.`} />
         ) : null}
@@ -111,9 +116,6 @@ const cleared = d.clearance?.date ? new Date(d.clearance.date) : null;
                 {d.externalLink && <li><a href={d.externalLink} rel="noopener">Program reference <span aria-hidden="true">↗</span></a></li>}
               </ul>
             </div>
-          )}
-          {locNo && pos && (
-            <Locator lat={pos.lat} lng={pos.lng} name={shortTitle} place={d.location} no={locNo} compact caption={`Location, to ${privacyNote}.`} />
           )}
         </aside>
         <div class="report__main">
@@ -171,6 +173,15 @@ const cleared = d.clearance?.date ? new Date(d.clearance.date) : null;
   .report__kicker { display: flex; flex-wrap: wrap; gap: var(--s-3) var(--s-5); align-items: center; margin-bottom: var(--s-5); }
   .report__title { max-width: 20ch; }
   .report__tb { margin-top: var(--s-7); }
+  /* A report's cover sheet carries a key map: beside the title on wide
+     screens, after the title block on narrow ones. */
+  .phead__key { margin-top: var(--s-7); max-width: 26rem; }
+  @media (min-width: 64rem) {
+    .phead--key { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); }
+    .phead--key > * { grid-column: 1 / span 7; }
+    .phead--key > .report__tb { grid-column: 1 / -1; }
+    .phead--key > .phead__key { grid-column: 9 / span 4; grid-row: 1 / span 4; align-self: end; margin-top: 0; max-width: none; }
+  }
   .report__lead { margin-top: var(--s-7); }
   .brief { display: grid; gap: var(--s-6); margin-top: var(--s-8); padding-top: var(--s-5); border-top: 1px solid var(--rule-2); }
   .brief p:not(.label) { font-family: var(--f-text); font-size: var(--t-body); line-height: 1.55; margin-top: var(--s-2); }
