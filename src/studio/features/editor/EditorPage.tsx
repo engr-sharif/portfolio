@@ -148,10 +148,11 @@ export const EditorPage: FC<Props> = ({ collection, path, onDirtyChange }) => {
 
   // Projects carry lat/lng (+ a label): those become a map picker card.
   const hasGeo = useMemo(() => ['lat', 'lng'].every((n) => collection.fields.some((f) => f.name === n)), [collection]);
-  const GEO = new Set(['lat', 'lng', 'location']);
+  const GEO = new Set(['lat', 'lng', 'location', 'privacy']);
   const mainFields = useMemo(() => collection.fields.filter((f) => !isSide(f) && !(hasGeo && GEO.has(f.name))), [collection, hasGeo]); // eslint-disable-line react-hooks/exhaustive-deps
   const sideFields = useMemo(() => collection.fields.filter(isSide), [collection]);
   const locationField = collection.fields.find((f) => f.name === 'location');
+  const privacyField = collection.fields.find((f) => f.name === 'privacy');
   const title = isFile ? collection.label : (data[collection.labelField] || (path ? collection.label : `New ${collection.label.replace(/s$/, '').toLowerCase()}`));
   const status = collection.statusField ? (collection.statusField === 'draft' ? (data.draft ? 'draft' : 'live') : (data.published ? 'live' : 'draft')) : null;
   const errorCount = Object.keys(fieldErrors).length;
@@ -193,7 +194,7 @@ export const EditorPage: FC<Props> = ({ collection, path, onDirtyChange }) => {
       <div className="ed__grid">
         <div className="ed__main">
           <section className="ed__card">
-            {mainFields.map((f) => <Field key={f.name} field={f} value={data[f.name]} onChange={(v) => set(f.name, v)} error={fieldErrors[f.name]} />)}
+            {mainFields.map((f) => <Field key={f.name} field={f} value={data[f.name]} onChange={(v) => set(f.name, v)} onSibling={set} siblings={data} error={fieldErrors[f.name]} />)}
           </section>
           {hasBody && (
             <section className="ed__card">
@@ -208,12 +209,13 @@ export const EditorPage: FC<Props> = ({ collection, path, onDirtyChange }) => {
               <h2 className="ed__cardtitle">Location</h2>
               <LocationPicker lat={typeof data.lat === 'number' ? data.lat : undefined} lng={typeof data.lng === 'number' ? data.lng : undefined} onChange={(lat, lng) => { setData((d) => ({ ...d, lat, lng })); setDirty(true); }} />
               {locationField && <Field field={locationField} value={data.location} onChange={(v) => set('location', v)} error={fieldErrors.location} />}
+              {privacyField && <Field field={privacyField} value={data.privacy} onChange={(v) => set('privacy', v)} error={fieldErrors.privacy} />}
             </section>
           )}
           {sideFields.length > 0 && (
             <section className="ed__card ed__card--side">
               <h2 className="ed__cardtitle">Publishing</h2>
-              {sideFields.map((f) => <Field key={f.name} field={f} value={data[f.name]} onChange={(v) => set(f.name, v)} error={fieldErrors[f.name]} />)}
+              {sideFields.map((f) => <Field key={f.name} field={f} value={data[f.name]} onChange={(v) => set(f.name, v)} onSibling={set} siblings={data} error={fieldErrors[f.name]} />)}
             </section>
           )}
           <section className="ed__card ed__card--side ed__help">

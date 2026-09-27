@@ -8,6 +8,8 @@ import { uploadImage, rawImageUrl, rawRepoUrl, freeName } from '../../api';
 import { useMedia } from '../../app/queries';
 import { processImage, roundCoord, type ImageMeta } from '../../image-process';
 import { Button, Dialog, IconButton, Input, Switch, Textarea } from '../../ui/primitives';
+import { YouTubeField, LoopField, AudioField } from './MediaFields';
+import { checkSize, fmtBytes, LIMITS } from '../../media';
 
 /**
  * Schema-driven form fields. Every field type the collections use, with:
@@ -20,6 +22,10 @@ export interface FieldProps {
   onChange: (v: any) => void;
   error?: string;
   onMeta?: (m: ImageMeta) => void;
+  /** Set another field of the same entry (a loop's poster, a recording's waveform). */
+  onSibling?: (name: string, value: unknown) => void;
+  /** The entry's current values, for fields that read a sibling. */
+  siblings?: Record<string, unknown>;
 }
 
 const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9.]+/g, '-').replace(/(^-|-$)/g, '');
@@ -32,7 +38,9 @@ export async function uploadFile(file: File, dir: string): Promise<{ path: strin
   await uploadImage(path, await readAsDataUrl(out), `studio: upload ${name}`);
   return { path: `/${path}`, meta };
 }
-async function uploadPublicFile(file: File, dir: string): Promise<string> {
+async function uploadPublicFile(file: File, dir: string, maxBytes: number = LIMITS.publicBytes): Promise<string> {
+  // Anything served from public/ must stay under Cloudflare's per-file limit.
+  checkSize(file, maxBytes, `Files on the site must stay under ${fmtBytes(maxBytes)}. Compress it, or link to it instead.`);
   const { file: out } = await processImage(file);
   const name = await freeName(dir, slugify(out.name));
   const path = `${dir}/${name}`;
@@ -74,11 +82,13 @@ export const Field: FC<FieldProps> = (props) => {
     case 'select': {
       const opts = field.options ?? [];
       const legacy = value != null && value !== '' && !opts.includes(value);
+      // an unset value shows the default the site will use
+      const cur = value == null || value === '' ? field.default : value;
       return (
         <Wrap error={error}>
           <Label field={field} as="span" />
           <div className="sf__chips" role="radiogroup" aria-label={field.label}>
-            {opts.map((opt) => <button type="button" key={opt} role="radio" aria-checked={value === opt} className={`chip${value === opt ? ' is-on' : ''}`} onClick={() => onChange(opt)}>{opt}</button>)}
+            {opts.map((opt) => <button type="button" key={opt} role="radio" aria-checked={cur === opt} className={`chip${cur === opt ? ' is-on' : ''}`} onClick={() => onChange(opt)}>{opt}</button>)}
             {legacy && <button type="button" role="radio" aria-checked className="chip is-on chip--legacy" title="Not one of the current options. Pick another to replace it.">{String(value)} · legacy</button>}
             {value && !field.required && <button type="button" className="chip chip--clear" onClick={() => onChange(undefined)}>clear</button>}
           </div>
@@ -96,6 +106,12 @@ export const Field: FC<FieldProps> = (props) => {
       return <FileField {...props} />;
     case 'list':
       return <ListField {...props} />;
+    case 'youtube':
+      return <YouTubeField {...props} />;
+    case 'loop':
+      return <LoopField {...props} />;
+    case 'audio':
+      return <AudioField {...props} />;
     default:
       return null;
   }
@@ -262,7 +278,7 @@ const FileField: FC<FieldProps> = ({ field, value, onChange, error }) => {
           <code className={`imgfield__name${val ? '' : ' is-empty'}`}>{val ? val.split('/').pop() : 'No file'}</code>
           <div className="sf__row-actions">
             <label className="btn btn--secondary btn--sm"><Upload size={14} aria-hidden /><span className="btn__label">{busy ? 'Uploading…' : val ? 'Replace' : 'Upload'}</span>
-              <input type="file" accept={field.accept || undefined} hidden disabled={busy} onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ''; if (!f) return; setBusy(true); setErr(''); try { onChange(await uploadPublicFile(f, dir)); } catch (er: any) { setErr(er?.message || 'Upload failed.'); } finally { setBusy(false); } }} />
+              <input type="file" accept={field.accept || undefined} hidden disabled={busy} onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ''; if (!f) return; setBusy(true); setErr(''); try { onChange(await uploadPublicFile(f, dir, field.maxBytes)); } catch (er: any) { setErr(er?.message || 'Upload failed.'); } finally { setBusy(false); } }} />
             </label>
             {val && <Button size="sm" variant="ghost" icon={<X size={14} />} onClick={() => onChange('')}>Clear</Button>}
           </div>

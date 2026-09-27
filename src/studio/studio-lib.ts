@@ -56,6 +56,38 @@ export async function listEntries(collection: Collection): Promise<EntryRow[]> {
   return rows.map(({ path, label, status, broken }) => ({ path, label, status, broken }));
 }
 
+export interface UsageSource { label: string; route: string; text: string }
+
+/**
+ * Everything that can reference a media file — every entry of every folder
+ * collection and every settings file — as lower-cased text, so the media
+ * library can say where each file is used (and warn before deleting it).
+ */
+export async function contentIndex(): Promise<UsageSource[]> {
+  const out: UsageSource[] = [];
+  await Promise.all(collections.map(async (c) => {
+    try {
+      if (c.kind === 'file' && c.file) {
+        const { content } = await readFile(c.file);
+        out.push({ label: c.label, route: `/file/${c.id}`, text: (content || '').toLowerCase() });
+        return;
+      }
+      const files = (await listDir(c.dir!)).filter((f) => f.type === 'file' && /\.mdx?$/.test(f.name));
+      await Promise.all(files.map(async (f) => {
+        const { content } = await readFile(f.path);
+        let label = f.name;
+        try { label = String(parse(content || '').data[c.labelField] || f.name); } catch { /* keep file name */ }
+        out.push({ label, route: `/c/${c.id}/e/${f.name.replace(/\.mdx?$/, '')}`, text: (content || '').toLowerCase() });
+      }));
+    } catch { /* a missing folder simply has no references */ }
+  }));
+  return out;
+}
+
+/** Sources that mention a file (by name, case-insensitive). */
+export const usedBy = (index: UsageSource[] | undefined, fileName: string) =>
+  (index ?? []).filter((s) => s.text.includes(fileName.toLowerCase()));
+
 export interface MediaItem { path: string; name: string; url: string }
 
 /** Browse all images already uploaded in a media directory (for the picker). */

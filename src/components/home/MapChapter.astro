@@ -167,7 +167,9 @@ const exaggeration = Math.round((1.05 * kmPerPlaneUnit) / (meta.metersMax / 1000
     color: var(--ink-2);
     background: linear-gradient(to top, var(--ground-2) 55%, transparent);
   }
-  .terrain__state { margin-left: auto; color: var(--ink-3); font-size: 0.75rem; }
+  .terrain__state { margin-left: auto; color: var(--ink-3); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+  .terrain__state:global(.is-lens) { color: var(--cinnabar-ink); }
+  @media (pointer: fine) { .terrain__canvas { cursor: crosshair; } }
 
   /* stakes (created by the terrain script) */
   .terrain :global(.stake) {

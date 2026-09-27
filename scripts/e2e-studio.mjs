@@ -39,7 +39,7 @@ import { mkdirSync } from 'node:fs';
 mkdirSync('.shots-e2e', { recursive: true });
 const failures = [];
 const issues = [];
-const ignorable = (s) => /raw\.githubusercontent\.com|api\.github\.com|pages\.dev|cartocdn\.com/.test(s); // third-party fetches; some sandboxes have no egress
+const ignorable = (s) => /raw\.githubusercontent\.com|api\.github\.com|pages\.dev|cartocdn\.com|ytimg\.com/.test(s); // third-party fetches; some sandboxes have no egress
 let page;
 async function step(name, fn) {
   try { await fn(); console.log(`✓ ${name}`); }
@@ -123,6 +123,26 @@ try {
     await page.keyboard.press('Control+s');
     await page.waitForSelector('.ed__saved', { timeout: 20000 });
   });
+  await step('media fields: YouTube link previews, a voice note uploads with its waveform', async () => {
+    const yt = page.getByLabel('Video (YouTube)', { exact: true });
+    await yt.fill('not a link');
+    await page.waitForSelector('.sf__err:has-text("YouTube link")', { timeout: 5000 });
+    await yt.fill('https://youtu.be/dQw4w9WgXcQ');
+    await page.waitForSelector('.mf-yt__preview img[src*="dQw4w9WgXcQ"]', { timeout: 5000 });
+    // half a second of a 440 Hz tone, as a 16-bit mono WAV the browser can decode
+    const rate = 8000, n = rate / 2, wav = Buffer.alloc(44 + n * 2);
+    wav.write('RIFF', 0); wav.writeUInt32LE(36 + n * 2, 4); wav.write('WAVEfmt ', 8); wav.writeUInt32LE(16, 16);
+    wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22); wav.writeUInt32LE(rate, 24); wav.writeUInt32LE(rate * 2, 28);
+    wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34); wav.write('data', 36); wav.writeUInt32LE(n * 2, 40);
+    for (let i = 0; i < n; i++) wav.writeInt16LE(Math.round(Math.sin((i / rate) * 2 * Math.PI * 440) * 12000 * (i / n)), 44 + i * 2);
+    const audioField = page.locator('.sf:has(.sf__label:text-is("Voice note"))');
+    await audioField.locator('input[type=file]').setInputFiles({ name: 'E2E Field Note.wav', mimeType: 'audio/wav', buffer: wav });
+    await audioField.locator('audio.mf-media__audio').waitFor({ timeout: 20000 });
+    const name = await audioField.locator('.imgfield__name').textContent();
+    if (name !== 'e2e-field-note.wav') throw new Error(`stored as ${name}`);
+    await page.keyboard.press('Control+s');
+    await page.waitForSelector('.ed__saved', { timeout: 20000 });
+  });
   await step('history drawer diffs a past version', async () => {
     await page.click('button:has-text("History")');
     await page.waitForSelector('.drawer .vlist__item', { timeout: 20000 });
@@ -130,6 +150,8 @@ try {
     if (n < 2) throw new Error(`expected ≥2 versions after saving, got ${n}`);
     await page.locator('.drawer .vlist__item').nth(1).click();
     await page.waitForSelector('.diff .diff__line--add, .diff .diff__line--del', { timeout: 20000 });
+    const diff = await page.textContent('.diff');
+    if (!/audioPeaks/.test(diff || '') || !/youtu\.be\/dQw4w9WgXcQ/.test(diff || '')) throw new Error('the saved version lacks the video link or the waveform');
     await page.keyboard.press('Escape');
     await page.waitForSelector('.drawer', { state: 'detached', timeout: 5000 });
   });

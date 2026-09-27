@@ -10,7 +10,7 @@ import { Bold, Italic, Code, Link2, Heading2, Heading3, List, ListOrdered, Quote
 import { HtmlBlock, RepoImage, createSlash, type SlashItem, type SlashState } from './extensions';
 import { uploadFile } from '../Field';
 import { MarkdownEditor, videoEmbed } from '../../../MarkdownEditor';
-import { uploadImage, freeName } from '../../../api';
+import { storeLoop, loopHtml } from '../../../media-upload';
 import { Button, Dialog, IconButton, Input } from '../../../ui/primitives';
 
 /**
@@ -24,7 +24,6 @@ import { Button, Dialog, IconButton, Input } from '../../../ui/primitives';
 interface Props { value: string; onChange: (md: string) => void; mediaDir?: string; placeholder?: string }
 type Mode = 'blocks' | 'markdown';
 const MODE_KEY = 'studio.editor';
-const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9.]+/g, '-').replace(/(^-|-$)/g, '');
 
 export const BlockEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/assets/blog', placeholder = 'Write, or type “/” for blocks…' }) => {
   const [mode, setMode] = useState<Mode>(() => { try { return (localStorage.getItem(MODE_KEY) as Mode) || 'blocks'; } catch { return 'blocks'; } });
@@ -63,7 +62,7 @@ export const BlockEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/assets
     { id: 'quote', title: 'Quote', icon: <Quote size={15} />, keywords: 'blockquote callout', run: (e, r) => e.chain().focus().deleteRange(r).toggleBlockquote().run() },
     { id: 'code', title: 'Code block', hint: 'Snippet with syntax', icon: <SquareCode size={15} />, keywords: 'pre fence snippet', run: (e, r) => e.chain().focus().deleteRange(r).toggleCodeBlock().run() },
     { id: 'img', title: 'Image', hint: 'Upload from device', icon: <ImageIcon size={15} />, keywords: 'photo picture upload', run: (e, r) => { e.chain().focus().deleteRange(r).run(); fileInput.current?.click(); } },
-    { id: 'video', title: 'Video', hint: 'YouTube, Vimeo or upload', icon: <Film size={15} />, keywords: 'youtube vimeo embed', run: (e, r) => { e.chain().focus().deleteRange(r).run(); setVideoErr(''); setVideoOpen(true); } },
+    { id: 'video', title: 'Video', hint: 'YouTube link or a short clip', icon: <Film size={15} />, keywords: 'youtube loop clip embed', run: (e, r) => { e.chain().focus().deleteRange(r).run(); setVideoErr(''); setVideoOpen(true); } },
     { id: 'hr', title: 'Divider', icon: <Minus size={15} />, keywords: 'rule separator hr', run: (e, r) => e.chain().focus().deleteRange(r).setHorizontalRule().run() },
   ], []);
 
@@ -133,18 +132,16 @@ export const BlockEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/assets
   };
   const insertVideoUrl = () => {
     const html = videoEmbed(videoUrl);
-    if (!html || !editor) { setVideoErr('Not a YouTube or Vimeo link. Check the URL.'); return; }
+    if (!html || !editor) { setVideoErr('That isn’t a YouTube link. Paste the address from the video’s Share button.'); return; }
     editor.chain().focus().insertContent({ type: 'htmlBlock', attrs: { html } }).run();
     setVideoUrl(''); setVideoOpen(false);
   };
   const insertVideoFile = async (file: File) => {
     if (!editor) return;
-    setBusy('Uploading video…'); setVideoErr('');
+    setVideoErr('');
     try {
-      const base64 = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(file); });
-      const name = await freeName('public/videos', slugify(file.name));
-      await uploadImage(`public/videos/${name}`, base64, `studio: upload ${name}`);
-      editor.chain().focus().insertContent({ type: 'htmlBlock', attrs: { html: `<video class="video-embed-native" controls preload="metadata" src="${import.meta.env.BASE_URL}videos/${name}"></video>` } }).run();
+      const { src, poster } = await storeLoop(file, (st) => setBusy(st));
+      editor.chain().focus().insertContent({ type: 'htmlBlock', attrs: { html: loopHtml(src, poster) } }).run();
       setVideoOpen(false);
     } catch (e: any) { setVideoErr(e?.message || 'Upload failed.'); }
     finally { setBusy(''); }
@@ -226,12 +223,12 @@ export const BlockEditor: FC<Props> = ({ value, onChange, mediaDir = 'src/assets
         <Input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://…" aria-label="URL" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyLink(); } }} autoFocus />
       </Dialog>
       <Dialog open={videoOpen} onClose={() => setVideoOpen(false)} title="Add a video" width={460}>
-        <div className="sf"><span className="sf__label">YouTube or Vimeo link</span>
+        <div className="sf"><span className="sf__label">YouTube link</span>
           <div className="sf__row-actions"><Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://youtu.be/…" aria-label="Video URL" autoFocus onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); insertVideoUrl(); } }} /><Button variant="primary" onClick={insertVideoUrl}>Embed</Button></div>
         </div>
         <div className="sf"><span className="sf__label">Or upload a short MP4</span>
           <label className="btn btn--secondary btn--sm"><Film size={14} aria-hidden /><span className="btn__label">{busy || 'Choose file'}</span><input type="file" accept="video/mp4,video/webm" hidden disabled={!!busy} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void insertVideoFile(f); }} /></label>
-          <p className="sf__hint">Keep it under ~20 MB; large files belong on YouTube or Vimeo.</p>
+          <p className="sf__hint">A short silent clip: under 8 MB and 20 s. Anything longer, or with sound, belongs on YouTube.</p>
         </div>
         {videoErr && <p className="sf__err" role="alert">{videoErr}</p>}
       </Dialog>

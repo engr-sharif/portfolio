@@ -163,6 +163,16 @@ const coords = `${fmt(lat, 'N', 'S')}  ${fmt(lng, 'E', 'W')}`;
     .locator__label { left: 0.75rem; right: 0.75rem; top: auto; bottom: 2.6rem; max-width: none; }
     .locator__cross { width: 1.75rem; height: 1.75rem; }
   }
+  /* Draw-in: the inset box traces itself and the crosshair settles on the
+     site as the figure scrolls into view. Still and complete otherwise. */
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      .locator__inset { stroke-dasharray: 800; animation: loc-trace linear both; animation-timeline: view(); animation-range: entry 10% cover 40%; }
+      .locator__cross { animation: loc-settle linear both; animation-timeline: view(); animation-range: entry 20% cover 45%; }
+    }
+  }
+  @keyframes loc-trace { from { stroke-dashoffset: 800; } to { stroke-dashoffset: 0; } }
+  @keyframes loc-settle { from { transform: translate(-50%, -50%) scale(2.4) rotate(-45deg); opacity: 0; } to { transform: translate(-50%, -50%); opacity: 1; } }
   .locator__north { position: absolute; top: 0.9rem; right: 0.9rem; width: 1.1rem; fill: var(--ink-2); }
   .locator__north text { font-family: var(--f-mono); font-size: 9px; fill: var(--ink-2); }
   .locator__scale { position: absolute; left: 0.9rem; bottom: 0.8rem; right: 0.9rem; display: flex; align-items: center; gap: 0.5rem; color: var(--ink-3); }

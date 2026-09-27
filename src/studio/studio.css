@@ -645,7 +645,7 @@ li.ProseMirror-selectednode:after { content: ""; position: absolute; left: -32px
 .mcard__file { display: grid; place-items: center; width: 100%; height: 100%; color: var(--muted); }
 .mcard__check { position: absolute; top: 0.4rem; left: 0.4rem; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line-2); background: color-mix(in srgb, var(--bg) 80%, transparent); color: transparent; transition: all 0.15s; }
 .mcard__check.is-on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.mcard__meta { display: flex; align-items: center; justify-content: space-between; gap: 0.3rem; min-width: 0; }
+.mcard__meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.3rem; min-width: 0; }
 .mcard__name { font-family: var(--mono); font-size: 0.7rem; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mcard__actions { display: inline-flex; flex-shrink: 0; }
 .keys { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
@@ -654,3 +654,27 @@ li.ProseMirror-selectednode:after { content: ""; position: absolute; left: -32px
 .keys__row { display: grid; grid-template-columns: 5.5rem 1fr; gap: 0.6rem; align-items: baseline; }
 .keys__row dt { display: flex; gap: 0.2rem; }
 .keys__row dd { margin: 0; color: var(--text-2); font-size: 0.9rem; }
+
+/* ==========================================================================
+   Media fields — YouTube, loops, audio
+   ========================================================================== */
+.mf-yt { display: flex; gap: 0.5rem; align-items: center; }
+.mf-yt > input { flex: 1; }
+.mf-yt__preview { display: grid; grid-template-columns: 9rem 1fr; gap: 0.75rem; align-items: start; margin-top: 0.5rem; }
+.mf-yt__preview img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border: 1px solid var(--line-2); border-radius: var(--r); }
+.mf-yt__preview .sf__hint { display: flex; gap: 0.35rem; align-items: flex-start; margin: 0; }
+.mf-media { display: grid; grid-template-columns: minmax(9rem, 14rem) 1fr; gap: 0.9rem; align-items: start; }
+@media (max-width: 40rem) { .mf-media { grid-template-columns: 1fr; } }
+.mf-media__video { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; background: var(--panel-2); border: 1px solid var(--line-2); border-radius: var(--r); }
+.mf-media__audio { width: 100%; }
+.mf-media__empty { display: flex; align-items: center; justify-content: center; gap: 0.45rem; min-height: 5.5rem; border: 1px dashed var(--line-2); border-radius: var(--r); color: var(--muted); font-size: 13px; padding: 0.5rem; text-align: center; }
+.mf-media__side { display: grid; gap: 0.5rem; align-content: start; }
+.mf-media__side .sf__hint { margin: 0; }
+.mf-rec { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text); font-family: var(--mono); font-size: 12px; }
+.mf-rec__dot { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--accent); animation: mf-blink 1s steps(2, start) infinite; }
+.mf-rec__meter { width: 4.5rem; height: 0.35rem; background: var(--panel-3); overflow: hidden; border-radius: 2px; }
+.mf-rec__meter i { display: block; height: 100%; background: var(--accent); transform-origin: left; transition: transform 80ms linear; }
+@keyframes mf-blink { to { visibility: hidden; } }
+.mcard__used { flex-basis: 100%; order: 3; font-size: 11.5px; color: var(--text-2); line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mcard__used.is-muted { color: var(--faint); }
+.mcard__used .link { font-size: inherit; }

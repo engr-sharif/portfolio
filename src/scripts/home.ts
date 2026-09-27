@@ -21,7 +21,17 @@ async function start() {
   const state = document.querySelector<HTMLElement>('[data-terrain-state]');
   const rows = [...document.querySelectorAll<HTMLElement>('[data-station]')];
   const stations = JSON.parse(root.dataset.stations || '[]') as { slug: string; lat: number; lng: number; no: string }[];
-  const say = (s: string) => { if (state) state.textContent = s; };
+  const say = (s: string) => { viewText = s; if (state && !state.classList.contains('is-lens')) state.textContent = s; };
+
+  // Coordinate lens: the HUD shows the position under the pointer, then goes
+  // back to describing the current view.
+  let viewText = state?.textContent ?? '';
+  root.addEventListener('terrain:lens', (e) => {
+    if (!state) return;
+    const d = (e as CustomEvent<{ lat: number; lng: number } | null>).detail;
+    state.textContent = d ? `${d.lat.toFixed(2)}° N ${Math.abs(d.lng).toFixed(2)}° W` : viewText;
+    state.classList.toggle('is-lens', !!d);
+  });
 
   let mode = '';
   const go = (next: string, slug?: string) => {

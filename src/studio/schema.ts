@@ -4,7 +4,8 @@
  */
 export type FieldType =
   | 'text' | 'textarea' | 'markdown' | 'number' | 'boolean'
-  | 'select' | 'date' | 'list' | 'image' | 'tags' | 'object' | 'file';
+  | 'select' | 'date' | 'list' | 'image' | 'tags' | 'object' | 'file'
+  | 'youtube' | 'loop' | 'audio';
 
 export interface Field {
   name: string;
@@ -18,6 +19,9 @@ export interface Field {
   itemType?: FieldType;        // list of primitives (e.g. tags)
   mediaDir?: string;           // image / file upload target
   accept?: string;             // file field: input accept attribute (e.g. 'application/pdf')
+  maxBytes?: number;           // file field: upload size limit
+  posterField?: string;        // loop: sibling that receives the poster frame path
+  peaksField?: string;         // audio: sibling that receives the waveform
 }
 
 export interface Collection {
@@ -67,7 +71,13 @@ export const collections: Collection[] = [
       { name: 'gallery', label: 'Gallery images', type: 'tags', itemType: 'image', mediaDir: 'src/assets/covers' },
       { name: 'externalLink', label: 'External link', type: 'text' },
       { name: 'envirostorQuery', label: 'Live status — EnviroStor site name', type: 'text', hint: 'e.g. "Sulphur Bank Mercury Mine" → live regulatory badge. Blank for none.' },
-      { name: 'location', label: 'Map location label', type: 'text', hint: 'e.g. "Bakersfield, CA". Shown on the “Where I’ve worked” map.' },
+      { name: 'video', label: 'Video (YouTube)', type: 'youtube', hint: 'A walkthrough or site video. Public or unlisted both work.' },
+      { name: 'videoTitle', label: 'Video title', type: 'text' },
+      { name: 'audio', label: 'Voice note', type: 'audio', peaksField: 'audioPeaks', hint: 'A minute or two from the field, in your own words.' },
+      { name: 'audioTranscript', label: 'Voice note transcript', type: 'textarea', hint: 'Shown under the player. Worth it for anyone who can’t listen.' },
+      { name: 'documents', label: 'Public documents (PDF)', type: 'list', fields: [{ name: 'title', label: 'Title', type: 'text' }, { name: 'file', label: 'PDF', type: 'file', mediaDir: 'public/media/docs', accept: 'application/pdf', maxBytes: 10 * 1024 * 1024 }], hint: 'Only documents already public (a fact sheet, a poster). Never client deliverables.' },
+      { name: 'location', label: 'Map location label', type: 'text', hint: 'e.g. "Bakersfield, CA". Shown with the site on maps and figures.' },
+      { name: 'privacy', label: 'Location precision on the site', type: 'select', options: ['site', 'town', 'region'], default: 'site', hint: 'site ≈ 1 km · town ≈ 10 km · region ≈ 50 km. Use a coarser setting when the exact area is sensitive.' },
       { name: 'lat', label: 'Latitude', type: 'number', hint: 'Approximate, city-level (e.g. 38.58). Leave blank to keep this project off the map.' },
       { name: 'lng', label: 'Longitude', type: 'number', hint: 'e.g. -121.49 for Sacramento.' },
       { name: 'featured', label: 'Featured', type: 'boolean', default: false },
@@ -96,6 +106,9 @@ export const collections: Collection[] = [
       { name: 'tags', label: 'Tags', type: 'tags', itemType: 'text' },
       { name: 'category', label: 'Category', type: 'select', options: ['field-notes', 'technical', 'professional'] },
       { name: 'relatedProject', label: 'Related project (slug)', type: 'text' },
+      { name: 'audio', label: 'Voice note', type: 'audio', peaksField: 'audioPeaks' },
+      { name: 'transcript', label: 'Transcript', type: 'textarea' },
+      { name: 'video', label: 'Video (YouTube)', type: 'youtube' },
       { name: 'featured', label: 'Featured', type: 'boolean', default: false },
       { name: 'draft', label: 'Draft (hidden from site)', type: 'boolean', default: true, hint: 'Save = publish. Leave ON until ready.' },
     ],
@@ -118,6 +131,8 @@ export const collections: Collection[] = [
       { name: 'tech', label: 'Tech used', type: 'tags', itemType: 'text' },
       { name: 'repoUrl', label: 'Code / repo URL', type: 'text' },
       { name: 'liveUrl', label: 'Live demo URL', type: 'text' },
+      { name: 'loop', label: 'Screen recording (short loop)', type: 'loop', posterField: 'loopPoster', hint: 'Replaces the schematic on the tool’s figure. Record 5–15 s of the tool in use, with sample data only.' },
+      { name: 'video', label: 'Walkthrough (YouTube)', type: 'youtube' },
       { name: 'screenshots', label: 'Screenshots', type: 'tags', itemType: 'image', mediaDir: 'src/assets/tools' },
       { name: 'codeSnippet', label: 'Code snippet', type: 'textarea' },
       { name: 'codeLang', label: 'Snippet language', type: 'text', default: 'javascript' },

@@ -14,7 +14,7 @@
  * It renders only when something changes (a tween, a pointer move, a resize)
  * and not at all while off screen. Reduced motion: final state, no flights.
  */
-import { perspective, lookAt, multiply, project, clamp, lerp, easeInOut, easeOut, type Mat4 } from './math';
+import { perspective, lookAt, multiply, project, invert, unprojectToGround, clamp, lerp, easeInOut, easeOut, type Mat4 } from './math';
 
 export interface Station { slug: string; lat: number; lng: number; label: string; place: string; status: string; no: string; href: string }
 interface BBox { west: number; east: number; south: number; north: number }
@@ -308,6 +308,25 @@ export async function createTerrain(root: HTMLElement): Promise<Terrain | null> 
     request();
   };
   window.addEventListener('pointermove', onPointer, { passive: true });
+  // Coordinate lens: with a fine pointer over the map, report the latitude and
+  // longitude under the cursor (the ground plane; relief ignored — at this
+  // scale that's within the dots' own size).
+  const onLens = (e: PointerEvent) => {
+    if (e.pointerType !== 'mouse') return;
+    const inv = invert(mvp);
+    if (!inv) return;
+    const r = canvas.getBoundingClientRect();
+    const g = unprojectToGround(inv, e.clientX - r.left, e.clientY - r.top, cw, ch);
+    let detail: { lat: number; lng: number } | null = null;
+    if (g) {
+      const lng = bbox.west + (g.x / PLANE_W + 0.5) * (bbox.east - bbox.west);
+      const lat = bbox.north - (g.z / PLANE_H + 0.5) * (bbox.north - bbox.south);
+      if (lat > bbox.south && lat < bbox.north && lng > bbox.west && lng < bbox.east) detail = { lat, lng };
+    }
+    root.dispatchEvent(new CustomEvent('terrain:lens', { detail }));
+  };
+  canvas.addEventListener('pointermove', onLens);
+  canvas.addEventListener('pointerleave', () => root.dispatchEvent(new CustomEvent('terrain:lens', { detail: null })));
   canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); root.classList.add('is-static'); });
 
   setColors();
