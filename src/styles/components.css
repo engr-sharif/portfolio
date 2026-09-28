@@ -464,26 +464,120 @@ textarea.input { min-height: 9rem; resize: vertical; line-height: 1.5; }
 .search__foot { display: flex; gap: var(--s-4); padding: var(--s-2) var(--s-4); border-top: 1px solid var(--rule); color: var(--ink-3); font-size: var(--t-label); }
 .search__empty { padding: var(--s-6) var(--s-4); color: var(--ink-3); font-family: var(--f-text); }
 
-/* ----------------------------------------------------------- lightbox */
-.lightbox {
-  width: 100vw; height: 100dvh;
+/* ------------------------------------------------------------- viewer
+   The photo viewer (scripts/lightbox.ts). Always dark, whatever the theme:
+   photographs read best on near-black. Photos are placed in pixels by the
+   script; nothing here sizes them. */
+html.vw-open { overflow: hidden; }
+.vw {
+  position: fixed; inset: 0;
+  width: 100vw; height: 100vh; height: 100dvh;
   max-width: none; max-height: none;
-  margin: 0; padding: 0;
-  border: 0;
+  margin: 0; padding: 0; border: 0;
   background: transparent;
-  color: #e8e9e3;
+  color: #ecede7;
   overflow: hidden;
+  overscroll-behavior: contain;
 }
-.lightbox::backdrop { background: rgb(8 9 8 / 0.94); }
-.lightbox[open] { display: grid; grid-template-rows: auto 1fr auto; }
-.lightbox__top, .lightbox__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); padding: var(--s-4) var(--gutter); }
-.lightbox__stage { position: relative; min-height: 0; display: grid; place-items: center; padding-inline: var(--gutter); }
-.lightbox__img { max-width: 100%; max-height: 100%; object-fit: contain; }
-.lightbox__cap { font-family: var(--f-text); font-size: 1rem; max-width: 60ch; color: #c9ccc3; }
-.lightbox__count { font-family: var(--f-mono); font-size: 0.8125rem; color: #9da197; }
-.lightbox .iconbtn { color: #e8e9e3; border-color: #3a3f38; }
-.lightbox .iconbtn:hover { border-color: #e8e9e3; }
-.lightbox__nav { display: flex; gap: var(--s-2); }
+.vw::backdrop { background: transparent; }
+.vw[open] { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+.vw__bg { position: absolute; inset: 0; z-index: 0; background: #070807; overflow: hidden; pointer-events: none; }
+/* the glow: the photo itself, blurred far past recognition, behind it */
+.vw__glow {
+  position: absolute; inset: -12%;
+  width: 124%; height: 124%;
+  object-fit: cover;
+  filter: blur(64px) saturate(1.5) brightness(0.62);
+  opacity: 0;
+  transform: scale(1.08);
+  transition: opacity 900ms cubic-bezier(0.2, 0, 0, 1), transform 1600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.vw__glow.is-on { opacity: 0.55; transform: scale(1); }
+.vw__bg::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 45%, transparent 30%, rgb(7 8 7 / 0.72) 100%); }
+
+.vw__top, .vw__foot, .vw__stage { position: relative; z-index: 1; }
+.vw__top {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s-4);
+  padding: max(var(--s-3), env(safe-area-inset-top)) var(--gutter) var(--s-2);
+}
+.vw__where { display: flex; align-items: baseline; gap: var(--s-4); margin: 0; font-family: var(--f-mono); font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; }
+.vw__no { color: #ff6a45; }
+.vw__count { color: #a4a89e; font-variant-numeric: tabular-nums; }
+
+.vw__stage { min-height: 0; overflow: hidden; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
+.vw.is-dragging .vw__stage { cursor: grabbing; }
+.vw.is-zoomed .vw__stage { cursor: move; }
+.vw__slide {
+  position: absolute;
+  transform-origin: 0 0;
+  will-change: transform, opacity;
+  background: #121412;
+  box-shadow: 0 30px 80px -20px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(255 255 255 / 0.06);
+  overflow: hidden;
+  contain: layout paint;
+}
+.vw__zoom { position: absolute; inset: 0; transform-origin: 50% 50%; will-change: transform; }
+.vw.is-zoomed .vw__slide { overflow: visible; contain: none; background: transparent; box-shadow: none; }
+.vw__zoom img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; -webkit-user-drag: none; user-select: none; pointer-events: none; }
+.vw__lo { filter: blur(6px); transform: scale(1.02); }
+.vw__hi { opacity: 0; transition: opacity 420ms cubic-bezier(0.2, 0, 0, 1); }
+.vw__hi.is-in { opacity: 1; }
+
+.vw__btn {
+  display: inline-grid; place-items: center;
+  width: 2.75rem; height: 2.75rem;
+  padding: 0; border: 1px solid rgb(255 255 255 / 0.14); border-radius: 999px;
+  background: rgb(18 20 18 / 0.55);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  color: #ecede7;
+  cursor: pointer;
+  transition: background 200ms, border-color 200ms, transform 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms;
+}
+.vw__btn svg { width: 1rem; height: 1rem; }
+.vw__btn:hover { background: rgb(40 44 40 / 0.75); border-color: rgb(255 255 255 / 0.4); }
+.vw__btn:active { transform: scale(0.94); }
+.vw__btn:focus-visible { outline: 2px solid #ff6a45; outline-offset: 2px; }
+.vw__btn:disabled { opacity: 0; pointer-events: none; }
+.vw__arrow { position: absolute; top: 50%; z-index: 5; width: 3.25rem; height: 3.25rem; margin-top: -1.625rem; }
+.vw__arrow--prev { left: var(--s-5); }
+.vw__arrow--next { right: var(--s-5); }
+.vw__arrow--prev:hover:not(:disabled) { transform: translateX(-3px); }
+.vw__arrow--next:hover:not(:disabled) { transform: translateX(3px); }
+
+.vw__foot { display: grid; gap: var(--s-3); padding: var(--s-2) var(--gutter) max(var(--s-4), env(safe-area-inset-bottom)); justify-items: center; }
+.vw__cap { margin: 0; max-width: 62ch; min-height: 1.5em; text-align: center; font-family: var(--f-text); font-size: 1.0625rem; line-height: 1.5; color: #d6d8d0; text-wrap: balance; }
+.vw__strip {
+  display: flex; gap: 6px; max-width: 100%;
+  overflow-x: auto; scrollbar-width: none;
+  padding: 4px 2px;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 32px, #000 calc(100% - 32px), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 32px, #000 calc(100% - 32px), transparent);
+}
+.vw__strip::-webkit-scrollbar { display: none; }
+.vw__thumb {
+  flex: none; width: 3.25rem; height: 2.5rem; padding: 0;
+  border: 0; border-radius: 3px; overflow: hidden;
+  background: #1b1e1b;
+  opacity: 0.42;
+  cursor: pointer;
+  transition: opacity 300ms, transform 400ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 300ms;
+}
+.vw__thumb img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.vw__thumb:hover { opacity: 0.8; }
+.vw__thumb.is-on { opacity: 1; transform: translateY(-2px) scale(1.08); box-shadow: 0 0 0 1.5px #ff6a45; }
+.vw__thumb:focus-visible { outline: 2px solid #ff6a45; outline-offset: 2px; }
+
+/* while dragging or zoomed, the chrome gets out of the way */
+.vw [data-chrome] { transition: opacity 260ms cubic-bezier(0.2, 0, 0, 1); }
+.vw.is-zoomed [data-chrome], .vw.is-bare [data-chrome] { opacity: 0; pointer-events: none; }
+.vw.is-zoomed .vw__top { opacity: 1; pointer-events: auto; }
+
+@media (max-width: 45rem) {
+  .vw__arrow { display: none; }
+  .vw__cap { font-size: 0.975rem; }
+  .vw__thumb { width: 2.75rem; height: 2.125rem; }
+}
+@media (hover: none) { .vw__arrow { display: none; } }
 
 /* -------------------------------------------------------------- media */
 .loop { width: 100%; height: 100%; object-fit: cover; background: var(--ground-3); }
