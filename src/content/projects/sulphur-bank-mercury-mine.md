@@ -52,7 +52,7 @@ gallery:
   - /src/assets/gallery/IMG_2915.jpeg
 externalLink: "https://cumulis.epa.gov/supercpad/SiteProfiles/index.cfm?fuseaction=second.cleanup&id=0902228"
 featured: true
-order: 1
+order: 0
 location: Clearlake Oaks, CA
 lat: 39
 lng: -122.66
