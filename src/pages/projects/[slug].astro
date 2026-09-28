@@ -3,6 +3,7 @@ import { render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import TitleBlock from '../../components/ui/TitleBlock.astro';
 import Figure from '../../components/ui/Figure.astro';
+import Film from '../../components/media/Film.astro';
 import Locator from '../../components/ui/Locator.astro';
 import Status from '../../components/ui/Status.astro';
 import YouTube from '../../components/media/YouTube.astro';
@@ -31,15 +32,15 @@ const toc = headings.filter((h) => h.depth === 2);
 const cover = getImage(d.coverImage);
 const pos = publicPosition(d);
 const shortTitle = d.title.replace(/ — .*$/, '');
-const figures = d.gallery
-  .filter((g) => g !== d.coverImage)
+// A film leads the page in the cover's place, so the cover photo joins the figures.
+const figures = (d.film && d.coverImage ? [d.coverImage, ...d.gallery.filter((g) => g !== d.coverImage)] : d.gallery.filter((g) => g !== d.coverImage))
   .map((g) => ({ name: g, img: getImage(g), caption: getCaption(g) }))
   .filter((f): f is typeof f & { img: NonNullable<typeof f.img> } => !!f.img);
 const related = (await getPosts()).filter((p) => p.data.relatedProject === project.id);
 const hasBrief = d.problem || d.approach || d.outcome;
 // Figures are numbered in reading order: the key map beside the title (when
 // there is a photo to open with), then the opening figure, then the gallery.
-const locNo = cover && pos ? '1' : undefined;
+const locNo = (d.film || cover) && pos ? '1' : undefined;
 const openNo = locNo ? '2' : '1';
 const firstGallery = Number(openNo) + 1;
 const privacyNote = d.privacy === 'region' ? 'about 50 km' : d.privacy === 'town' ? 'about 10 km' : 'about 1 km';
@@ -75,7 +76,9 @@ const live = pos && patch ? JSON.stringify({
       </header>
 
       <div class="report__lead">
-        {cover ? (
+        {d.film ? (
+          <Film film={d.film} no={openNo} vt={`fig-${project.id}`} />
+        ) : cover ? (
           <Figure image={cover} alt={d.coverAlt || getCaption(d.coverImage) || `${d.title}, ${d.siteType}`} no={openNo} caption={getCaption(d.coverImage) || d.siteType} group="report" eager aspect="16 / 9" vt={`fig-${project.id}`} sizes="(min-width: 90rem) 1300px, 94vw" widths={[800, 1200, 1600, 2000]} marked />
         ) : pos ? (
           <Locator lat={pos.lat} lng={pos.lng} name={shortTitle} place={d.location} no="1" vt={`fig-${project.id}`} live={live} caption={`Site location. The position is shown to ${privacyNote}, rounded for confidentiality.`} />

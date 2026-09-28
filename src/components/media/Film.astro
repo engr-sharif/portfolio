@@ -1,0 +1,48 @@
+---
+/**
+ * A project's film, leading its page in place of the cover photo. The frame
+ * plays a silent highlight loop (only while on screen; the poster stands in
+ * under reduced motion); "Watch the film" opens the full cut, with sound, in
+ * the cinema player (scripts/film.ts), which grows out of this frame.
+ */
+import { withBase } from '../../lib/path';
+
+export interface Props {
+  film: {
+    title: string; src: string; srcSmall?: string; webm?: string; loop: string; loopWebm?: string; poster: string;
+    duration?: number; chapters: { t: number; label: string }[];
+  };
+  no?: string;
+  vt?: string;
+}
+const { film, no, vt } = Astro.props;
+const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+const config = {
+  title: film.title,
+  src: withBase(film.src),
+  srcSmall: film.srcSmall ? withBase(film.srcSmall) : undefined,
+  webm: film.webm ? withBase(film.webm) : undefined,
+  poster: withBase(film.poster),
+  chapters: film.chapters,
+};
+---
+<figure class="fig fig--marked film">
+  <div class="fig__frame film__frame" style={`aspect-ratio: 16 / 9${vt ? `; view-transition-name: ${vt}` : ''}`}>
+    <video class="film__loop" data-loop muted loop playsinline preload="metadata" aria-hidden="true" poster={withBase(film.poster)}>
+      <source src={withBase(film.loop)} type="video/mp4" />
+      {film.loopWebm && <source src={withBase(film.loopWebm)} type="video/webm" />}
+    </video>
+    <div class="film__shade" aria-hidden="true"></div>
+    <button class="film__play" type="button" data-film={JSON.stringify(config)}>
+      <span class="film__disc" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M5.5 3.5v9l7-4.5z" fill="currentColor" /></svg></span>
+      <span class="film__words">
+        <span class="film__cta">Watch the film</span>
+        <span class="film__meta mono">{film.duration ? `${mmss(film.duration)} · ` : ''}sound on</span>
+      </span>
+    </button>
+  </div>
+  <figcaption class="fig__cap">
+    {no && <span class="fig__no">Fig. {no}</span>}
+    <span>{film.title}</span>
+  </figcaption>
+</figure>

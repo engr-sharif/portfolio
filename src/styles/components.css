@@ -579,6 +579,84 @@ html.vw-open { overflow: hidden; }
 }
 @media (hover: none) { .vw__arrow { display: none; } }
 
+/* ------------------------------------------------------------- film
+   A project's film: the frame on the page (components/media/Film.astro) and
+   the cinema it grows into (scripts/film.ts). */
+.film__frame { background: #0b0d0b; }
+.film__loop { transition: transform 1.4s var(--ease-out), filter 600ms var(--ease); }
+.film__shade { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, transparent 45%, rgb(6 7 6 / 0.62) 100%); }
+.film__play {
+  position: absolute; left: clamp(1rem, 3vw, 2rem); bottom: clamp(1rem, 3vw, 2rem);
+  display: inline-flex; align-items: center; gap: var(--s-3);
+  padding: 0.5rem 1.1rem 0.5rem 0.5rem;
+  border: 1px solid rgb(255 255 255 / 0.22); border-radius: 999px;
+  background: rgb(12 14 12 / 0.42);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4);
+  color: #f2f3ee;
+  cursor: pointer;
+  transition: background 250ms, border-color 250ms, transform 500ms var(--ease-out);
+}
+.film__play::after { content: ''; position: absolute; inset: 0; cursor: pointer; }
+.film__disc {
+  display: grid; place-items: center;
+  width: 2.75rem; height: 2.75rem; border-radius: 999px;
+  background: #f2f3ee; color: #0b0d0b;
+  box-shadow: 0 0 0 0 rgb(255 106 69 / 0.5);
+  animation: film-pulse 2.6s var(--ease) infinite;
+}
+.film__disc svg { width: 1rem; height: 1rem; margin-left: 2px; }
+.film__words { display: grid; text-align: left; line-height: 1.15; }
+.film__cta { font-weight: 600; font-size: 1rem; letter-spacing: -0.01em; }
+.film__meta { font-size: 0.6875rem; letter-spacing: 0.08em; text-transform: uppercase; color: rgb(242 243 238 / 0.72); }
+.film__frame:hover .film__loop { transform: scale(1.02); }
+.film__frame:hover .film__play { background: rgb(12 14 12 / 0.6); border-color: rgb(255 255 255 / 0.5); transform: translateY(-2px); }
+.film__play:focus-visible { outline: 2px solid var(--cinnabar); outline-offset: 3px; }
+@keyframes film-pulse { 0% { box-shadow: 0 0 0 0 rgb(255 106 69 / 0.45); } 70%, 100% { box-shadow: 0 0 0 14px rgb(255 106 69 / 0); } }
+@media (prefers-reduced-motion: reduce) { .film__disc { animation: none; } }
+
+.cin {
+  position: fixed; inset: 0;
+  width: 100vw; height: 100vh; height: 100dvh; max-width: none; max-height: none;
+  margin: 0; padding: 0; border: 0; overflow: hidden;
+  background: transparent; color: #f2f3ee;
+}
+.cin::backdrop { background: transparent; }
+.cin__bg { position: absolute; inset: 0; background: #030403; }
+.cin__screen { position: absolute; transform-origin: 0 0; background: #000; overflow: hidden; box-shadow: 0 40px 120px -30px rgb(0 0 0 / 0.9); }
+.cin__video { width: 100%; height: 100%; display: block; object-fit: contain; background: #000; }
+.cin__top, .cin__bar { position: absolute; left: 0; right: 0; z-index: 2; display: flex; align-items: center; gap: var(--s-3); padding: var(--s-4) clamp(1rem, 3vw, 2rem); transition: opacity 400ms var(--ease), transform 400ms var(--ease); }
+.cin__top { top: 0; justify-content: space-between; padding-top: max(var(--s-4), env(safe-area-inset-top)); background: linear-gradient(180deg, rgb(0 0 0 / 0.55), transparent); }
+.cin__bar { bottom: 0; padding-bottom: max(var(--s-4), env(safe-area-inset-bottom)); background: linear-gradient(0deg, rgb(0 0 0 / 0.6), transparent); }
+.cin.is-idle .cin__top { opacity: 0; transform: translateY(-8px); pointer-events: none; }
+.cin.is-idle .cin__bar { opacity: 0; transform: translateY(8px); pointer-events: none; }
+.cin.is-idle { cursor: none; }
+.cin__title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem var(--s-4); margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+.cin__chapter { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: #ff6a45; font-weight: 400; }
+.cin__btn {
+  display: inline-grid; place-items: center; flex: none;
+  width: 2.5rem; height: 2.5rem; padding: 0;
+  border: 1px solid rgb(255 255 255 / 0.18); border-radius: 999px;
+  background: rgb(20 22 20 / 0.5); color: #f2f3ee; cursor: pointer;
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  transition: background 200ms, border-color 200ms, transform 300ms var(--ease-out);
+}
+.cin__btn svg { width: 1rem; height: 1rem; }
+.cin__btn:hover { background: rgb(44 48 44 / 0.75); border-color: rgb(255 255 255 / 0.45); }
+.cin__btn:active { transform: scale(0.94); }
+.cin__btn:focus-visible, .cin__scrub:focus-visible { outline: 2px solid #ff6a45; outline-offset: 2px; }
+.cin__time { font-size: 0.75rem; color: rgb(242 243 238 / 0.8); font-variant-numeric: tabular-nums; min-width: 2.6em; text-align: center; }
+.cin__scrub { position: relative; flex: 1; height: 1.75rem; cursor: pointer; touch-action: none; }
+.cin__rail { position: absolute; left: 0; right: 0; top: 50%; height: 3px; margin-top: -1.5px; border-radius: 2px; background: rgb(255 255 255 / 0.18); overflow: hidden; transition: height 200ms, margin 200ms; }
+.cin__scrub:hover .cin__rail { height: 5px; margin-top: -2.5px; }
+.cin__buf, .cin__fill { position: absolute; inset: 0; transform-origin: 0 50%; transform: scaleX(0); }
+.cin__buf { background: rgb(255 255 255 / 0.2); }
+.cin__fill { background: #ff6a45; }
+.cin__ticks i { position: absolute; top: 50%; width: 2px; height: 9px; margin: -4.5px 0 0 -1px; background: rgb(255 255 255 / 0.7); border-radius: 1px; pointer-events: none; }
+.cin__head { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 4px rgb(255 106 69 / 0.35); transform: scale(0); transition: transform 200ms var(--ease-out); pointer-events: none; }
+.cin__scrub:hover .cin__head, .cin__scrub:focus-visible .cin__head { transform: scale(1); }
+.cin__tip { position: absolute; bottom: 100%; transform: translateX(-50%); margin-bottom: 0.35rem; padding: 0.25rem 0.5rem; border-radius: 4px; background: rgb(12 14 12 / 0.85); font-size: 0.6875rem; white-space: nowrap; pointer-events: none; }
+@media (max-width: 45rem) { .cin__time[data-dur] { display: none; } .cin__top { gap: var(--s-2); } }
+
 /* -------------------------------------------------------------- media */
 .loop { width: 100%; height: 100%; object-fit: cover; background: var(--ground-3); }
 
