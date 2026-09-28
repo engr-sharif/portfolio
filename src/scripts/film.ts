@@ -62,6 +62,20 @@ export function initFilm() {
   const chapterEl = $<HTMLElement>('[data-chapter]');
 
   let film: Film | null = null;
+  /** hls.js, loaded only when a film streams as HLS and the browser can't play it natively. */
+  let hls: { destroy(): void } | null = null;
+  const load = (src: string) => {
+    hls?.destroy(); hls = null;
+    if (!src.endsWith('.m3u8') || video.canPlayType('application/vnd.apple.mpegurl')) { video.src = src; return; }
+    import('hls.js/light').then(({ default: Hls }) => {
+      if (!Hls.isSupported()) { video.src = film?.srcSmall || film?.webm || src; return; }
+      const h = new Hls({ capLevelToPlayerSize: true, startLevel: -1 });
+      h.loadSource(src);
+      h.attachMedia(video);
+      h.on(Hls.Events.MANIFEST_PARSED, () => video.play().then(setPlay).catch(() => setPlay()));
+      hls = h;
+    });
+  };
   let origin: HTMLElement | null = null;
   let chapter = -1;
   let idle = 0;
@@ -130,7 +144,7 @@ export function initFilm() {
     origin = btn.closest('.film__frame') as HTMLElement;
     const small = innerWidth < 900 || (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
     const h264 = video.canPlayType('video/mp4; codecs="avc1.640028, mp4a.40.2"') !== '';
-    video.src = !h264 && film.webm ? film.webm : (small && film.srcSmall) || film.src;
+    load(film.src.endsWith('.m3u8') ? film.src : !h264 && film.webm ? film.webm : (small && film.srcSmall) || film.src);
     video.poster = film.poster;
     video.muted = false;
     $('[data-title]').textContent = film.title;
@@ -152,6 +166,7 @@ export function initFilm() {
   const done = () => {
     closing = false;
     video.pause();
+    hls?.destroy(); hls = null;
     video.removeAttribute('src'); video.load();
     if (d.open) d.close();
     document.documentElement.classList.remove('vw-open');
