@@ -1,30 +1,30 @@
 ---
-title: "Colton Sanitary Landfill — Final Cover & LFG System"
-client: "County of San Bernardino — Solid Waste Management Division"
-siteType: "Closed MSW landfill — final closure construction"
-status: "complete"
-role: "Third-party CQA — landfill gas collection system"
-startDate: "2022-10"
-endDate: "2024-07"
+title: Colton Sanitary Landfill — Final Cover & LFG System
+client: County of San Bernardino — Solid Waste Management Division
+siteType: Closed MSW landfill — final closure construction
+status: complete
+role: Third-party CQA — landfill gas collection system
+startDate: 2022-10
+endDate: 2024-07
 summary: "Third-party construction quality assurance on the new landfill gas collection system built with the final closure of an 88-acre landfill in Colton: extraction wells drilled into the waste, and new headers and laterals."
 problem: "Closing the landfill with a geosynthetic cover meant rebuilding the gas system under it: old wells abandoned, new ones drilled into the waste, and the piping replaced, all built to a design that would be buried for decades."
 approach: "Independent CQA on the landfill gas work designed by Advanced Earth Sciences (AES): observing drilling into waste and well construction, and checking headers and laterals against the plans and specifications."
-outcome: "The new collection system was built to design and documented for the County, beneath what the County describes as the largest ClosureTurf installation in Southern California, completed in July 2024."
+outcome: The new collection system was built to design and documented for the County, beneath what the County describes as the largest ClosureTurf installation in Southern California, completed in July 2024.
 techniques:
-  - "CQA"
-  - "LFG extraction wells"
-  - "Drilling in waste"
-  - "Headers & laterals"
-  - "HDPE pipe"
-  - "Final cover"
-  - "Title 27 closure"
-externalLink: "https://dpw.sbcounty.gov/solid-waste/colton-sanitary-landfill-project/"
+  - CQA
+  - LFG extraction wells
+  - Drilling in waste
+  - Headers & laterals
+  - HDPE pipe
+  - Final cover
+  - Title 27 closure
+externalLink: https://dpw.sbcounty.gov/solid-waste/colton-sanitary-landfill-project/
 featured: false
 order: 5
-location: "Colton, CA"
+location: Colton, CA
 lat: 34.04
 lng: -117.3
-privacy: "town"
+privacy: town
 published: true
 clearance:
   names: true
@@ -32,8 +32,64 @@ clearance:
   location: true
   data: true
   date: "2026-09-27"
+gallery:
+  - /src/assets/covers/gptempdownload.jpg
+  - /src/assets/covers/70249293094-cbb58d21-bc35-4ce1-9408-d1dcace53c16.jpg
+  - /src/assets/covers/gptempdownload-2.jpg
+  - /src/assets/covers/img-8124.jpg
+  - /src/assets/covers/img-8128.jpg
+  - /src/assets/covers/img-8129.jpg
+  - /src/assets/covers/img-8140.jpg
+  - /src/assets/covers/img-8150.jpg
+  - /src/assets/covers/70777968552-153b14c0-d316-4431-9f4f-1f2ce8ac04c8.jpg
+  - /src/assets/covers/70777963066-893dcf1b-f2ed-44b9-910b-7ed3b35ae050.jpg
+  - /src/assets/covers/img-8170.jpg
+  - /src/assets/covers/img-8166.jpg
+  - /src/assets/covers/img-8209.jpg
+  - /src/assets/covers/img-8237.jpg
+  - /src/assets/covers/img-8236.jpg
+  - /src/assets/covers/img-8284.jpg
+photoPlaces:
+  gptempdownload.jpg:
+    lat: 34
+    lng: -117.3
+  gptempdownload-2.jpg:
+    lat: 34
+    lng: -117.3
+  img-8124.jpg:
+    lat: 34
+    lng: -117.3
+  img-8128.jpg:
+    lat: 34
+    lng: -117.3
+  img-8129.jpg:
+    lat: 34
+    lng: -117.3
+  img-8140.jpg:
+    lat: 34
+    lng: -117.3
+  img-8150.jpg:
+    lat: 34
+    lng: -117.3
+  img-8170.jpg:
+    lat: 34
+    lng: -117.3
+  img-8166.jpg:
+    lat: 34
+    lng: -117.3
+  img-8209.jpg:
+    lat: 34
+    lng: -117.3
+  img-8237.jpg:
+    lat: 34
+    lng: -117.3
+  img-8236.jpg:
+    lat: 34
+    lng: -117.3
+  img-8284.jpg:
+    lat: 34
+    lng: -117.3
 ---
-
 ## Setting
 
 The Colton Sanitary Landfill is a 113-acre site in the City of Colton, with
