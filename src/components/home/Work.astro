@@ -16,7 +16,7 @@ import Figure from '../ui/Figure.astro';
 import Locator from '../ui/Locator.astro';
 import Status from '../ui/Status.astro';
 
-const featured = (await getFeatured()).slice(0, 3);
+const featured = (await getFeatured()).slice(0, 4);
 const total = (await getProjects()).length;
 ---
 <section class="sec work" id="work" data-stratum="Selected work" data-code="CL" data-pattern="lith-clay" aria-labelledby="work-title">
