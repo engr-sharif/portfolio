@@ -7,16 +7,16 @@ role: Design team & CQA support
 startDate: "2024"
 endDate: "2025"
 summary: "Design, and construction quality assurance on parts of the build, for a new lined disposal cell at Tulare County's Woodville Landfill: capacity for a county that is consolidating its landfills."
-problem: "Tulare County is consolidating its landfills at Woodville, so the site needs new lined space: cells that keep waste and leachate out of the groundwater beneath an agricultural valley."
-approach: Our team designed the cell expansion and provided CQA on parts of its construction, checking the work in the field against the design.
-outcome: A new cell built to the design and ready to take waste, adding capacity to the county's main landfill.
+problem: "Tulare County is consolidating its landfills at Woodville, and the site's permit required disposal there to resume by July 2024. That meant a new lined cell, built to keep waste and leachate out of the groundwater beneath a farming valley."
+approach: "Our team designed the cell, a composite liner of reinforced GCL and 60-mil HDPE under a geocomposite leachate collection layer, and provided CQA on parts of its construction, checking the work in the field against the design."
+outcome: "Phase 1 of the new unit, about 33 acres of lined cell, built in 2024 and ready to take waste: new capacity at the County's main landfill."
 techniques:
-  - Landfill cell design
-  - Composite liner system
-  - Leachate collection (LCRS)
-  - Geosynthetics
-  - CQA
-  - Title 27
+  - "Landfill cell design"
+  - "Composite liner (GCL + HDPE)"
+  - "Leachate collection (LCRS)"
+  - "Geosynthetics"
+  - "Title 27 engineered alternative"
+  - "CQA"
 featured: true
 order: 2
 location: Tulare County, CA
@@ -149,42 +149,70 @@ film. Shots with identifiable people, vehicles or signage were left out.
 ## Setting
 
 The Woodville Landfill is Tulare County's Class III municipal solid waste
-landfill, in the San Joaquin Valley between Tulare and Porterville. The
-County is consolidating its landfills here, and its approved expansion plans
-a much larger footprint, built out in phases, adding decades of capacity.
+landfill, in the San Joaquin Valley between Tulare and Porterville, and the
+site the County is consolidating its disposal into. Its first unit had
+stopped taking waste in 2014; under its Waste Discharge Requirements (Central
+Valley Regional Water Quality Control Board Order R5-2022-0027), disposal had
+to resume by **July 2024**. Resuming meant new lined space.
 
-Each phase is built the same way: a new **lined cell** is excavated and
-lined before waste arrives. The liner and the **leachate collection and
-removal system (LCRS)** above it are what keep the waste and its leachate
-out of the groundwater. That matters in a farming valley that relies on
-groundwater.
+That space is **Unit II**, about 66 acres south of the existing unit, to be
+built in phases. **Phase 1**, roughly 33 acres, is the cell in the film. The
+County awarded its construction in late 2023, and it was built through the
+spring and early summer of 2024, against that deadline.
 
 ## Our role
 
 We were the **designer** of the southern phase cell expansion, and we
-provided **construction quality assurance (CQA)** on some parts of the
-construction. That meant carrying the cell from drawings and specifications
-into the field and checking it was built the way it was designed.
+provided **construction quality assurance (CQA)** on parts of its
+construction: carrying the cell from drawings and specifications into the
+field, and checking it was built the way it was designed.
 
-## The work
+## The design
 
-**Design.** A cell design fixes the excavation and subgrade grades, the
-liner system, how leachate drains to its collection points, and how the new
-cell ties into the rest of the landfill. It has to meet **CCR Title 27** and
-the site's Waste Discharge Requirements, and be something a contractor can
-actually build.
+A cell is a system of layers, each with a job. From the bottom up, Unit II's
+floor is:
 
-**CQA.** CQA checks the construction against that design at each layer: the
-prepared subgrade, liner materials and their installation, and the drainage
-and collection layers above, with the records that let the owner and the
-Regional Board accept the cell.
+- **engineered subgrade**, graded so everything above it drains the right way;
+- a **reinforced geosynthetic clay liner (GCL)**, a thin blanket of bentonite
+  clay that swells into a seal when wet;
+- a **60-mil HDPE geomembrane** over it, the two together forming the
+  **composite liner**: the barrier between waste and groundwater;
+- a **geocomposite drainage layer**, the leachate collection and removal
+  system (LCRS), carrying any liquid that reaches the liner to collection
+  pipes in drain rock and out to be pumped;
+- and a **two-foot operations layer** that protects all of it from the first
+  lifts of waste and the equipment that places them.
+
+The side slopes carry the same composite liner, with a textured geomembrane
+for grip, anchored in a trench cut along the crest. Where the new cell meets
+the old unit, a separation liner and a landfill-gas pressure-relief system
+keep the two apart.
+
+This layering is an **engineered alternative** to the prescriptive liner in
+**CCR Title 27**: it has to be shown to protect groundwater at least as well,
+it has to satisfy the Regional Board, and a contractor has to be able to
+build it, at scale, in a San Joaquin Valley summer.
+
+## The build
+
+The photos on this page follow the construction: the floor graded and rolled
+ahead of the liner; GCL and geomembrane panels pulled off rolls on spreader
+bars, overlapped and seamed across the floor and up the slopes; drain rock
+pushed out over the liner and placed around the leachate collection pipe; and
+crews working on through the night under light towers.
+
+CQA follows every layer: subgrade grades and compaction before anything
+covers them, material certifications and conformance testing for each roll,
+panel layout, seaming and seam testing, repairs, and the drainage layers
+above, all recorded so the owner and the Regional Board can accept the cell.
 
 Seeing both sides, the design and the field, shows where a drawing meets
-real ground and real equipment. That feeds straight back into designs that
-are easier to build well.
+real ground and real equipment, and that feeds straight back into designs
+that are easier to build well.
 
 ## Skills demonstrated
 
-Landfill cell design; composite liner and leachate collection systems;
-Title 27 requirements; construction quality assurance; and carrying a
-design from drawings through construction.
+Landfill cell design; composite liners with GCL and HDPE geomembrane;
+leachate collection and removal systems; Title 27 engineered alternatives;
+construction quality assurance on geosynthetics and earthwork; and carrying a
+design from drawings through construction against a permit deadline.
