@@ -50,6 +50,7 @@ const Tag = group ? 'button' : 'div';
     aria-label={group ? `Open figure${no ? ` ${no}` : ''}: ${alt}` : undefined}
   >
     <Image src={image} alt={alt} widths={widths.filter((w) => w <= image.width)} sizes={sizes} loading={eager ? 'eager' : 'lazy'} fetchpriority={eager ? 'high' : undefined} decoding="async" format="webp" quality={78} style={imgStyle} />
+    <slot />
   </Tag>
   {(no || caption) && (
     <figcaption class="fig__cap">
