@@ -2,7 +2,7 @@
   "credentials": [
     {
       "label": "Engineer-in-Training (EIT)",
-      "issuer": "California",
+      "issuer": "NCEES No. 180474",
       "status": "Active",
       "date": "2023"
     },
@@ -29,27 +29,33 @@
   ],
   "timeline": [
     {
-      "date": "2021",
-      "title": "B.S., Environmental Engineering",
-      "org": "California State University, Sacramento ",
-      "detail": "Foundations in water resources, remediation, and environmental chemistry."
+      "date": "2022",
+      "title": "B.S., Civil Engineering",
+      "org": "California State University, Sacramento",
+      "detail": "Graduated December 2022, GPA 3.4, Dean's List three terms. Soil mechanics, open-channel hydraulics, environmental engineering and engineering geology."
+    },
+    {
+      "date": "2022 — 2025",
+      "title": "Staff Engineer II",
+      "org": "APTIM Environmental & Infrastructure · Concord",
+      "detail": "Full-time CQA on landfill liners, final covers and gas systems (Colton, Woodville); landfill gas compliance reporting; SWPPPs, monitoring programs and project management."
     },
     {
       "date": "2023",
       "title": "Passed FE · Earned EIT",
-      "org": "California",
-      "detail": "Engineer-in-Training designation; began the path toward PE licensure."
+      "org": "NCEES Certificate No. 180474",
+      "detail": "Engineer-in-Training, October 2023: the first step toward PE licensure."
     },
     {
-      "date": "2023 — Present",
-      "title": "Environmental Engineer (EIT)",
+      "date": "2025 — Present",
+      "title": "Environmental Engineer",
       "org": "Jacobs · Sacramento",
-      "detail": "Site characterization, remediation, and construction quality assurance across California."
+      "detail": "Superfund remediation, MGP cleanup and landfill compliance for EPA, the Navy, the Air Force, PG&E and municipal clients; leading Phase 1 construction at Sulphur Bank."
     },
     {
       "date": "Anticipated 2027",
       "title": "Professional Engineer (PE)",
-      "org": "California",
+      "org": "California — Civil",
       "detail": "On track for licensure after the required experience."
     }
   ]

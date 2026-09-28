@@ -1,0 +1,304 @@
+<!doctype html>
+<!--
+  The résumé: one HTML sheet, set like the site (Archivo, Newsreader and IBM
+  Plex Mono, cinnabar marks, numbered sections), rendered to PDF by
+  scripts/build-resume.mjs. The text stays real text, so the PDF reads
+  cleanly in applicant-tracking systems. Contact details are the public ones
+  only: no phone number or street address in a file anyone can download.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mohammad Sharif, EIT — Résumé</title>
+<meta name="author" content="Mohammad Sharif">
+<meta name="description" content="Civil and environmental engineer (EIT): remediation, landfill and Superfund projects across California.">
+<style>
+  @font-face { font-family: 'Archivo'; src: url('../../node_modules/@fontsource-variable/archivo/files/archivo-latin-wght-normal.woff2') format('woff2'); font-weight: 100 900; }
+  @font-face { font-family: 'Newsreader'; src: url('../../node_modules/@fontsource-variable/newsreader/files/newsreader-latin-wght-normal.woff2') format('woff2'); font-weight: 200 800; }
+  @font-face { font-family: 'Newsreader'; src: url('../../node_modules/@fontsource-variable/newsreader/files/newsreader-latin-wght-italic.woff2') format('woff2'); font-weight: 200 800; font-style: italic; }
+  @font-face { font-family: 'Plex Mono'; src: url('../../node_modules/@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-400-normal.woff2') format('woff2'); font-weight: 400; }
+  @font-face { font-family: 'Plex Mono'; src: url('../../node_modules/@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-500-normal.woff2') format('woff2'); font-weight: 500; }
+
+  :root {
+    --ink: #1b1c19;
+    --ink-2: #3d3f3a;
+    --ink-3: #6a6d65;
+    --rule: #d6d7ce;
+    --paper: #ffffff;
+    --tint: #f5f5f0;
+    --cinnabar: #c23d1b;
+    --sans: 'Archivo', system-ui, sans-serif;
+    --serif: 'Newsreader', Georgia, serif;
+    --mono: 'Plex Mono', ui-monospace, monospace;
+  }
+  @page { size: Letter; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--paper); color: var(--ink); }
+  body { font-family: var(--sans); font-size: 8.6pt; line-height: 1.42; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  .sheet { width: 8.5in; height: 11in; padding: 0.5in 0.55in 0.45in; position: relative; overflow: hidden; page-break-after: always; display: flex; flex-direction: column; }
+  .sheet:last-child { page-break-after: auto; }
+
+  /* ------------------------------------------------------------ head */
+  .head { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 0.3in; padding-bottom: 0.16in; border-bottom: 1.4pt solid var(--ink); }
+  .name { font-size: 29pt; font-weight: 560; letter-spacing: -0.035em; line-height: 0.95; margin: 0; }
+  .name span { color: var(--cinnabar); font-weight: 480; }
+  .title { font-family: var(--mono); font-size: 7.6pt; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-2); margin: 0.09in 0 0; }
+  .contact { list-style: none; margin: 0; padding: 0; text-align: right; font-size: 8.2pt; line-height: 1.55; color: var(--ink-2); }
+  .contact a { color: inherit; text-decoration: none; }
+  .contact b { font-weight: 560; color: var(--ink); }
+
+  /* the site's title block, in miniature */
+  .tb { display: grid; grid-template-columns: repeat(4, 1fr); border-left: 0.6pt solid var(--rule); margin: 0.13in 0 0; }
+  .tb div { padding: 0.05in 0.09in 0.06in; border-right: 0.6pt solid var(--rule); border-bottom: 0.6pt solid var(--rule); background: var(--tint); }
+  .tb dt { font-family: var(--mono); font-size: 6pt; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+  .tb dd { margin: 0.015in 0 0; font-size: 8.2pt; font-weight: 540; }
+
+  .profile { font-family: var(--serif); font-size: 10.2pt; line-height: 1.45; color: var(--ink); margin: 0.14in 0 0; }
+  .profile strong { font-weight: 600; }
+
+  /* ------------------------------------------------------------ body */
+  .cols { display: grid; grid-template-columns: 1fr 2.05in; gap: 0.3in; margin-top: 0.16in; flex: 1; min-height: 0; }
+  .main > section + section, .side > section + section { margin-top: 0.15in; }
+  h2 { display: flex; align-items: baseline; gap: 0.07in; font-family: var(--mono); font-weight: 500; font-size: 7.2pt; letter-spacing: 0.14em; text-transform: uppercase; margin: 0 0 0.07in; padding-bottom: 0.04in; border-bottom: 0.6pt solid var(--rule); }
+  h2 i { font-style: normal; color: var(--cinnabar); }
+
+  .job + .job { margin-top: 0.11in; }
+  .job__head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.1in; }
+  .job h3 { margin: 0; font-size: 9.6pt; font-weight: 620; letter-spacing: -0.01em; }
+  .job h3 span { font-weight: 420; color: var(--ink-2); }
+  .when { font-family: var(--mono); font-size: 7pt; color: var(--ink-3); white-space: nowrap; }
+  .org { margin: 0.01in 0 0.04in; font-size: 8pt; color: var(--ink-3); }
+  ul.b { margin: 0; padding: 0; list-style: none; }
+  ul.b li { position: relative; padding-left: 0.12in; }
+  ul.b li + li { margin-top: 0.028in; }
+  ul.b li::before { content: ''; position: absolute; left: 0.01in; top: 0.062in; width: 0.045in; height: 0.045in; background: var(--cinnabar); }
+  ul.b strong { font-weight: 600; }
+
+  .proj + .proj { margin-top: 0.1in; }
+  .proj h3 { margin: 0; font-size: 9.3pt; font-weight: 620; }
+  .proj .meta { font-family: var(--mono); font-size: 6.8pt; letter-spacing: 0.02em; color: var(--ink-3); margin: 0.01in 0 0.035in; }
+  .proj p { margin: 0; }
+
+  .side { font-size: 8.1pt; }
+  .side dl { margin: 0; }
+  .side dt { font-weight: 600; }
+  .side dd { margin: 0 0 0.06in; color: var(--ink-2); }
+  .side p { margin: 0 0 0.05in; }
+  .tags { display: flex; flex-wrap: wrap; gap: 0.035in; list-style: none; padding: 0; margin: 0; }
+  .tags li { border: 0.6pt solid var(--rule); padding: 0.012in 0.05in; font-size: 7.5pt; line-height: 1.35; background: var(--paper); }
+  .list { list-style: none; margin: 0; padding: 0; }
+  .list li + li { margin-top: 0.03in; }
+  .muted { color: var(--ink-3); }
+
+  .foot { display: flex; justify-content: space-between; margin-top: 0.12in; padding-top: 0.06in; border-top: 0.6pt solid var(--rule); font-family: var(--mono); font-size: 6.6pt; letter-spacing: 0.06em; color: var(--ink-3); }
+  .foot a { color: inherit; text-decoration: none; }
+
+  /* page 2 carries a slim running head */
+  .runhead { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 0.08in; border-bottom: 1.4pt solid var(--ink); }
+  .runhead b { font-size: 12pt; font-weight: 580; letter-spacing: -0.02em; }
+  .runhead span { font-family: var(--mono); font-size: 7pt; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+</style>
+</head>
+<body>
+
+<!-- ================================================================ page 1 -->
+<div class="sheet">
+  <header class="head">
+    <div>
+      <h1 class="name">Mohammad Sharif<span>, EIT</span></h1>
+      <p class="title">Civil &amp; Environmental Engineer · Remediation · Landfills · Superfund</p>
+    </div>
+    <ul class="contact">
+      <li><b>Sacramento, California</b></li>
+      <li><a href="mailto:engr.sharif209@gmail.com">engr.sharif209@gmail.com</a></li>
+      <li><a href="https://www.linkedin.com/in/nawazsharif1/">linkedin.com/in/nawazsharif1</a></li>
+      <li><a href="https://mosharif.pages.dev">mosharif.pages.dev</a></li>
+    </ul>
+  </header>
+
+  <dl class="tb">
+    <div><dt>Registration</dt><dd>EIT, NCEES No. 180474</dd></div>
+    <div><dt>Licensure</dt><dd>PE (Civil), anticipated 2027</dd></div>
+    <div><dt>Education</dt><dd>B.S. Civil Eng., Sac State</dd></div>
+    <div><dt>Field</dt><dd>40-hr HAZWOPER · DoD access</dd></div>
+  </dl>
+
+  <p class="profile">Civil and environmental engineer with four years on remediation, landfill and Superfund projects across California, from pre-design investigation and field leadership to construction quality assurance and regulatory reporting. At Jacobs I lead <strong>Phase 1 construction on the Sulphur Bank Mercury Mine Superfund cleanup</strong> for EPA Region 9, and I build the field software my teams rely on: data apps, real-time monitoring portals and automated reporting.</p>
+
+  <div class="cols">
+    <main class="main">
+      <section>
+        <h2><i>1.0</i> Experience</h2>
+
+        <div class="job">
+          <div class="job__head"><h3>Jacobs <span>· Environmental Engineer</span></h3><span class="when">Apr 2025 – Present</span></div>
+          <p class="org">Sacramento, CA · federal (EPA, U.S. Navy, U.S. Air Force), utility and municipal programs: drill-rig oversight, ASTM soil logging, PFAS and low-flow sampling</p>
+          <ul class="b">
+            <li><strong>Lead Phase 1 construction</strong> (residential soil cleanup) of the Sulphur Bank Mercury Mine Superfund remedy, EPA Region 9.</li>
+            <li>Co-led the 2025 <strong>pre-design investigation</strong> run in parallel with remedial design: logged 40+ test pits and oversaw soil borings in mine waste; helped introduce video logging of test pits, now standard practice on the site.</li>
+            <li>Co-led the <strong>handheld XRF characterization of 146+ boulders</strong> to support their reuse in the remedy; wrote technical memoranda on waste-rock moisture and stability for the design.</li>
+            <li><strong>Deputy project manager</strong>, City of Roseville closed landfill: coordinate semiannual groundwater sampling, conduct landfill-gas monitoring, and draft Title 27 reports to the Central Valley RWQCB.</li>
+            <li><strong>Field engineer</strong>, PG&amp;E Bakersfield MGP remediation: characterization and drilling oversight, then the remediation scope of work and specifications for the contractor RFP, and field engineering through construction.</li>
+            <li>Built a <strong>real-time perimeter air-monitoring portal</strong> on the Aeroqual API with automated daily reports, a noise-and-vibration reporting tool, and an XRF data app that reconciles thousands of field readings.</li>
+          </ul>
+        </div>
+
+        <div class="job">
+          <div class="job__head"><h3>APTIM Environmental &amp; Infrastructure <span>· Staff Engineer II</span></h3><span class="when">Jul 2022 – Apr 2025</span></div>
+          <p class="org">Concord, CA · landfill construction, landfill gas and environmental compliance</p>
+          <ul class="b">
+            <li><strong>Full-time CQA monitor</strong> on landfill construction: final cover and gas-system expansion at Colton Sanitary Landfill, and the 33-acre Unit II Phase 1 composite liner at Woodville Landfill.</li>
+            <li>Geosynthetics QA (vacuum-box, air-pressure and destructive seam testing), HDPE fusion welding and header/lateral pressure testing, subgrade and density-test coordination.</li>
+            <li>Reviewed submittals and supported RFI resolution, kept daily CQA logs and weekly reports; <strong>authored the final CQA completion report</strong> for the Colton closure.</li>
+            <li>Managed landfill-gas collection system compliance at multiple sites under SCAQMD Rule 1150.1, with monthly, quarterly and semiannual reporting.</li>
+            <li>Led projects of $25K–$100K: proposals and amendments, agency and contractor coordination, field teams and subcontractors.</li>
+            <li>Developed SWPPPs for composting and transfer stations and AutoCAD Civil 3D designs; installed dewatering wells to 200 ft; site Health &amp; Safety Officer.</li>
+          </ul>
+        </div>
+
+      </section>
+    </main>
+
+    <aside class="side">
+      <section>
+        <h2><i>A</i> Expertise</h2>
+        <ul class="tags">
+          <li>Construction QA/QC</li><li>Geosynthetics &amp; HDPE</li><li>Earthwork testing</li>
+          <li>Drill-rig oversight</li><li>ASTM soil logging</li><li>Test pitting</li>
+          <li>Handheld XRF</li><li>PFAS sampling</li><li>Low-flow sampling</li>
+          <li>LFG monitoring &amp; GCCS</li><li>Title 27 compliance</li><li>Plans &amp; specifications</li>
+          <li>Scopes of work</li><li>RFIs &amp; submittals</li><li>SWPPP</li>
+          <li>Technical reporting</li><li>Site H&amp;S</li>
+        </ul>
+      </section>
+      <section>
+        <h2><i>B</i> Software</h2>
+        <p>AutoCAD Civil 3D, Slide2, gINT, Python, JavaScript, VBA, Microsoft Office</p>
+        <p class="muted">Instruments: GEM 5000, MiniRAE 3000 PID, TVA2020 FID/PID, handheld XRF, Aeroqual</p>
+      </section>
+      <section>
+        <h2><i>C</i> Education &amp; registration</h2>
+        <dl>
+          <dt>B.S., Civil Engineering</dt>
+          <dd>California State University, Sacramento · Dec 2022 · GPA 3.4 · Dean's List (Spring 2020, Fall 2021, Spring 2022)</dd>
+          <dt>Engineer-in-Training</dt>
+          <dd>NCEES Certificate No. 180474 · Oct 2023 · PE (Civil) anticipated 2027</dd>
+        </dl>
+      </section>
+    </aside>
+  </div>
+
+  <footer class="foot"><span>Mohammad Sharif, EIT · Résumé</span><a href="https://mosharif.pages.dev">Case studies and tools: mosharif.pages.dev</a><span>1 / 2</span></footer>
+</div>
+
+<!-- ================================================================ page 2 -->
+<div class="sheet">
+  <header class="runhead"><b>Mohammad Sharif, EIT</b><span>Selected project experience</span></header>
+
+  <div class="cols" style="margin-top: 0.18in">
+    <main class="main">
+      <section>
+        <h2><i>2.0</i> Projects</h2>
+
+        <div class="proj">
+          <h3>Sulphur Bank Mercury Mine Superfund Site</h3>
+          <p class="meta">EPA Region 9 · Clearlake Oaks, CA · 2025 – present · Phase 1 construction lead; pre-design field co-lead</p>
+          <p>A 160-acre former mercury mine on Clear Lake with about 2.5 million cubic yards of waste rock in nine piles. Co-led the test-pit, soil-boring and boulder XRF campaigns that fed the remedial design as it was drawn, and now lead construction of Phase 1, the residential soil cleanup. Built the site's field tools: an XRF data app, a sampling planning map, a boring-data explorer, a grid-navigation tool and a lidar terrain explorer.</p>
+        </div>
+
+        <div class="proj">
+          <h3>PG&amp;E Bakersfield Former Manufactured Gas Plant</h3>
+          <p class="meta">PG&amp;E · Bakersfield, CA · 2025 – present · Field / project engineer</p>
+          <p>DTSC-overseen excavation of about 6,400 cubic yards of MGP-impacted soil in downtown Bakersfield, with shoring and community air, noise and vibration monitoring. Drilling oversight and logging in pre-characterization; authored the remediation scope of work and drafted specifications for the contractor RFP; field engineer through construction. Built the real-time air-monitoring portal and the daily noise and vibration reporting.</p>
+        </div>
+
+        <div class="proj">
+          <h3>City of Roseville Landfill — Title 27 Compliance</h3>
+          <p class="meta">City of Roseville · Roseville, CA · 2025 – present · Deputy project manager</p>
+          <p>Closed, unlined landfill under Central Valley RWQCB monitoring. Coordinate the semiannual groundwater sampling, conduct landfill-gas monitoring, and draft the semiannual and annual reports; built a Python tool that diffs each report against the last cycle. Also supported the CalRecycle/LEA regulatory pathway for Sogstead Park, a former landfill.</p>
+        </div>
+
+        <div class="proj">
+          <h3>Colton Sanitary Landfill — Final Cover &amp; Gas System</h3>
+          <p class="meta">San Bernardino County DPW · Colton, CA · Jul 2023 – Jun 2024 · CQA monitor; CQA report author</p>
+          <p>Full-time CQA on the final cover and gas-collection expansion: seam testing, HDPE fusion welding and pressure testing of 12-, 8- and 6-inch headers and laterals, slope checks for condensate drainage, and 56 new extraction wells drilled into waste. Authored the final CQA completion report.</p>
+        </div>
+
+        <div class="proj">
+          <h3>Woodville Landfill — Unit II Phase 1 Cell</h3>
+          <p class="meta">Tulare County RMA · Tulare County, CA · 2024 · CQA monitor</p>
+          <p>A 33-acre Class III cell with a composite liner (reinforced GCL, 60-mil HDPE, geocomposite drainage) and leachate collection. Panel deployment, trial welds, anchor-trench backfill and density testing; conformance testing records and weekly reports; led submittal review and resolved contractor RFIs; contributed to the final CQA report.</p>
+        </div>
+
+        <div class="proj">
+          <h3>NAWS China Lake — Plume Operable Unit</h3>
+          <p class="meta">U.S. Navy (CLEAN) · Kern County, CA · 2025 · Field team member</p>
+          <p>Drill-rig oversight of a track-mounted hollow-stem auger; logged eight soil borings to 30 ft and two to 6 ft, with soil sampling.</p>
+        </div>
+
+        <div class="proj">
+          <h3>Air Force PFAS Research Study (SERDP)</h3>
+          <p class="meta">U.S. Air Force · California · 2025 · Field team member</p>
+          <p>PFAS groundwater sampling (EPA Method 537.1) with PFAS-specific QA/QC for a study of whether sampling tubing and equipment bias PFAS results.</p>
+        </div>
+
+        <div class="proj">
+          <h3>UPRR Former West Coast Metals Site</h3>
+          <p class="meta">Union Pacific Railroad · Santa Rosa, CA · Report author</p>
+          <p>Contributed to the Construction Completion Report for a 6.9-acre vegetated soil cover over lead-impacted soil, with groundwater extraction piping upgrades and well modifications.</p>
+        </div>
+
+        <p class="muted" style="margin-top: 0.1in">Also: engineering and documentation support on the PG&amp;E Topock groundwater remedy and the WPWMA Western Property Landfill.</p>
+      </section>
+    </main>
+
+    <aside class="side">
+      <section>
+        <h2><i>D</i> Field software</h2>
+        <ul class="list">
+          <li><strong>Air-monitoring portal.</strong> Live perimeter data from Aeroqual stations, with daily reports generated from the same feed.</li>
+          <li><strong>XRF Data App.</strong> Reconciles two analyzers' readings with the boulder tracker for browsing, QC and export.</li>
+          <li><strong>Site Explorer.</strong> In-browser 3D lidar terrain: hillshade, slope, canopy and flow.</li>
+          <li><strong>Field navigation.</strong> Walks crews to planned grid nodes, offline.</li>
+          <li><strong>Report QC.</strong> Diffs each cyclic report against the last, paragraph by paragraph.</li>
+        </ul>
+      </section>
+      <section>
+        <h2><i>E</i> Training</h2>
+        <ul class="list">
+          <li>40-hr HAZWOPER; 8-hr refresher, current</li>
+          <li>Jacobs Field Team Leader, Field Quality Manager and Safety Liaison</li>
+          <li>First Aid / CPR · Dangerous Goods Shipping</li>
+          <li>E-Railsafe and On-Track Safety</li>
+          <li>U.S. citizen · DoD installation access (DBIDS)</li>
+        </ul>
+      </section>
+      <section>
+        <h2><i>F</i> Earlier</h2>
+        <p><strong>Zoomlock Wireless</strong> · Founder &amp; Owner · Stockton, CA · 2012 – 2022</p>
+        <p class="muted">Founded and ran an electronics repair business for ten years: operations, finances, hiring and training, and in-house diagnostic and repair-tracking software.</p>
+      </section>
+      <section>
+        <h2><i>G</i> Affiliations</h2>
+        <p>American Society of Civil Engineers (ASCE)</p>
+        <p>English · Pashto (native)</p>
+      </section>
+      <section>
+        <h2><i>H</i> Portfolio</h2>
+        <p>Full case studies with photographs, films and maps, and the tools themselves:</p>
+        <p><a href="https://mosharif.pages.dev" style="color: var(--cinnabar); font-weight: 600; text-decoration: none">mosharif.pages.dev</a></p>
+        <p class="muted">github.com/engr-sharif</p>
+      </section>
+      <section>
+        <h2><i>I</i> References</h2>
+        <p>Available on request.</p>
+      </section>
+    </aside>
+  </div>
+
+  <footer class="foot"><span>Mohammad Sharif, EIT · Résumé</span><span>Descriptions contain no confidential client data</span><span>2 / 2</span></footer>
+</div>
+
+</body>
+</html>

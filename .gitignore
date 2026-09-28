@@ -31,3 +31,6 @@ Thumbs.db
 # throwaway probe scripts
 .scratch/
 dist-redirect/
+
+# layout previews from scripts/build-resume.mjs --png
+scripts/resume/page-*.png
