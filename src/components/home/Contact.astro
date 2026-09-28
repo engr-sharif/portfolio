@@ -9,10 +9,10 @@ const hasForm = !!site.contactFormKey?.trim();
   <div class="wrap">
     <div class="window" aria-hidden="true" data-ground="state" data-fig="Fig. 7.0" data-caption="California · based in Sacramento"></div>
     <div class="panel" data-ground="state" data-fig="Fig. 7.0" data-caption="California · based in Sacramento">
-    <SectionHead no="7.0" id="contact-title" title="Hiring for field or remediation work?" />
+    <SectionHead no="7.0" id="contact-title" title="Get in touch" />
     <div class="contact__grid">
       <div class="contact__left">
-        <p class="contact__lede">I’m open to environmental engineering roles in California. Email is the quickest way to reach me.</p>
+        <p class="contact__lede">A question about a project, a site or one of the tools? Email is the quickest way to reach me.</p>
         <div class="contact__mail">
           <a class="contact__addr" href={`mailto:${site.email}`}>{site.email}</a>
           <button class="btn btn--line btn--sm" type="button" data-copy={site.email}><span data-copy-label>Copy address</span></button>
@@ -29,7 +29,7 @@ const hasForm = !!site.contactFormKey?.trim();
         <input type="checkbox" name="botcheck" class="visually-hidden" tabindex="-1" autocomplete="off" aria-hidden="true" />
         <label class="field"><span>Name</span><input class="input" name="name" autocomplete="name" required /></label>
         <label class="field"><span>Email</span><input class="input" name="email" type="email" autocomplete="email" required /></label>
-        <label class="field"><span>Message</span><textarea class="input" name="message" rows="6" required placeholder="The role, the site, or the question."></textarea></label>
+        <label class="field"><span>Message</span><textarea class="input" name="message" rows="6" required placeholder="The project, the site, or the question."></textarea></label>
         <div class="contact__send">
           <button class="btn" type="submit">{hasForm ? 'Send message' : 'Write the email'} <span class="arrow" aria-hidden="true">→</span></button>
           <p class="contact__status" data-contact-status role="status" aria-live="polite"></p>
