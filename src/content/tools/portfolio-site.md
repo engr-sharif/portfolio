@@ -3,7 +3,6 @@ name: "This Portfolio"
 summary: "Designed and built this site end to end: a static site with a hand-written WebGL terrain of California, and a browser-based Studio I use to publish from the field."
 problem: "I wanted one place to present project work and writing that I could keep current myself, from a laptop or a phone on site, without it looking like a template."
 tech: ["Astro", "TypeScript", "WebGL2", "React (Studio)", "Cloudflare"]
-repoUrl: "https://github.com/engr-sharif/portfolio"
 screenshots: []
 codeLang: "typescript"
 featured: false

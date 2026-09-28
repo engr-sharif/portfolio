@@ -40,7 +40,7 @@ const updated = new Date().toLocaleDateString('en-US', { year: 'numeric', month:
         <ul class="cv__contact">
           <li><a href={`mailto:${site.email}`}>{site.email}</a></li>
           <li><a href={site.linkedin}>{site.linkedin.replace(/^https:\/\/(www\.)?/, '').replace(/\/$/, '')}</a></li>
-          <li><a href={site.github}>{site.github.replace(/^https:\/\//, '')}</a></li>
+          {site.github && <li><a href={site.github}>{site.github.replace(/^https:\/\//, '')}</a></li>}
           <li><a href={withBase('/')}>{host}</a></li>
         </ul>
       </header>

@@ -19,7 +19,7 @@ const hasForm = !!site.contactFormKey?.trim();
         </div>
         <ul class="contact__elsewhere">
           <li><a href={site.linkedin} rel="me noopener">LinkedIn</a></li>
-          <li><a href={site.github} rel="me noopener">GitHub</a></li>
+          {site.github && <li><a href={site.github} rel="me noopener">GitHub</a></li>}
           <li><span class="mono">{site.location}</span></li>
         </ul>
       </div>

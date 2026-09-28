@@ -26,7 +26,7 @@ const built = new Date().toISOString().slice(0, 10);
         <ul class="foot__list">
           <li><a href={`mailto:${site.email}`}>Email</a></li>
           <li><a href={site.linkedin} rel="me noopener">LinkedIn</a></li>
-          <li><a href={site.github} rel="me noopener">GitHub</a></li>
+          {site.github && <li><a href={site.github} rel="me noopener">GitHub</a></li>}
           <li><a href={withBase('/rss.xml')}>RSS</a></li>
         </ul>
       </div>

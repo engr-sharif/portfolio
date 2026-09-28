@@ -3,7 +3,6 @@ name: "XRF Data App"
 summary: "A browser app that reconciles handheld-XRF field readings against a master tracker — linking thousands of readings to samples for browsing, QC, and export."
 problem: "Two XRF guns produced raw CSV exports that had to be matched to a master spreadsheet by serial number and reading number — tedious, slow, and error-prone by hand."
 tech: ["JavaScript", "Python", "openpyxl", "CSV", "HTML"]
-repoUrl: "https://github.com/engr-sharif/XRF"
 screenshots: []
 codeLang: "javascript"
 featured: true
