@@ -14,6 +14,12 @@ const rows = projects.map((p) => {
 });
 const pins = rows.filter((r) => r.pos).map((r) => ({ no: r.no, lat: r.pos!.lat, lng: r.pos!.lng, label: r.p.data.title, href: withBase(`/projects/${r.p.id}/`), active: r.p.data.status === 'active' }));
 const active = projects.filter((p) => p.data.status === 'active').length;
+const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+/** A project with a film floats its loop beside the pointer (scripts/peek.ts). */
+const peekOf = (p: (typeof projects)[number]) => {
+  const f = p.data.film;
+  return f ? JSON.stringify({ loop: withBase(f.loop), loopWebm: f.loopWebm && withBase(f.loopWebm), poster: withBase(f.loopPoster ?? f.poster), vt: `fig-${p.id}` }) : undefined;
+};
 ---
 <BaseLayout title="Work — Mohammad Sharif" description="Case studies in environmental site characterization, remediation and compliance monitoring across California.">
   <div class="wrap">
@@ -27,7 +33,7 @@ const active = projects.filter((p) => p.data.status === 'active').length;
       <ol class="rows widx__list">
         {rows.map(({ p, no }) => (
           <li>
-            <a class="widx__row" href={withBase(`/projects/${p.id}/`)}>
+            <a class="widx__row" href={withBase(`/projects/${p.id}/`)} data-peek={peekOf(p)}>
               <span class="widx__no mono">{no}</span>
               <span class="widx__main">
                 <span class="widx__title" style={`view-transition-name: title-${p.id}`}>{p.data.title}</span>
@@ -38,6 +44,7 @@ const active = projects.filter((p) => p.data.status === 'active').length;
                 <span>{p.data.location ?? 'Several sites'}</span>
                 <span class="mono">{dateRange(p.data.startDate, p.data.endDate, p.data.status)}</span>
                 <Status status={p.data.status} />
+                {p.data.film && <span class="widx__film mono"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 3.5v9l7-4.5z" fill="currentColor" /></svg>Film{p.data.film.duration ? ` · ${mmss(p.data.film.duration)}` : ''}</span>}
               </span>
             </a>
           </li>
@@ -60,6 +67,8 @@ const active = projects.filter((p) => p.data.status === 'active').length;
   .widx__sum { font-family: var(--f-text); font-size: 1.0625rem; line-height: 1.55; color: var(--ink-2); max-width: 58ch; }
   .widx__meta { grid-column: 2; display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-5); align-items: baseline; font-size: 0.9375rem; color: var(--ink-2); }
   .widx__meta .mono { color: var(--ink-3); font-size: 0.75rem; }
+  .widx__meta .widx__film { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--cinnabar-ink); letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.6875rem; }
+  .widx__film svg { width: 0.7rem; height: 0.7rem; }
   @media (min-width: 64rem) {
     .widx { grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); align-items: start; }
     .widx__list { grid-column: 1 / span 7; }

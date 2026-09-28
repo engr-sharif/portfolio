@@ -49,7 +49,7 @@ const total = (await getProjects()).length;
                     {d.film && (
                       <>
                         {/* the film's loop plays in the cover's place and carries on, from the same moment, on the project page */}
-                        <video class="work__loop" data-loop muted loop playsinline preload="none" aria-hidden="true" poster={withBase(d.film.poster)}>
+                        <video class="work__loop" data-loop muted loop playsinline preload="none" aria-hidden="true" poster={withBase(d.film.loopPoster ?? d.film.poster)}>
                           <source src={withBase(d.film.loop)} type="video/mp4" />
                           {d.film.loopWebm && <source src={withBase(d.film.loopWebm)} type="video/webm" />}
                         </video>

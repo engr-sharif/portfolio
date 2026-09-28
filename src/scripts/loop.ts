@@ -36,11 +36,14 @@ export function initLoops() {
   videos.forEach((v) => { v.muted = true; resume(v); io.observe(v); });
 
   document.addEventListener('click', (e) => {
-    const a = (e.target as Element | null)?.closest('a[href]');
-    if (!a) return;
-    const t: Record<string, number> = {};
-    videos.forEach((v) => { if (!v.paused && v.currentTime > 0) t[pathOf(v)] = v.currentTime; });
-    if (!Object.keys(t).length) return;
-    try { sessionStorage.setItem(KEY, JSON.stringify({ at: Date.now(), t })); } catch { /* fine */ }
+    if ((e.target as Element | null)?.closest('a[href]')) handOff(videos);
   }, { capture: true });
+}
+
+/** Remember where each playing loop is, for the same loop on the next page. */
+export function handOff(videos: HTMLVideoElement[]) {
+  const t: Record<string, number> = {};
+  videos.forEach((v) => { if (!v.paused && v.currentTime > 0) t[pathOf(v)] = v.currentTime; });
+  if (!Object.keys(t).length) return;
+  try { sessionStorage.setItem(KEY, JSON.stringify({ at: Date.now(), t })); } catch { /* fine */ }
 }

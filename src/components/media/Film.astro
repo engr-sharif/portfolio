@@ -4,13 +4,18 @@
  * plays a silent highlight loop (only while on screen; the poster stands in
  * under reduced motion); "Watch the film" opens the full cut, with sound, in
  * the cinema player (scripts/film.ts), which grows out of this frame.
+ *
+ * With a storyboard, the film's chapters sit under the frame as cards, each
+ * a still from its chapter: the pointer scrubs through the chapter across a
+ * card, and a click grows the film out of that still, starting there.
  */
 import { withBase } from '../../lib/path';
 
 export interface Props {
   film: {
-    title: string; src: string; srcSmall?: string; webm?: string; loop: string; loopWebm?: string; poster: string;
-    duration?: number; chapters: { t: number; label: string }[];
+    title: string; src: string; srcSmall?: string; webm?: string; loop: string; loopWebm?: string; poster: string; loopPoster?: string;
+    duration?: number; aspect?: number; chapters: { t: number; label: string }[];
+    storyboard?: { src: string; every: number; cols: number; rows: number; w: number; h: number };
   };
   no?: string;
   vt?: string;
@@ -23,12 +28,24 @@ const config = {
   srcSmall: film.srcSmall ? withBase(film.srcSmall) : undefined,
   webm: film.webm ? withBase(film.webm) : undefined,
   poster: withBase(film.poster),
+  duration: film.duration,
+  aspect: film.aspect,
   chapters: film.chapters,
+  storyboard: film.storyboard && { ...film.storyboard, src: withBase(film.storyboard.src) },
 };
+const sb = config.storyboard;
+/** A storyboard still as a background: the sprite, sized and shifted to one tile. */
+const still = (t: number) => {
+  if (!sb) return '';
+  const i = Math.min(sb.cols * sb.rows - 1, Math.floor(t / sb.every));
+  const pct = (k: number, n: number) => (n > 1 ? (k / (n - 1)) * 100 : 0);
+  return `background-image: url(${sb.src}); background-size: ${sb.cols * 100}% ${sb.rows * 100}%; background-position: ${pct(i % sb.cols, sb.cols)}% ${pct(Math.floor(i / sb.cols), sb.rows)}%; aspect-ratio: ${sb.w} / ${sb.h}`;
+};
+const chapters = film.chapters.map((c, i) => ({ ...c, end: film.chapters[i + 1]?.t ?? film.duration ?? c.t }));
 ---
 <figure class="fig fig--marked film">
   <div class="fig__frame film__frame" style={`aspect-ratio: 16 / 9${vt ? `; view-transition-name: ${vt}` : ''}`}>
-    <video class="film__loop" data-loop muted loop playsinline preload="metadata" aria-hidden="true" poster={withBase(film.poster)}>
+    <video class="film__loop" data-loop muted loop playsinline preload="metadata" aria-hidden="true" poster={withBase(film.loopPoster ?? film.poster)}>
       <source src={withBase(film.loop)} type="video/mp4" />
       {film.loopWebm && <source src={withBase(film.loopWebm)} type="video/webm" />}
     </video>
@@ -37,7 +54,7 @@ const config = {
       <span class="film__disc" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M5.5 3.5v9l7-4.5z" fill="currentColor" /></svg></span>
       <span class="film__words">
         <span class="film__cta">Watch the film</span>
-        <span class="film__meta mono">{film.duration ? `${mmss(film.duration)} · ` : ''}sound on</span>
+        <span class="film__meta mono" data-film-meta>{film.duration ? `${mmss(film.duration)} · ` : ''}sound on</span>
       </span>
     </button>
   </div>
@@ -45,4 +62,18 @@ const config = {
     {no && <span class="fig__no">Fig. {no}</span>}
     <span>{film.title}</span>
   </figcaption>
+  {sb && chapters.length > 1 && (
+    <ol class="film__chapters" aria-label={`${film.title}: chapters`}>
+      {chapters.map((c, i) => (
+        <li>
+          {/* the still starts a beat into its chapter, past any cut or fade */}
+          <button class="film__ch" type="button" data-film-at={c.t} data-film-end={c.end} aria-label={`Watch from ${mmss(c.t)}, ${c.label}`}>
+            <span class="film__still" style={still(c.t + sb.every)} data-rest={c.t + sb.every} aria-hidden="true"><i class="film__scan"></i></span>
+            <span class="film__chno mono" aria-hidden="true">{String(i + 1).padStart(2, '0')}<span>{mmss(c.t)}</span></span>
+            <span class="film__chname" aria-hidden="true">{c.label}</span>
+          </button>
+        </li>
+      ))}
+    </ol>
+  )}
 </figure>

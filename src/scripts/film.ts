@@ -6,8 +6,22 @@
  * current chapter is named in the corner), sound, full screen. They step
  * aside while the film plays and come back on any movement.
  * Keyboard: Space/K play-pause, ←/→ five seconds, M sound, F full screen, Esc.
+ *
+ * A film with a storyboard previews the frame under the pointer over the
+ * scrubber, and its chapter cards on the page (Film.astro) scrub through
+ * their chapter as the pointer crosses them; a click grows the film out of
+ * the card's still and starts it there. Closing part-way puts "Resume at"
+ * on the page's play button.
  */
-interface Film { title: string; src: string; srcSmall?: string; webm?: string; poster: string; chapters: { t: number; label: string }[] }
+interface Storyboard { src: string; every: number; cols: number; rows: number; w: number; h: number }
+interface Film { title: string; src: string; srcSmall?: string; webm?: string; poster: string; duration?: number; aspect?: number; chapters: { t: number; label: string }[]; storyboard?: Storyboard }
+
+/** The storyboard tile for a moment, as a background-position. */
+const tileAt = (sb: Storyboard, t: number) => {
+  const i = Math.max(0, Math.min(sb.cols * sb.rows - 1, Math.floor(t / sb.every)));
+  const pct = (k: number, n: number) => (n > 1 ? (k / (n - 1)) * 100 : 0);
+  return `${pct(i % sb.cols, sb.cols)}% ${pct(Math.floor(i / sb.cols), sb.rows)}%`;
+};
 
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const icon = (d: string) => `<svg viewBox="0 0 16 16" aria-hidden="true">${d}</svg>`;
@@ -27,7 +41,7 @@ export function initFilm() {
   d.setAttribute('aria-label', 'Film');
   d.innerHTML = `
     <div class="cin__bg" data-bg></div>
-    <div class="cin__screen" data-screen><video class="cin__video" playsinline preload="auto" data-video></video></div>
+    <div class="cin__screen" data-screen><div class="cin__still" data-still></div><video class="cin__video" playsinline preload="auto" data-video></video></div>
     <header class="cin__top" data-ui>
       <p class="cin__title"><span data-title></span><span class="cin__chapter mono" data-chapter></span></p>
       <button class="cin__btn" type="button" data-close aria-label="Close the film">${icon(I.close)}</button>
@@ -39,7 +53,7 @@ export function initFilm() {
         <div class="cin__rail"><div class="cin__buf" data-buf></div><div class="cin__fill" data-fill></div></div>
         <div class="cin__ticks" data-ticks></div>
         <div class="cin__head" data-head></div>
-        <div class="cin__tip mono" data-tip hidden></div>
+        <div class="cin__tip mono" data-tip hidden><span class="cin__peek" data-peek hidden></span><span data-tipt></span></div>
       </div>
       <span class="cin__time mono" data-dur>0:00</span>
       <button class="cin__btn" type="button" data-sound aria-label="Mute">${icon(I.sound)}</button>
@@ -60,16 +74,27 @@ export function initFilm() {
   const tip = $<HTMLElement>('[data-tip]');
   const ticks = $<HTMLElement>('[data-ticks]');
   const chapterEl = $<HTMLElement>('[data-chapter]');
+  const peek = $<HTMLElement>('[data-peek]');
+  const stillEl = $<HTMLElement>('[data-still]');
+  const tipText = $<HTMLElement>('[data-tipt]');
 
   let film: Film | null = null;
   /** hls.js, loaded only when a film streams as HLS and the browser can't play it natively. */
   let hls: { destroy(): void } | null = null;
-  const load = (src: string) => {
+  let loads = 0;
+  const load = (src: string, at: number) => {
     hls?.destroy(); hls = null;
-    if (!src.endsWith('.m3u8') || video.canPlayType('application/vnd.apple.mpegurl')) { video.src = src; return; }
+    const n = ++loads;
+    if (!src.endsWith('.m3u8')) { video.src = at ? `${src}#t=${at}` : src; return; }
+    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = src;
+      if (at) video.addEventListener('loadedmetadata', () => { video.currentTime = at; }, { once: true });
+      return;
+    }
     import('hls.js/light').then(({ default: Hls }) => {
-      if (!Hls.isSupported()) { video.src = film?.srcSmall || film?.webm || src; return; }
-      const h = new Hls({ capLevelToPlayerSize: true, startLevel: -1 });
+      if (n !== loads || !d.open) return;   // closed, or another film, while hls.js loaded
+      if (!Hls.isSupported()) { const alt = film?.srcSmall || film?.webm; if (alt) video.src = alt; return; }
+      const h = new Hls({ capLevelToPlayerSize: true, startLevel: -1, startPosition: at });
       h.loadSource(src);
       h.attachMedia(video);
       h.on(Hls.Events.MANIFEST_PARSED, () => video.play().then(setPlay).catch(() => setPlay()));
@@ -77,6 +102,8 @@ export function initFilm() {
     });
   };
   let origin: HTMLElement | null = null;
+  let figure: HTMLElement | null = null;
+  let trigger: HTMLElement | null = null;
   let chapter = -1;
   let idle = 0;
 
@@ -86,11 +113,30 @@ export function initFilm() {
     const w = Math.min(innerWidth - pad * 2, (innerHeight - pad * 2) * 16 / 9);
     const h = w * 9 / 16;
     Object.assign(screen.style, { width: `${w}px`, height: `${h}px`, left: `${(innerWidth - w) / 2}px`, top: `${(innerHeight - h) / 2}px` });
+    // the chapter's still, over the picture area, until the film's first frame
+    const a = film?.aspect ?? 16 / 9, pw = a >= 16 / 9 ? w : h * a;
+    Object.assign(stillEl.style, { width: `${pw}px`, height: `${pw / a}px`, left: `${(w - pw) / 2}px`, top: `${(h - pw / a) / 2}px` });
     return screen.getBoundingClientRect();
   };
-  const fromFrame = (to: DOMRect) => {
-    const f = origin!.getBoundingClientRect();
-    return `translate3d(${f.left - to.left}px, ${f.top - to.top}px, 0) scale(${f.width / to.width}, ${f.height / to.height})`;
+  /** The screen placed so its picture covers `el` (a frame, or a chapter's
+   * still), clipped to it. A letterboxed film grows its picture, not its bars. */
+  const fromEl = (el: HTMLElement, to: DOMRect): Keyframe => {
+    const f = el.getBoundingClientRect();
+    const a = film?.aspect ?? 16 / 9;
+    const pw = a >= to.width / to.height ? to.width : to.height * a;
+    const s = Math.max(f.width / pw, f.height / (pw / a));
+    const tx = f.left + f.width / 2 - to.left - (s * to.width) / 2;
+    const ty = f.top + f.height / 2 - to.top - (s * to.height) / 2;
+    const ix = (to.width - f.width / s) / 2, iy = (to.height - f.height / s) / 2;
+    const r = (parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0) / s;
+    return { transform: `translate3d(${tx}px, ${ty}px, 0) scale(${s})`, clipPath: `inset(${iy}px ${ix}px round ${r}px)` };
+  };
+  /** The screen in place, clipped to its picture: a letterboxed film's bars
+   * stay out of the morph (after it they are black on black). */
+  const whole = (to: DOMRect): Keyframe => {
+    const a = film?.aspect ?? 16 / 9;
+    const pw = a >= to.width / to.height ? to.width : to.height * a;
+    return { transform: 'none', clipPath: `inset(${(to.height - pw / a) / 2}px ${(to.width - pw) / 2}px round 0px)` };
   };
 
   const showUI = () => {
@@ -140,12 +186,23 @@ export function initFilm() {
   };
 
   const open = (btn: HTMLElement) => {
-    film = JSON.parse(btn.dataset.film!) as Film;
-    origin = btn.closest('.film__frame') as HTMLElement;
+    figure = btn.closest<HTMLElement>('.film');
+    const play = figure?.querySelector<HTMLElement>('[data-film]');
+    if (!figure || !play) return;
+    film = JSON.parse(play.dataset.film!) as Film;
+    trigger = btn;
+    // a chapter card grows the film out of its still and starts at its chapter
+    const at = btn.dataset.filmAt != null ? Number(btn.dataset.filmAt) : Number(play.dataset.resume || 0);
+    origin = (btn.dataset.filmAt != null && btn.querySelector<HTMLElement>('.film__still')) || figure.querySelector<HTMLElement>('.film__frame');
     const small = innerWidth < 900 || (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
     const h264 = video.canPlayType('video/mp4; codecs="avc1.640028, mp4a.40.2"') !== '';
-    load(film.src.endsWith('.m3u8') ? film.src : !h264 && film.webm ? film.webm : (small && film.srcSmall) || film.src);
-    video.poster = film.poster;
+    load(film.src.endsWith('.m3u8') ? film.src : !h264 && film.webm ? film.webm : (small && film.srcSmall) || film.src, at);
+    // grown from a chapter card, the card's still carries on in the screen
+    // until the film's first frame covers it; from the frame, the poster does
+    const sb = film.storyboard;
+    const card = btn.dataset.filmAt != null && sb ? btn.querySelector<HTMLElement>('.film__still') : null;
+    Object.assign(stillEl.style, card ? { backgroundImage: `url(${sb!.src})`, backgroundSize: `${sb!.cols * 100}% ${sb!.rows * 100}%`, backgroundPosition: tileAt(sb!, Number(card.dataset.rest)) } : { backgroundImage: '' });
+    if (card) video.removeAttribute('poster'); else video.poster = film.poster;
     video.muted = false;
     $('[data-title]').textContent = film.title;
     chapter = -1; chapterEl.textContent = '';
@@ -157,7 +214,7 @@ export function initFilm() {
     video.play().then(setPlay).catch(() => setPlay());
     if (reduced()) return;
     const ease = { duration: 820, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' };
-    screen.animate([{ transform: fromFrame(to), borderRadius: '0px' }, { transform: 'none' }], ease);
+    screen.animate([fromEl(origin!, to), whole(to)], ease);
     bg.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, easing: 'ease-out', fill: 'backwards' });
     ui.forEach((el) => el.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 520, delay: 360, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' }));
   };
@@ -173,20 +230,38 @@ export function initFilm() {
     screen.getAnimations().forEach((a) => a.cancel());
     [bg, ...ui].forEach((el) => el.getAnimations().forEach((a) => a.cancel()));
     d.classList.remove('is-idle', 'is-paused');
-    origin?.querySelector('button')?.focus({ preventScroll: true });
+    (trigger ?? origin?.querySelector('button'))?.focus({ preventScroll: true });
     document.querySelectorAll<HTMLVideoElement>('video[data-loop]').forEach((v) => { if (!reduced()) v.play().catch(() => {}); });
+  };
+  /** Left part-way: the page's play button offers to resume, and the chapter you were in is marked. */
+  const remember = () => {
+    const play = figure?.querySelector<HTMLElement>('[data-film]');
+    const meta = figure?.querySelector<HTMLElement>('[data-film-meta]');
+    if (!play || !meta) return;
+    const t = video.currentTime, dur = video.duration || film?.duration || 0;
+    meta.dataset.plain ??= meta.textContent ?? '';
+    const part = t > 3 && dur - t > 3;
+    play.dataset.resume = part ? String(Math.floor(t)) : '';
+    meta.textContent = part ? `Resume at ${clock(t)}` : meta.dataset.plain;
+    figure!.querySelectorAll<HTMLElement>('.film__ch').forEach((c) => {
+      const here = part && t >= Number(c.dataset.filmAt) && t < Number(c.dataset.filmEnd);
+      c.classList.toggle('is-here', here);
+      if (here) c.closest('ol')?.scrollTo({ left: c.parentElement!.offsetLeft - 16, behavior: 'smooth' });
+    });
   };
   const close = () => {
     if (closing || !d.open) return;
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     video.pause();
+    tip.hidden = true;
+    remember();
     if (reduced() || !origin) { done(); return; }
     closing = true;
     const f = origin.getBoundingClientRect();
     if (f.bottom < 0 || f.top > innerHeight) origin.scrollIntoView({ block: 'center', behavior: 'instant' as ScrollBehavior });
     const to = screen.getBoundingClientRect();
     [bg, ...ui].forEach((el) => el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, easing: 'ease-in', fill: 'forwards' }));
-    const a = screen.animate([{ transform: 'none' }, { transform: fromFrame(to) }], { duration: 560, easing: 'cubic-bezier(0.3, 0, 0.1, 1)', fill: 'forwards' });
+    const a = screen.animate([whole(to), fromEl(origin, to)], { duration: 560, easing: 'cubic-bezier(0.3, 0, 0.1, 1)', fill: 'forwards' });
     a.onfinish = done;
   };
 
@@ -227,8 +302,13 @@ export function initFilm() {
     const t = k * (video.duration || 0);
     const ch = film?.chapters.filter((c) => c.t <= t).pop();
     tip.hidden = false;
-    tip.textContent = `${clock(t)}${ch ? ` · ${ch.label}` : ''}`;
-    tip.style.left = `${k * 100}%`;
+    tipText.textContent = `${clock(t)}${ch ? ` · ${ch.label}` : ''}`;
+    const sb = film?.storyboard;
+    peek.hidden = !sb || (e.pointerType === 'touch' && !dragging);
+    if (sb) Object.assign(peek.style, { backgroundImage: `url(${sb.src})`, backgroundSize: `${sb.cols * 100}% ${sb.rows * 100}%`, backgroundPosition: tileAt(sb, t), aspectRatio: `${sb.w} / ${sb.h}` });
+    // keep the preview on screen at the ends of the bar
+    const half = (sb ? peek.offsetWidth : tip.offsetWidth) / 2;
+    tip.style.left = `${Math.min(r.width - half, Math.max(half, k * r.width))}px`;
     if (dragging) seekAt(e.clientX);
   });
   scrub.addEventListener('pointerleave', () => (tip.hidden = true));
@@ -239,9 +319,30 @@ export function initFilm() {
   addEventListener('resize', () => { if (d.open) fitScreen(); });
 
   document.addEventListener('click', (e) => {
-    const b = (e.target as Element | null)?.closest<HTMLElement>('[data-film]');
+    const b = (e.target as Element | null)?.closest<HTMLElement>('[data-film], [data-film-at]');
     if (!b || d.open) return;
     e.preventDefault();
     open(b);
+  });
+
+  // a chapter card scrubs through its chapter under a mouse
+  document.querySelectorAll<HTMLElement>('.film__ch').forEach((card) => {
+    const still = card.querySelector<HTMLElement>('.film__still');
+    const cfg = card.closest('.film')?.querySelector<HTMLElement>('[data-film]')?.dataset.film;
+    const sb = cfg ? (JSON.parse(cfg) as Film).storyboard : undefined;
+    if (!still || !sb) return;
+    const from = Number(card.dataset.filmAt), to = Number(card.dataset.filmEnd);
+    card.addEventListener('pointermove', (e) => {
+      if (e.pointerType !== 'mouse') return;
+      const r = still.getBoundingClientRect();
+      const k = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+      still.style.backgroundPosition = tileAt(sb, from + k * Math.max(0, to - from - 0.01));
+      card.style.setProperty('--k', String(k));
+      card.classList.add('is-scrubbing');
+    });
+    card.addEventListener('pointerleave', () => {
+      still.style.backgroundPosition = tileAt(sb, Number(still.dataset.rest));
+      card.classList.remove('is-scrubbing');
+    });
   });
 }
