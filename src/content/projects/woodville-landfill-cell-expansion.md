@@ -17,8 +17,8 @@ techniques:
   - Geosynthetics
   - CQA
   - Title 27
-featured: false
-order: 6
+featured: true
+order: 2
 location: Tulare County, CA
 lat: 36.09
 lng: -119.2

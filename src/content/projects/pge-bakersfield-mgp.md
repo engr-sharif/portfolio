@@ -8,7 +8,7 @@ startDate: "2023-09"
 summary: "Characterization and remediation support at a former manufactured gas plant (MGP) site, a common class of legacy industrial sites requiring soil and groundwater cleanup."
 techniques: ["Characterization", "Remediation", "Soil & groundwater"]
 featured: true
-order: 2
+order: 3
 location: "Bakersfield, CA"
 lat: 35.37
 lng: -119.02
