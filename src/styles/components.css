@@ -614,6 +614,48 @@ html.vw-open { overflow: hidden; }
 @keyframes film-pulse { 0% { box-shadow: 0 0 0 0 rgb(255 106 69 / 0.45); } 70%, 100% { box-shadow: 0 0 0 14px rgb(255 106 69 / 0); } }
 @media (prefers-reduced-motion: reduce) { .film__disc { animation: none; } }
 
+/* chapter cards under the frame: a still from each chapter; the pointer
+   scrubs through the chapter across the card (scripts/film.ts) */
+.film__chapters {
+  list-style: none; margin: var(--s-4) 0 0; padding: 0 0 var(--s-2);
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(10.5rem, 1fr); gap: var(--s-3);
+  overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: 1rem; overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.film__chapters::-webkit-scrollbar { display: none; }
+/* phones: the strip runs to the screen's edges, the next card peeking in */
+@media (max-width: 45rem) {
+  .film__chapters { grid-auto-columns: 40%; margin-inline: calc(var(--gutter, 1rem) * -1); padding-inline: var(--gutter, 1rem); }
+}
+.film__chapters > li { scroll-snap-align: start; min-width: 0; }
+.film__ch {
+  --k: 0;
+  display: grid; gap: 0.4rem; width: 100%; padding: 0; border: 0; background: none; color: inherit;
+  text-align: left; cursor: pointer;
+}
+.film__still {
+  position: relative; display: block; width: 100%;
+  border-radius: 6px; overflow: hidden;
+  background-color: #0b0d0b; background-repeat: no-repeat;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
+  transition: transform 500ms var(--ease-out), box-shadow 250ms var(--ease), filter 400ms var(--ease);
+  filter: saturate(0.82) brightness(0.96);
+}
+/* the scan line: where in the chapter the still is */
+.film__scan { position: absolute; top: 0; bottom: 0; left: calc(var(--k) * 100%); width: 2px; margin-left: -1px; background: #ff6a45; box-shadow: 0 0 10px rgb(255 106 69 / 0.8); opacity: 0; transition: opacity 200ms; }
+.film__ch.is-scrubbing .film__scan { opacity: 1; }
+.film__ch:hover .film__still, .film__ch:focus-visible .film__still { transform: translateY(-3px); filter: none; box-shadow: 0 14px 30px -18px rgb(0 0 0 / 0.7); }
+.film__ch:focus-visible { outline: none; }
+.film__ch:focus-visible .film__still { outline: 2px solid var(--cinnabar); outline-offset: 2px; }
+.film__chno { display: flex; gap: 0.6rem; font-size: 0.6875rem; letter-spacing: 0.08em; color: var(--cinnabar-ink); }
+.film__chno span { color: var(--ink-3); }
+.film__chname { font-size: 0.9375rem; font-weight: 540; letter-spacing: -0.01em; line-height: 1.2; transition: color 200ms; }
+.film__ch:hover .film__chname { color: var(--cinnabar-ink); }
+/* where you left the film */
+.film__ch.is-here .film__still { box-shadow: inset 0 0 0 2px #ff6a45; filter: none; }
+.film__ch.is-here .film__chno::after { content: 'Paused here'; margin-left: auto; color: var(--cinnabar-ink); }
+@media (prefers-reduced-motion: reduce) { .film__still { transition: none; } .film__ch:hover .film__still { transform: none; } }
+
 .cin {
   position: fixed; inset: 0;
   width: 100vw; height: 100vh; height: 100dvh; max-width: none; max-height: none;
@@ -623,7 +665,8 @@ html.vw-open { overflow: hidden; }
 .cin::backdrop { background: transparent; }
 .cin__bg { position: absolute; inset: 0; background: #030403; }
 .cin__screen { position: absolute; transform-origin: 0 0; background: #000; overflow: hidden; box-shadow: 0 40px 120px -30px rgb(0 0 0 / 0.9); }
-.cin__video { width: 100%; height: 100%; display: block; object-fit: contain; background: #000; }
+.cin__video { position: relative; width: 100%; height: 100%; display: block; object-fit: contain; background: transparent; }
+.cin__still { position: absolute; background-repeat: no-repeat; }
 .cin__top, .cin__bar { position: absolute; left: 0; right: 0; z-index: 2; display: flex; align-items: center; gap: var(--s-3); padding: var(--s-4) clamp(1rem, 3vw, 2rem); transition: opacity 400ms var(--ease), transform 400ms var(--ease); }
 .cin__top { top: 0; justify-content: space-between; padding-top: max(var(--s-4), env(safe-area-inset-top)); background: linear-gradient(180deg, rgb(0 0 0 / 0.55), transparent); }
 .cin__bar { bottom: 0; padding-bottom: max(var(--s-4), env(safe-area-inset-bottom)); background: linear-gradient(0deg, rgb(0 0 0 / 0.6), transparent); }
@@ -654,8 +697,23 @@ html.vw-open { overflow: hidden; }
 .cin__ticks i { position: absolute; top: 50%; width: 2px; height: 9px; margin: -4.5px 0 0 -1px; background: rgb(255 255 255 / 0.7); border-radius: 1px; pointer-events: none; }
 .cin__head { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 4px rgb(255 106 69 / 0.35); transform: scale(0); transition: transform 200ms var(--ease-out); pointer-events: none; }
 .cin__scrub:hover .cin__head, .cin__scrub:focus-visible .cin__head { transform: scale(1); }
-.cin__tip { position: absolute; bottom: 100%; transform: translateX(-50%); margin-bottom: 0.35rem; padding: 0.25rem 0.5rem; border-radius: 4px; background: rgb(12 14 12 / 0.85); font-size: 0.6875rem; white-space: nowrap; pointer-events: none; }
+.cin__tip { position: absolute; bottom: 100%; transform: translateX(-50%); display: grid; justify-items: center; gap: 0.35rem; margin-bottom: 0.35rem; padding: 0.25rem 0.5rem; border-radius: 4px; background: rgb(12 14 12 / 0.85); font-size: 0.6875rem; white-space: nowrap; pointer-events: none; }
+.cin__tip:has(.cin__peek:not([hidden])) { padding: 0.25rem 0.25rem 0.35rem; border-radius: 8px; }
+/* the frame under the pointer, from the film's storyboard */
+.cin__peek { display: block; width: clamp(8.5rem, 16vw, 13rem); border-radius: 5px; background-repeat: no-repeat; background-color: #000; box-shadow: 0 0 0 1px rgb(255 255 255 / 0.14); }
+.cin__peek[hidden] { display: none; }
 @media (max-width: 45rem) { .cin__time[data-dur] { display: none; } .cin__top { gap: var(--s-2); } }
+
+/* the work index's floating film loop (scripts/peek.ts) */
+.peek { position: fixed; left: 0; top: 0; z-index: 35; width: clamp(15rem, 22vw, 22rem); aspect-ratio: 16 / 9; pointer-events: none; will-change: transform; }
+.peek video {
+  display: block; width: 100%; height: 100%; object-fit: cover;
+  border-radius: 10px; background: #0b0d0b;
+  box-shadow: 0 30px 60px -28px rgb(0 0 0 / 0.6);
+  opacity: 0; transform: scale(0.86); clip-path: inset(12% 12% round 10px);
+  transition: opacity 220ms var(--ease), transform 600ms var(--ease-out), clip-path 600ms var(--ease-out);
+}
+.peek.is-on video { opacity: 1; transform: none; clip-path: inset(0 round 10px); }
 
 /* -------------------------------------------------------------- media */
 .loop { width: 100%; height: 100%; object-fit: cover; background: var(--ground-3); }

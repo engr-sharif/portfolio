@@ -78,6 +78,13 @@ film:
       label: Flow accumulation
     - t: 58
       label: Site Explorer
+  storyboard:
+    src: /media/film/sbm/storyboard.webp
+    every: 2
+    cols: 8
+    rows: 4
+    w: 320
+    h: 180
 clearance:
   names: true
   photos: true
