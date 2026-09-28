@@ -218,6 +218,14 @@ export async function createGround(cfg: GroundConfig): Promise<GroundEngine | nu
   let kPose = 5, kScene = 4.5;
   let orbit = { yaw: 0, pitch: 0 }, orbitGoal = { yaw: 0, pitch: 0 }, dragging = false, lastDrag = 0;
   let torch = { x: 0, z: 0, r: 0 }, torchGoal = { x: 0, z: 0, r: 0 };
+  // the pointer's recent path, for the grains' wake (shaders: flow()): a ring
+  // of samples, each with where and when it was and how fast it was moving
+  const WAKE = 14, WAKE_LIFE = 2.4;
+  const wake = Array.from({ length: WAKE }, () => ({ x: 0, z: 0, vx: 0, vz: 0, t: -1e9, s: 0 }));
+  let wakeHead = 0, wakeLast: { x: number; z: number; t: number } | null = null;
+  const wakePos = new Float32Array(WAKE * 4), wakeT = new Float32Array(WAKE * 2);
+  const wakeR = () => clamp(pose.dist * 0.055, 0.035, 1.1);
+  const wakeAlive = (now: number) => wake.some((w) => (now - w.t) / 1000 < WAKE_LIFE);
 
   let riseT0 = performance.now(), riseOn = !reduced;
   const RISE_END = 1.75;
@@ -273,6 +281,12 @@ export async function createGround(cfg: GroundConfig): Promise<GroundEngine | nu
 
     const rise = riseOn ? Math.min(RISE_END, (now - riseT0) / 1000) : RISE_END;
     const drifting = !reduced && scene.drift > 0.01 && now - lastActivity < DRIFT_FOR;
+    const waking = !reduced && wakeAlive(now);
+    for (let i = 0; i < WAKE; i++) {
+      const w = wake[i], age = (now - w.t) / 1000;
+      wakePos.set([w.x, w.z, w.vx, w.vz], i * 4);
+      wakeT.set([age < WAKE_LIFE ? age : -1, w.s], i * 2);
+    }
     const sway = reduced ? 0 : scene.drift * Math.sin(now / 5200) * 0.05;
     const yaw = pose.yaw + orbit.yaw + sway;
     const pitch = clamp(pose.pitch + orbit.pitch, 0.04, 1.54);
@@ -300,6 +314,9 @@ export async function createGround(cfg: GroundConfig): Promise<GroundEngine | nu
       gl.uniform1f(pr.u('uAlpha'), scene.alpha);
       gl.uniform1f(pr.u('uScreenK'), screenK);
       gl.uniform1f(pr.u('uFocus'), pose.dist);
+      gl.uniform4fv(pr.u('uWake'), wakePos);
+      gl.uniform2fv(pr.u('uWakeT'), wakeT);
+      gl.uniform1f(pr.u('uWakeR'), reduced || scene.cut > 0.5 ? 0 : wakeR());
     };
     // state
     common(progs.state);
@@ -343,7 +360,7 @@ export async function createGround(cfg: GroundConfig): Promise<GroundEngine | nu
       const scaleKm = nice.find((k) => (k / 10) * pxPer10 >= 70) ?? 200;
       cfg.onFrame({ lat: c.lat, lng: c.lng, exaggeration: world.exaggeration(scene.relief), scaleKm, scalePx: (scaleKm / 10) * pxPer10 });
     }
-    if (running && (!settled() || (riseOn && rise < RISE_END) || dragging || drifting)) request();
+    if (running && (!settled() || (riseOn && rise < RISE_END) || dragging || drifting || waking)) request();
     else idle = true;
   };
 
@@ -413,8 +430,23 @@ export async function createGround(cfg: GroundConfig): Promise<GroundEngine | nu
     return unprojectToGround(inv, clientX - r.left, clientY - r.top, cw, ch, pose.ty);
   };
   let dragFrom: { x: number; y: number; yaw: number; pitch: number } | null = null;
+  // The canvas often sits under the page (the home page draws it behind its
+  // sections), so pointer events are read from the window: the ground answers
+  // wherever the pointer is over it and over nothing else, never through
+  // text, links, controls or panels.
+  const CONTENT = 'a, button, input, textarea, select, label, summary, [contenteditable], p, h1, h2, h3, h4, li, dt, dd, figure, img, video, .panel, .btn';
+  const overGround = (e: PointerEvent) => {
+    const t = e.target as Element | null;
+    if (!t) return false;
+    if (t !== canvas && t.closest(CONTENT)) return false;
+    const r = canvas.getBoundingClientRect();
+    return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom && r.width > 0 && getComputedStyle(root).visibility !== 'hidden';
+  };
+  let hovering = false;
   const onMove = (e: PointerEvent) => {
     if (e.pointerType !== 'mouse') return;
+    if (!dragFrom && !overGround(e)) { if (hovering) onLeave(); return; }
+    hovering = true;
     lastActivity = performance.now();
     if (dragFrom) {
       orbitGoal = {
@@ -428,6 +460,19 @@ export async function createGround(cfg: GroundConfig): Promise<GroundEngine | nu
     const g = groundAt(e.clientX, e.clientY);
     if (g) {
       torchGoal = { x: g.x, z: g.z, r: clamp(pose.dist * 0.075, 0.05, 1.4) };
+      // lay a wake sample every so often along the path, with its speed
+      const now = performance.now(), R = wakeR();
+      if (!wakeLast || now - wakeLast.t > 400) wakeLast = { x: g.x, z: g.z, t: now - 16 };
+      const moved = Math.hypot(g.x - wakeLast.x, g.z - wakeLast.z);
+      if (now - wakeLast.t > 28 && moved > R * 0.18) {
+        const dts = (now - wakeLast.t) / 1000;
+        let vx = (g.x - wakeLast.x) / dts, vz = (g.z - wakeLast.z) / dts;
+        const sp = Math.hypot(vx, vz), cap = R * 9;
+        if (sp > cap) { vx *= cap / sp; vz *= cap / sp; }
+        wake[wakeHead] = { x: g.x, z: g.z, vx, vz, t: now, s: clamp(sp / (R * 5), 0.15, 1) };
+        wakeHead = (wakeHead + 1) % WAKE;
+        wakeLast = { x: g.x, z: g.z, t: now };
+      }
       if (torch.r < 0.002) { torch.x = g.x; torch.z = g.z; }
       const ll = world.toLatLng(g.x, g.z);
       const inBox = ll.lat > cfg.bbox.south && ll.lat < cfg.bbox.north && ll.lng > cfg.bbox.west && ll.lng < cfg.bbox.east;
@@ -435,9 +480,10 @@ export async function createGround(cfg: GroundConfig): Promise<GroundEngine | nu
     } else { torchGoal.r = 0; cfg.onLens?.(null); }
     request();
   };
-  const onLeave = () => { torchGoal.r = 0; cfg.onLens?.(null); request(); };
+  const onLeave = () => { hovering = false; torchGoal.r = 0; wakeLast = null; cfg.onLens?.(null); request(); };
   const onDown = (e: PointerEvent) => {
-    if (e.pointerType !== 'mouse' || e.button !== 0) return;
+    if (e.pointerType !== 'mouse' || e.button !== 0 || !overGround(e)) return;
+    e.preventDefault();
     dragFrom = { x: e.clientX, y: e.clientY, yaw: orbitGoal.yaw, pitch: orbitGoal.pitch };
     dragging = true;
     canvas.setPointerCapture(e.pointerId);
@@ -450,12 +496,13 @@ export async function createGround(cfg: GroundConfig): Promise<GroundEngine | nu
     root.classList.remove('is-dragging');
     request();
   };
+  const onOut = (e: PointerEvent) => { if (!e.relatedTarget && hovering) onLeave(); };  // left the window
   if (cfg.interactive !== false) {
-    canvas.addEventListener('pointermove', onMove);
-    canvas.addEventListener('pointerleave', onLeave);
-    canvas.addEventListener('pointerdown', onDown);
-    canvas.addEventListener('pointerup', onUp);
-    canvas.addEventListener('pointercancel', onUp);
+    window.addEventListener('pointermove', onMove, { passive: true });
+    window.addEventListener('pointerdown', onDown);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+    document.addEventListener('pointerout', onOut);
   }
 
   const ro = new ResizeObserver(resize);
@@ -492,6 +539,11 @@ export async function createGround(cfg: GroundConfig): Promise<GroundEngine | nu
       ro.disconnect();
       document.removeEventListener('visibilitychange', onVis);
       window.removeEventListener('themechange', onTheme);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+      document.removeEventListener('pointerout', onOut);
       overlay.replaceChildren();
     },
   };
