@@ -174,7 +174,7 @@ So each boulder was located, tagged and read with **handheld XRF**: readings on
 its surface and at depth, with rock chips drilled and powdered for laboratory
 analysis to check the field instruments against the lab. Two XRF analyzers
 produced thousands of readings, which had to be tied back to the right boulder
-without error. I built the **[XRF Data App](/tools/xrf-data-app/)** for exactly
+without error. I built the [**XRF Data App**](/tools/xrf-data-app/) for exactly
 that: it reconciles every reading against the master tracker and shows each
 boulder's surface, depth and lab results side by side.
 
@@ -196,15 +196,15 @@ same ground, now being rebuilt to the design it informed.
   hillshade, reads slope and canopy height, and traces where a raindrop would
   run and how flow gathers, in one browser tab with nothing to install. The
   film shows only the terrain; the site's data layers stay out of it.
-- **[A field-navigation tool](/notes/building-a-field-navigation-tool/)** that
+- [**A field-navigation tool**](/notes/building-a-field-navigation-tool/) that
   walks the crew to each planned sample point on a grid, and shows how close
   they really are.
-- **[A sampling planning map](/tools/soil-sampling-planning-tool/)** that puts
+- [**A sampling planning map**](/tools/soil-sampling-planning-tool/) that puts
   current and historical samples together, finds the gaps, and places new
   points.
-- **[The Boring Data Explorer](/tools/boring-data-explorer/)**, for reading
+- [**The Boring Data Explorer**](/tools/boring-data-explorer/), for reading
   subsurface boring records on a map instead of one file at a time.
-- **[The XRF Data App](/tools/xrf-data-app/)**, for the boulder campaign.
+- [**The XRF Data App**](/tools/xrf-data-app/), for the boulder campaign.
 
 ## Skills demonstrated
 

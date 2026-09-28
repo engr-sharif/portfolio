@@ -62,9 +62,9 @@ and perimeter probes.
 
 The same work carried on at other California landfills, each with a page of
 its own: independent CQA on the landfill gas system rebuilt beneath the final
-cover at **[Colton Sanitary Landfill](/projects/colton-landfill-final-cover/)**,
+cover at [**Colton Sanitary Landfill**](/projects/colton-landfill-final-cover/),
 where I wrote the final CQA completion report; and design and CQA on the new
-lined cell at **[Woodville Landfill](/projects/woodville-landfill-cell-expansion/)**.
+lined cell at [**Woodville Landfill**](/projects/woodville-landfill-cell-expansion/).
 
 ## Skills demonstrated
 
