@@ -3,13 +3,13 @@ title: Colton Sanitary Landfill — Final Cover & LFG System
 client: County of San Bernardino — Solid Waste Management Division
 siteType: Closed MSW landfill — final closure construction
 status: complete
-role: Third-party CQA — landfill gas collection system
+role: Third-party CQA — landfill gas system; author of the final CQA completion report
 startDate: 2022-10
 endDate: 2024-07
 summary: "Third-party construction quality assurance on the new landfill gas collection system built with the final closure of an 88-acre landfill in Colton: extraction wells drilled into the waste, and new headers and laterals."
 problem: "Closing the landfill with a geosynthetic cover meant rebuilding the gas system under it: old wells abandoned, new ones drilled into the waste, and the piping replaced, all built to a design that would be buried for decades."
-approach: "Independent CQA on the landfill gas work designed by Advanced Earth Sciences (AES): observing drilling into waste and well construction, and checking headers and laterals against the plans and specifications."
-outcome: The new collection system was built to design and documented for the County, beneath what the County describes as the largest ClosureTurf installation in Southern California, completed in July 2024.
+approach: "Independent CQA on the landfill gas work designed by Advanced Earth Sciences (AES): observing drilling into waste and well construction, and checking headers and laterals against the plans and specifications, then writing the final CQA completion report."
+outcome: "The new collection system was built to design, beneath what the County describes as the largest ClosureTurf installation in Southern California, completed in July 2024. I wrote the final CQA completion report that documents the work."
 techniques:
   - CQA
   - LFG extraction wells
@@ -18,6 +18,7 @@ techniques:
   - HDPE pipe
   - Final cover
   - Title 27 closure
+  - CQA completion report
 externalLink: https://dpw.sbcounty.gov/solid-waste/colton-sanitary-landfill-project/
 featured: false
 order: 5
@@ -33,7 +34,6 @@ clearance:
   data: true
   date: "2026-09-27"
 gallery:
-  - /src/assets/covers/gptempdownload.jpg
   - /src/assets/covers/70249293094-cbb58d21-bc35-4ce1-9408-d1dcace53c16.jpg
   - /src/assets/covers/gptempdownload-2.jpg
   - /src/assets/covers/img-8124.jpg
@@ -50,9 +50,6 @@ gallery:
   - /src/assets/covers/img-8236.jpg
   - /src/assets/covers/img-8284.jpg
 photoPlaces:
-  gptempdownload.jpg:
-    lat: 34
-    lng: -117.3
   gptempdownload-2.jpg:
     lat: 34
     lng: -117.3
@@ -135,9 +132,25 @@ the plans and specifications as they were installed.
 details of what went in. Once the cover is on, those records are the only
 way to see the system.
 
+**The final cover around it.** The gas work went in alongside the new cover:
+textured geomembrane unrolled down the slopes from spreader bars, seams
+welded with hot-wedge welders, and samples cut from the seams and pulled
+apart on a field tensiometer before each cut-out was patched.
+
+## The CQA completion report
+
+I was the **author of the final CQA completion report**: the document that
+closes out construction. It brings the whole CQA record together (the
+daily observations, the testing, how each deviation from the plans was
+resolved, and the as-built record) to show that the work was built to the
+approved design and specifications. It is the record the owner and the
+regulators rely on to accept the closure, and the one anyone reading the
+site in decades to come will start from.
+
 ## Skills demonstrated
 
 Construction quality assurance on landfill gas systems; observing drilling
 and well construction in waste; field verification against design drawings
 and specifications; working as the independent party between the County,
-the designer and the contractor; and construction documentation.
+the designer and the contractor; and writing the final CQA completion
+report.
