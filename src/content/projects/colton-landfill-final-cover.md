@@ -89,6 +89,7 @@ photoPlaces:
   img-8284.jpg:
     lat: 34
     lng: -117.3
+coverImage: /src/assets/covers/gptempdownload-2.jpg
 ---
 ## Setting
 
