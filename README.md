@@ -129,6 +129,7 @@ check is for.
 | Kind | Where it lives | Limits | Notes |
 |---|---|---|---|
 | Photos | `src/assets/…` | optimised on upload | HEIC → JPEG, ≤ 2400 px, **EXIF (and GPS) stripped** by re-encoding. If re-encoding fails, the upload stops rather than send the original. |
+| Photo GPS | project `photoPlaces` | read before stripping | Fills an empty project location, flags a photo taken over 25 km from its project, and is stored **rounded to the project's privacy setting**. The home map moves a photo off its project's position only when it was taken at another site. |
 | Video | **YouTube** | none | Paste the link. The site shows a poster and loads YouTube's privacy-enhanced player only when someone presses play. |
 | Short loops | `public/media/loops/` | 20 s, 8 MB | Silent, play when visible, a poster frame is taken for you. **Phone GPS is blanked in place** before upload. |
 | Voice notes | `public/media/audio/` | 15 MB | Record in the Studio or upload. The waveform is computed in the browser, and a transcript field sits alongside. |

@@ -23,7 +23,13 @@ location: "Tulare County, CA"
 lat: 36.09
 lng: -119.2
 privacy: "town"
-published: false
+published: true
+clearance:
+  names: true
+  photos: true
+  location: true
+  data: true
+  date: "2026-09-27"
 ---
 
 ## Setting

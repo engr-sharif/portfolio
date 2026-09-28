@@ -76,6 +76,10 @@ export const projectSchema = z.object({
   // How precisely the public site shows the location: 'site' ≈ 1 km (the
   // stored precision), 'town' ≈ 10 km, 'region' ≈ 50 km.
   privacy: z.enum(['site', 'town', 'region']).default('site'),
+  // Where each photo was taken, keyed by file name: read from the phone's GPS
+  // at upload (before the file is stripped) and already rounded to this
+  // project's privacy setting. Written by the Studio; not shown in the form.
+  photoPlaces: z.record(z.string(), z.object({ lat: z.number(), lng: z.number() })).optional(),
   // Media: a YouTube walkthrough, a voice note, and public documents (PDFs).
   video: youtube.optional(),
   videoTitle: z.string().optional(),

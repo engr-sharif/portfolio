@@ -10,6 +10,7 @@ import { processImage, roundCoord, type ImageMeta } from '../../image-process';
 import { Button, Dialog, IconButton, Input, Switch, Textarea } from '../../ui/primitives';
 import { YouTubeField, LoopField, AudioField } from './MediaFields';
 import { checkSize, fmtBytes, LIMITS } from '../../media';
+import { placePhoto, addPlace, forgetPhoto, type PhotoEntry } from '../../photo-places';
 
 /**
  * Schema-driven form fields. Every field type the collections use, with:
@@ -164,29 +165,65 @@ const TagsField: FC<FieldProps> = ({ field, value, onChange, error }) => {
   );
 };
 
+/** Photos taken far from the project: flagged, never blocked. */
+type Far = { name: string; km: number };
+const FarNote: FC<{ far: Far[] }> = ({ far }) => (far.length ? (
+  <div className="callout callout--warn" role="status">
+    <div className="callout__body">
+      {far.map((f) => <div key={f.name}><code>{f.name}</code> was taken about {f.km} km from this project’s location.</div>)}
+      <div className="sf__hint">If it belongs to another project, remove it here. Otherwise check the project’s location.</div>
+    </div>
+  </div>
+) : null);
+
+/** Use an uploaded photo's GPS for the entry (photo-places.ts); returns the entry as updated. */
+function applyPlace(entry: PhotoEntry, path: string, meta: ImageMeta, onSibling: NonNullable<FieldProps['onSibling']>, far: Far[]): PhotoEntry {
+  const { key, at, fill, farKm } = placePhoto(entry, path, meta);
+  if (key && at) onSibling('photoPlaces', addPlace(key, at));
+  if (fill) { onSibling('lat', fill.lat); onSibling('lng', fill.lng); }
+  if (farKm != null) far.push({ name: path.split('/').pop() || path, km: farKm });
+  return fill ? { ...entry, ...fill } : entry;
+}
+/** Let go of a photo's place when it leaves the entry. */
+function dropPlace(entry: PhotoEntry, path: string, onSibling: NonNullable<FieldProps['onSibling']>) {
+  const drop = forgetPhoto(entry, path);
+  if (drop) onSibling('photoPlaces', drop);
+}
+
 /* --------------------------------------------------------- Image list (dnd) */
 const useDndSensors = () => useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
-const ImageListField: FC<FieldProps> = ({ field, value, onChange, error }) => {
+const ImageListField: FC<FieldProps> = ({ field, value, onChange, error, onSibling, siblings }) => {
   const arr: string[] = Array.isArray(value) ? value : [];
   const dir = field.mediaDir || 'src/assets/gallery';
   const [lib, setLib] = useState(false);
   const [busy, setBusy] = useState('');
   const [err, setErr] = useState('');
   const [over, setOver] = useState(false);
+  const [far, setFar] = useState<Far[]>([]);
   const sensors = useDndSensors();
+  const geo = field.geo && onSibling ? onSibling : null;
   const ids = arr.map((p, i) => `${p}#${i}`);
 
   const uploadMany = async (files: File[]) => {
     if (!files.length) return;
     setErr(''); let acc = [...arr]; const failed: string[] = []; let last = '';
+    let entry: PhotoEntry = { ...(siblings ?? {}) }; const farOnes: Far[] = [];
     for (let i = 0; i < files.length; i++) {
       setBusy(`Uploading ${i + 1} of ${files.length}…`);
-      try { const { path } = await uploadFile(files[i], dir); acc = [...acc, path]; onChange(acc); }
+      try {
+        const { path, meta } = await uploadFile(files[i], dir); acc = [...acc, path]; onChange(acc);
+        if (geo) entry = applyPlace(entry, path, meta, geo, farOnes);
+      }
       catch (e: any) { failed.push(files[i].name); last = e?.message || ''; }
     }
-    setBusy('');
+    setBusy(''); setFar(farOnes);
     if (failed.length) setErr(`Couldn't upload ${failed.join(', ')}. ${last}`);
+  };
+  const remove = (i: number) => {
+    if (geo) dropPlace((siblings ?? {}) as PhotoEntry, arr[i], geo);
+    setFar((f) => f.filter((x) => x.name !== arr[i].split('/').pop()));
+    onChange(arr.filter((_, j) => j !== i));
   };
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over: o } = e; if (!o || active.id === o.id) return;
@@ -199,7 +236,7 @@ const ImageListField: FC<FieldProps> = ({ field, value, onChange, error }) => {
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
           <SortableContext items={ids} strategy={rectSortingStrategy}>
             <div className="imggrid">
-              {arr.map((p, i) => <SortableThumb key={ids[i]} id={ids[i]} src={rawImageUrl(p, dir)} label={p.split('/').pop() || p} onRemove={() => onChange(arr.filter((_, j) => j !== i))} />)}
+              {arr.map((p, i) => <SortableThumb key={ids[i]} id={ids[i]} src={rawImageUrl(p, dir)} label={p.split('/').pop() || p} onRemove={() => remove(i)} />)}
               <label className={`imggrid__add${busy ? ' is-busy' : ''}`}>
                 <input type="file" accept="image/*,.heic,.heif" multiple hidden disabled={!!busy} onChange={(e) => { const fs = Array.from(e.target.files || []); e.target.value = ''; uploadMany(fs); }} />
                 <ImagePlus size={20} aria-hidden /><span>{busy || 'Add photos'}</span><small>or drop them here</small>
@@ -210,6 +247,7 @@ const ImageListField: FC<FieldProps> = ({ field, value, onChange, error }) => {
       </div>
       <div className="sf__row-actions"><Button size="sm" variant="ghost" icon={<Images size={14} />} onClick={() => setLib(true)}>Choose existing</Button>{arr.length > 1 && <span className="sf__hint">Drag to reorder · first is the lead image</span>}</div>
       {err && <p className="sf__err" role="alert">{err}</p>}
+      <FarNote far={far} />
       <ErrorLine id={`f-${field.name}-err`} msg={error} /><Hint field={field} />
       <MediaLibrary open={lib} dir={dir} onPick={(p) => { onChange([...arr, p]); setLib(false); }} onClose={() => setLib(false)} />
     </Wrap>
@@ -227,16 +265,31 @@ const SortableThumb: FC<{ id: string; src: string; label: string; onRemove: () =
 };
 
 /* ------------------------------------------------------------------- Image */
-const ImageField: FC<FieldProps> = ({ field, value, onChange, error, onMeta }) => {
+const ImageField: FC<FieldProps> = ({ field, value, onChange, error, onMeta, onSibling, siblings }) => {
   const dir = field.mediaDir || 'src/assets/covers';
   const [busy, setBusy] = useState(false);
   const [lib, setLib] = useState(false);
   const [err, setErr] = useState('');
   const [over, setOver] = useState(false);
+  const [far, setFar] = useState<Far[]>([]);
+  const geo = field.geo && onSibling ? onSibling : null;
+  const entry = (siblings ?? {}) as PhotoEntry;
+  /** Swap the image, letting go of the old one's place. */
+  const replace = (next: string) => {
+    if (geo && value) dropPlace(entry, String(value), geo);
+    setFar([]);
+    onChange(next);
+  };
   const up = async (f?: File) => {
     if (!f) return;
     setBusy(true); setErr('');
-    try { const { path, meta } = await uploadFile(f, dir); onChange(path); onMeta?.(meta); }
+    try {
+      const { path, meta } = await uploadFile(f, dir); onMeta?.(meta);
+      replace(path);
+      const farOnes: Far[] = [];
+      if (geo) applyPlace(entry, path, meta, geo, farOnes);
+      setFar(farOnes);
+    }
     catch (e: any) { setErr(e?.message || 'Upload failed. Check your connection and try again.'); }
     finally { setBusy(false); }
   };
@@ -252,13 +305,14 @@ const ImageField: FC<FieldProps> = ({ field, value, onChange, error, onMeta }) =
           {value && <code className="imgfield__name">{String(value).split('/').pop()}</code>}
           <div className="sf__row-actions">
             <Button size="sm" variant="ghost" icon={<Images size={14} />} onClick={() => setLib(true)}>Choose existing</Button>
-            {value && <Button size="sm" variant="ghost" icon={<X size={14} />} onClick={() => onChange('')}>Clear</Button>}
+            {value && <Button size="sm" variant="ghost" icon={<X size={14} />} onClick={() => replace('')}>Clear</Button>}
           </div>
         </div>
       </div>
       {err && <p className="sf__err" role="alert">{err}</p>}
+      <FarNote far={far} />
       <ErrorLine id={`f-${field.name}-err`} msg={error} /><Hint field={field} />
-      <MediaLibrary open={lib} dir={dir} onPick={(p) => { onChange(p); setLib(false); }} onClose={() => setLib(false)} />
+      <MediaLibrary open={lib} dir={dir} onPick={(p) => { replace(p); setLib(false); }} onClose={() => setLib(false)} />
     </Wrap>
   );
 };

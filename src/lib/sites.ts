@@ -4,12 +4,9 @@
  * setting), so a close-up never shows more than the rounding allows. A patch
  * is always at least four times wider than the uncertainty it stands for.
  */
-import { publicPosition } from './privacy';
+import { publicPosition, PRECISION_KM, type Privacy } from './privacy';
 
-export type Privacy = 'site' | 'town' | 'region';
-
-/** How far a public position may sit from the real one, in km (rounded up). */
-export const PRECISION_KM: Record<Privacy, number> = { site: 1, town: 10, region: 50 };
+export { PRECISION_KM, type Privacy };
 
 export const PATCH_N = 128;
 
