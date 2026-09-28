@@ -3,9 +3,9 @@ title: "City of Roseville — Closed Landfill Compliance Monitoring"
 client: "City of Roseville"
 siteType: "Closed MSW landfill — post-closure monitoring"
 status: "active"
-role: "Environmental Engineer (EIT) — report author & data-evaluation lead"
+role: "Deputy project manager (DPM)"
 startDate: "2025-01"
-summary: "Author and data-evaluation lead for the semiannual compliance reports at the City of Roseville's closed, unlined landfill: groundwater, surface water and landfill gas, read against decades of record."
+summary: "Deputy project manager for Title 27 compliance at the City of Roseville's closed, unlined landfill: coordinating the semiannual groundwater sampling, running the landfill gas monitoring, and helping write the reports the Regional Water Board relies on."
 techniques:
   - "Groundwater monitoring"
   - "Surface water monitoring"
@@ -21,7 +21,7 @@ lat: 38.75
 lng: -121.29
 published: true
 problem: "An unlined landfill closed in 1995 still has to show the Regional Water Board, twice a year, that its groundwater, the creek running through it and the gas at its boundary are under control."
-approach: "Turn each monitoring event into a regulator-ready report: QA/QC of the lab data, trends against the multi-year record, background against compliance wells, and a Python diff that keeps last cycle's text from going stale."
+approach: "Run each semiannual cycle end to end: coordinate the groundwater sampling, monitor the landfill gas, then turn the results into a regulator-ready report, with a Python diff that keeps last cycle's text from going stale."
 outcome: "Semiannual reports that are internally consistent and defensible, submitted on schedule under the site's Title 27 monitoring program."
 ---
 ## Setting
@@ -61,19 +61,23 @@ doing its job.
 
 ## My role
 
-Since January 2025 I have been the **author and data-evaluation lead** for
-those reports. That means taking a field event and a stack of laboratory
-results and turning them into a compliance narrative a regulator can rely on:
+I am the **deputy project manager (DPM)** for the City's compliance program
+at the landfill, keeping it in line with **Title 27** and the site's
+Monitoring and Reporting Program, for groundwater and for landfill gas. Each
+six-month cycle:
 
-- **Field data.** Groundwater, surface-water and gas monitoring, with
-  instruments such as the Landtec **GEM 5000** gas analyzer and a **MiniRAE
+- **Groundwater.** I coordinate the semiannual groundwater sampling event:
+  scheduling, the sampling team, laboratory analyses and deliverables.
+- **Landfill gas.** I conduct the semiannual landfill gas monitoring at the
+  perimeter probes, with a Landtec **GEM 5000** gas analyzer and a **MiniRAE
   3000 PID**.
-- **Evaluation.** QA/QC of the lab data; trends against the multi-year record;
-  background against compliance wells; and a close read of the constituents
-  that drive the corrective-action program.
-- **The report.** Tables, figures and narrative, built on a controlled report
-  template, drafted for project-manager and client review, then signed by a
-  professional engineer and submitted.
+- **Reports.** I help draft the semiannual and annual monitoring reports:
+  QA/QC of the laboratory data, trends against the multi-year record,
+  background against compliance wells, and the corrective-action picture,
+  prepared for review, certification by a professional engineer, and
+  submittal.
+- **The project.** As DPM, I help keep the schedule, scope and deliverables
+  on track for the City.
 
 ## Keeping a cyclic report true
 
@@ -92,7 +96,8 @@ is in [Tools](/tools/cyclic-report-qc-tool/).
 
 ## Skills demonstrated
 
-Title 27 compliance monitoring and reporting; groundwater, surface-water and
-landfill-gas monitoring; field instrumentation; laboratory data QA/QC and
-statistical trend review; corrective-action evaluation at an unlined closed
-landfill; technical writing for regulators; and Python tooling for report QC.
+Deputy project management of a Title 27 compliance program; coordinating
+groundwater sampling; landfill gas monitoring and field instrumentation;
+laboratory data QA/QC and trend review; corrective-action evaluation at an
+unlined closed landfill; technical writing for regulators; and Python tooling
+for report QC.

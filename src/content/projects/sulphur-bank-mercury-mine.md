@@ -3,18 +3,18 @@ title: Sulphur Bank Mercury Mine
 client: "U.S. EPA Region 9 — Superfund"
 siteType: "Superfund mercury mine — pre-design investigation & remediation"
 status: active
-role: "Construction oversight lead (Task 8), Phase 1 remediation; co-lead, PDI field campaigns"
+role: "Construction lead, Phase 1 remediation; co-lead, pre-design field campaigns"
 envirostorQuery: Sulphur Bank Mercury Mine
 startDate: 2025-05
 endDate: 2030-12
-summary: "A former mercury mine on the shore of Clear Lake, now a federal Superfund cleanup. I helped lead the 2025 pre-design test-pit, soil-boring and boulder XRF campaigns that fed the remedial design, and now lead construction oversight for Phase 1."
+summary: "A former mercury mine on the shore of Clear Lake, now a federal Superfund cleanup. I helped lead the 2025 pre-design test-pit, soil-boring and boulder XRF campaigns that fed the remedial design, and now lead the construction effort for Phase 1, the cleanup of residential yards."
 techniques:
   - "Pre-design investigation"
   - "Test pitting"
   - "Soil borings"
   - "Handheld XRF"
   - "Boulder reuse"
-  - "Construction oversight"
+  - "Residential soil cleanup"
   - "Mercury"
   - "Superfund"
   - "Field tools"
@@ -98,7 +98,7 @@ clearance:
   date: "2026-09-27"
 problem: "A century of mining left about 2.5 to 3 million cubic yards of mercury-bearing waste on Clear Lake's shore. EPA's 2023 cleanup plan consolidates and caps it, and designing that means knowing what is where, and what can be reused."
 approach: "A pre-design investigation run alongside the design: test pits and soil borings to map the waste and the ground beneath it, and handheld XRF on more than 146 boulders to show which could be reused, with data turned around fast enough to shape the design."
-outcome: "Field data in the designers' hands while the design took shape, and a characterized stock of boulders the remedy can build with instead of trucking rock in. The project now moves into construction, where I lead oversight for Phase 1."
+outcome: "Field data in the designers' hands while the design took shape, and a characterized stock of boulders the remedy can build with instead of trucking rock in. The project now moves into construction, and I lead the Phase 1 effort: cleaning up residential yards beside the mine."
 ---
 ## Setting
 
@@ -141,8 +141,8 @@ investigation was for.
 - **Boulder characterization.** I helped lead the **handheld XRF campaign**
   that characterized **more than 146 boulders** across the site to support
   their reuse in the remedy.
-- **Construction oversight.** I am the lead for the **construction-oversight
-  task (Task 8) for Phase 1** of the remediation.
+- **Phase 1 construction.** I lead the **construction effort for Phase 1**
+  of the remediation: the cleanup of residential yards next to the mine.
 
 ## Test pits and borings
 
@@ -178,15 +178,22 @@ without error. I built the [**XRF Data App**](/tools/xrf-data-app/) for exactly
 that: it reconciles every reading against the master tracker and shows each
 boulder's surface, depth and lab results side by side.
 
-## Construction oversight: Phase 1
+## Phase 1: the yards
 
-For Phase 1 of the remediation I lead the construction-oversight task: the
-team that watches the work go in on EPA's behalf. Oversight means checking the
-contractor's work against the design as it is built (excavation limits,
-material placement and compaction, the controls on dust, water and air),
-recording it day by day, tracking quantities, and raising problems while they
-can still be fixed cheaply. It is the other half of the pre-design work: the
-same ground, now being rebuilt to the design it informed.
+The cleanup starts where people live. **Phase 1** is the residential soil
+cleanup: yards on the Elem Indian Colony and in the neighborhood along
+Sulphur Bank Mine Road, closest to the old workings. EPA's plan is to remove
+about 6,000 cubic yards of soil from around a dozen properties, starting in
+the fall of 2026, with Tribal Monitors on site alongside the crews.
+
+I lead the construction effort for Phase 1. A residential cleanup is
+engineering at the scale of a garden: digging soil out to the depths and
+limits in the design, confirming by sampling that what stays behind meets
+the residential cleanup levels, bringing in clean soil, and putting each yard
+back together. And it is done around people's homes, so dust control,
+access, scheduling and keeping residents informed matter as much as the
+excavation itself. It is the other half of the pre-design work: the same
+ground, now being rebuilt to the design it informed.
 
 ## Tools I built for the site
 
@@ -210,7 +217,7 @@ same ground, now being rebuilt to the design it informed.
 
 Pre-design investigation planning and field leadership; test pitting and soil
 boring logging; handheld XRF screening with laboratory confirmation;
-characterizing material for reuse; construction oversight on a federal
+characterizing material for reuse; leading construction on a federal
 Superfund cleanup; hazardous-site field safety; and building the software a
 field team needs.
 

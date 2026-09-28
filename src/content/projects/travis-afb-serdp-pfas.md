@@ -6,8 +6,8 @@ status: "complete"
 role: "Field study & groundwater sampling support"
 startDate: "2022-06"
 endDate: "2023-05"
-summary: "Field study and groundwater sampling support for a SERDP-funded PFAS research study at Travis Air Force Base, where decades of firefighting foam left PFAS in the soil and groundwater."
-techniques: ["PFAS", "AFFF sites", "Groundwater sampling", "PFAS-free sampling protocols", "Field QA/QC", "Research field study"]
+summary: "Field work for a SERDP-funded PFAS study with a sharp question: can the tubing used to sample a monitoring well add PFAS to the sample? Existing and new tubing were tested side by side across about half a dozen wells."
+techniques: ["PFAS", "Groundwater sampling", "Sampling bias study", "Tubing & methanol rinsate sampling", "PFAS-free sampling protocols", "Field QA/QC"]
 featured: true
 order: 4
 externalLink: "https://serdp-estcp.mil/"
@@ -18,55 +18,58 @@ published: true
 ---
 ## Setting
 
-Travis Air Force Base, outside Fairfield, is a major Air Force airlift base,
-and like most military airfields it used **aqueous
-film-forming foam (AFFF)** for decades: in fire-training areas, hangars and
-crash response. AFFF works because of PFAS, the per- and polyfluoroalkyl
-substances that do not break down, and they have followed the foam into the
-soil and groundwater. The Air Force began investigating PFAS at Travis in
-2015, found groundwater above EPA's health advisory, and by 2020 had
-extended sampling to drinking-water wells south of the base. A base-wide
-PFAS remedial investigation, covering more than a dozen AFFF-use areas, is
-still under way.
+Military airfields used **aqueous film-forming foam (AFFF)** for decades to
+fight fuel fires, and AFFF works because of PFAS: the per- and
+polyfluoroalkyl substances that do not break down. Where the foam was used,
+PFAS followed it into the soil and groundwater, and the Department of Defense
+is now investigating thousands of such sites. **SERDP**, its environmental
+research program, funds the studies that make that work reliable.
 
-## The research
+## The question
 
-Travis is one of thousands of Department of Defense sites where AFFF was
-used, and cleaning them up depends on questions that are still open: how
-PFAS move from a source area through the ground, how to sample them without
-biasing the result, and which of the thousands of PFAS compounds are there
-at all. **SERDP**, the DoD's environmental research program, funds studies
-to answer them, and runs them at real sites so the answers hold up in the
-field.
+PFAS are measured in **parts per trillion**, and they turn up in everyday
+materials. So before a sample result can be trusted, the equipment that
+collected it has to be ruled out. Monitoring wells are often fitted with
+**dedicated tubing** that stays in the well between sampling events for years.
+Could that tubing, or new tubing put in its place, add PFAS to the water it
+carries, or hold PFAS back? If it could, results across a monitoring network
+would carry a bias no one could see.
+
+## The study
+
+We tested it directly across about **half a dozen wells**. At each one:
+
+1. **Sample through the existing tubing**, the way the well is normally sampled.
+2. **Pull the existing tubing and sample the tubing itself**, with a **methanol rinse** run through it to recover any PFAS held on its walls.
+3. **Drop in new tubing** and sample the well again.
+4. **Return the existing tubing** to the well, so its monitoring carries on as before.
+
+Comparing the results well by well (water through old tubing, water through
+new tubing, and what the tubing itself held) shows whether the tubing adds or
+removes PFAS, and whether dedicated tubing can stay in place.
 
 ## My role
 
-I provided **field study and groundwater sampling support** for a
-SERDP-funded PFAS research study at Travis, collecting the samples the
-study was built on.
+I provided **field study and groundwater sampling support**: running the
+sampling sequence at each well and collecting the water and tubing-rinse
+samples the study was built on.
 
 ## Sampling for parts per trillion
 
-PFAS are measured in **parts per trillion**, and they are in everyday gear:
-waterproof clothing and notebooks, some sunscreens and food wrappers, Teflon
-tubing and seals. So PFAS sampling is as much about what you leave behind as
-what you bring back:
+A study of sampling bias cannot bring its own bias, so the field protocol
+is the product:
 
-- **PFAS-free field kit**: no waterproof fabrics or notebooks on site, no
-  Teflon anywhere near the sample; high-density polyethylene or polypropylene
-  bottles and tubing, nitrile gloves changed at every step;
-- **careful purging and sampling** of each monitoring well, with field
-  parameters logged so the water in the bottle represents the aquifer;
-- **blanks and duplicates**: field, equipment and trip blanks that show
-  nothing was added along the way, and duplicates that show the result
-  repeats;
+- **PFAS-free field kit**: no waterproof fabrics or notebooks, no Teflon
+  near the sample; high-density polyethylene or polypropylene bottles, nitrile
+  gloves changed at every step;
+- **careful purging and sampling** of each well, with field parameters logged
+  so the water in the bottle represents the aquifer;
+- **blanks and duplicates**: field and equipment blanks that show nothing was
+  added along the way, and duplicates that show the result repeats;
 - **chain of custody** from the well to the laboratory.
-
-In a research study the protocol is the product: the data are only as good
-as the discipline behind every bottle.
 
 ## Skills demonstrated
 
-PFAS groundwater sampling to research-grade protocols; field QA/QC with
-blanks and duplicates; work at an active military installation; and
-supporting a federally funded research team in the field.
+PFAS groundwater sampling to research-grade protocols; designing out sampling
+bias; tubing and methanol-rinsate sampling; field QA/QC with blanks and
+duplicates; and supporting a federally funded research study in the field.

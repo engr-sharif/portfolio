@@ -3,16 +3,19 @@ title: "PG&E Bakersfield MGP"
 client: "Pacific Gas and Electric Company (PG&E)"
 siteType: "Former manufactured gas plant — DTSC cleanup"
 status: "active"
-role: "Characterization & remediation support"
+role: "Field engineer; characterization, specifications & monitoring software"
 startDate: "2023-09"
-summary: "Investigation and cleanup of an 1880s gas plant site in downtown Bakersfield under DTSC oversight, from the borings and soil-vapor probes that defined the impacts to the excavation of about 6,400 cubic yards of soil in 2026."
+summary: "The cleanup of an 1880s gas plant site in downtown Bakersfield under DTSC oversight. I worked it end to end: characterization, the scope of work and specifications, field engineer through construction, and the software that turns perimeter air, noise and vibration monitoring into live data and daily reports."
 techniques:
   - "MGP site characterization"
   - "Soil & soil-vapor sampling"
-  - "Human health risk assessment"
-  - "DTSC Remedial Action Plan"
+  - "Scope of work & specifications"
+  - "Field engineering"
   - "Excavation & shoring"
-  - "Community air monitoring"
+  - "Perimeter air monitoring (Aeroqual)"
+  - "Noise & vibration monitoring"
+  - "Real-time data portal"
+  - "Automated daily reports"
 featured: true
 order: 3
 location: "Bakersfield, CA"
@@ -20,8 +23,8 @@ lat: 35.37
 lng: -119.02
 published: true
 problem: "A gas plant that ran from 1888 to 1910 left PAHs, naphthalene, benzene, petroleum hydrocarbons and lead in the soil beneath a downtown lot."
-approach: "Characterize the lot with soil borings and soil-vapor probes, assess the risk, then dig out the impacted soil under a DTSC-approved Remedial Action Plan, with shoring, air monitoring, and dust and odor controls for the neighbors."
-outcome: "DTSC approved the Remedial Action Plan in December 2024, and the excavation began in July 2026."
+approach: "Characterize the lot, write the scope and specifications that take the Remedial Action Plan to a contractor, then build it: excavation with shoring, and perimeter air, noise and vibration monitoring read live through software I built, so problems show up while they can still be fixed."
+outcome: "DTSC approved the Remedial Action Plan in December 2024 and the excavation began in July 2026, with real-time monitoring data and automatic daily reports for the perimeter, instead of spreadsheets assembled by hand."
 externalLink: "https://www.pge.com/en/about/corporate-responsibility-and-sustainability/environmental-remediation/manufactured-gas-plants.html"
 ---
 ## Setting
@@ -69,13 +72,39 @@ and soil vapor before the excavation is backfilled.
 
 ## My role
 
-I have supported the project since 2023 across **characterization and
-remediation**: the investigation that defined the extent of impacts and fed
-the remedial plan, and the work that has taken it into the ground.
+I have worked the project from investigation to construction:
+
+- **Characterization.** The investigation that defined the extent of the
+  impacts and fed the Remedial Action Plan.
+- **Scope and specifications.** Writing the scope of work and drafting the
+  technical specifications that turned the plan into something a contractor
+  could bid and build.
+- **Construction.** Taking the job out to bid, then on site as a **field
+  engineer** once the excavation began.
+- **Monitoring software.** Building the tools that watch the perimeter.
+
+## Watching the perimeter, live
+
+The monitoring is the neighbors' guarantee, and on a downtown dig it runs
+for every hour of work. Perimeter air monitoring uses **Aeroqual** stations
+around the site, and noise and vibration are measured with **Specto
+Technology** sensors. Out of the box, that means data in several places and
+daily reports assembled by hand.
+
+The Aeroqual units have an API, so I built a **portal** that pulls their
+readings as they are recorded: the whole perimeter on one screen in real
+time, where a rising reading shows up while there is still time to act on
+it, with the **daily air-monitoring report** generated from the same data.
+I built the same kind of reporting tool for noise and vibration: it takes the
+raw data from the sensors and produces the daily noise and vibration
+reports. The field team spends its time on the site instead of on
+spreadsheets, and every report comes from the same data, the same way, every
+day.
 
 ## Skills demonstrated
 
-Site characterization of a former manufactured gas plant; soil and soil-vapor
-investigation; working under DTSC oversight from investigation through
-remedial action; excavation-based remediation in a dense urban setting; and
-the dust, odor and air-monitoring controls that come with it.
+Site characterization of a former manufactured gas plant; scopes of work and
+technical specifications; taking a remedy from DTSC approval through bid and
+construction; field engineering on an urban excavation with shoring; and
+building real-time monitoring and automated reporting software on sensor
+APIs.
