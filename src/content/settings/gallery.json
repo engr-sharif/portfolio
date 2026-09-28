@@ -80,6 +80,36 @@
       "image": "/src/assets/covers/tc-02908.jpg",
       "alt": "An excavator bucket digging into a slope while a person in white coveralls sprays water",
       "caption": "An excavator digs while a crew member in protective coveralls sprays water to keep the dust down."
+    },
+    {
+      "image": "/src/assets/covers/img-8166.jpg",
+      "alt": "A tall white drill rig on a landfill slope above a wide valley",
+      "caption": "Drilling on the upper slope, with the valley spread out below."
+    },
+    {
+      "image": "/src/assets/covers/img-8129.jpg",
+      "alt": "A large black roll of textured geomembrane unrolling across a slope, a worker and telehandler behind",
+      "caption": "Unrolling textured geomembrane across the prepared slope."
+    },
+    {
+      "image": "/src/assets/covers/img-8284.jpg",
+      "alt": "A yellow Demtech Pro-Tester tensiometer with its clamps open, on textured geomembrane",
+      "caption": "A field tensiometer for seam samples: each weld is pulled apart to check its strength."
+    },
+    {
+      "image": "/src/assets/covers/img-2229.jpg",
+      "alt": "A wide landfill cell seen from its rim, black and white liner layers across the floor under a clear sky",
+      "caption": "The new cell from its rim: liner going down across the floor, the existing landfill beyond."
+    },
+    {
+      "image": "/src/assets/covers/img-2211.jpg",
+      "alt": "A track loader spreading grey drain rock over black liner while two workers stand at a pipe trench",
+      "caption": "Placing drain rock around the leachate collection pipe."
+    },
+    {
+      "image": "/src/assets/covers/img-2205.jpg",
+      "alt": "The sun setting over rippled black geomembrane on a landfill cell floor",
+      "caption": "Sunset over newly deployed geomembrane, its wrinkles catching the light."
     }
   ]
 }
