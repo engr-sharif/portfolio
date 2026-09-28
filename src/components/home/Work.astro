@@ -45,7 +45,18 @@ const total = (await getProjects()).length;
               <p class="work__summary">{d.summary}</p>
               {cover ? (
                 <a class="work__fig" href={href} tabindex="-1" aria-hidden="true">
-                  <Figure image={cover} alt={d.coverAlt || `${d.title}, ${d.siteType}`} aspect="16 / 10" sizes="(min-width: 64rem) 40vw, 92vw" widths={[480, 720, 960, 1280]} vt={`fig-${p.id}`} marked />
+                  <Figure image={cover} alt={d.coverAlt || `${d.title}, ${d.siteType}`} aspect="16 / 10" sizes="(min-width: 64rem) 40vw, 92vw" widths={[480, 720, 960, 1280]} vt={`fig-${p.id}`} marked>
+                    {d.film && (
+                      <>
+                        {/* the film's loop plays in the cover's place and carries on, from the same moment, on the project page */}
+                        <video class="work__loop" data-loop muted loop playsinline preload="none" aria-hidden="true" poster={withBase(d.film.poster)}>
+                          <source src={withBase(d.film.loop)} type="video/mp4" />
+                          {d.film.loopWebm && <source src={withBase(d.film.loopWebm)} type="video/webm" />}
+                        </video>
+                        <span class="work__film mono"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 3.5v9l7-4.5z" fill="currentColor" /></svg>Film{d.film.duration ? ` · ${Math.floor(d.film.duration / 60)}:${String(Math.round(d.film.duration % 60)).padStart(2, '0')}` : ''}</span>
+                      </>
+                    )}
+                  </Figure>
                 </a>
               ) : pos ? (
                 <a class="work__fig work__still" href={href} tabindex="-1" aria-hidden="true">
@@ -80,6 +91,18 @@ const total = (await getProjects()).length;
   .work__title a:hover { color: var(--cinnabar-ink); }
   .work__summary { font-family: var(--f-text); font-size: var(--t-body); line-height: var(--lh-text); color: var(--ink-2); max-width: 46ch; }
   .work__fig { display: block; text-decoration: none; color: inherit; margin-top: var(--s-4); }
+  .work__loop { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .work__film {
+    position: absolute; left: 0.75rem; top: 0.75rem;
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.3rem 0.6rem 0.3rem 0.45rem;
+    border-radius: 999px;
+    background: rgb(10 12 10 / 0.5);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    color: #f2f3ee;
+    font-size: 0.6875rem; letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .work__film svg { width: 0.7rem; height: 0.7rem; color: #ff6a45; }
   .work__facts { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-4) var(--s-5); margin: var(--s-4) 0 var(--s-5); padding-top: var(--s-4); border-top: 1px solid var(--rule); }
   .work__facts > div { display: grid; gap: 0.3rem; align-content: start; }
   .work__facts dd { margin: 0; font-size: 0.9375rem; line-height: 1.35; }
