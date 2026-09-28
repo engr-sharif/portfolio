@@ -144,6 +144,30 @@ for (const route of routes) {
     }
   }
 
+  // A figure opens in the viewer, fitted inside the screen, and steps on.
+  const fig = await page.$('[data-lightbox]');
+  if (fig) {
+    await fig.scrollIntoViewIfNeeded();
+    await fig.click();
+    await page.waitForTimeout(1600);
+    const box = await page.evaluate(() => {
+      const s = [...document.querySelectorAll('.vw__slide')].find((x) => x.getAttribute('aria-hidden') === 'false');
+      const r = s?.getBoundingClientRect();
+      return r && { l: r.left, t: r.top, r: r.right, b: r.bottom, w: innerWidth, h: innerHeight, open: document.querySelector('.vw')?.open };
+    });
+    if (!box?.open) problems.push('viewer did not open');
+    else if (box.l < -1 || box.t < -1 || box.r > box.w + 1 || box.b > box.h + 1) problems.push(`viewer photo overflows the screen: ${JSON.stringify(box)}`);
+    if (await page.$$eval('[data-lightbox]', (a) => a.length) > 1) {
+      const before = await page.textContent('[data-count]');
+      await page.keyboard.press('ArrowRight');
+      await page.waitForTimeout(1200);
+      if ((await page.textContent('[data-count]')) === before) problems.push('viewer did not step to the next photo');
+    }
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(1000);
+    if (await page.evaluate(() => document.querySelector('.vw')?.open)) problems.push('viewer did not close');
+  }
+
   const hasCsp = await page.$('meta[http-equiv="content-security-policy" i]');
   if (!hasCsp) problems.push('no CSP meta');
 
