@@ -1,28 +1,28 @@
 ---
-title: "Woodville Landfill — Southern Phase Cell Expansion"
-client: "Tulare County Resource Management Agency — Solid Waste"
-siteType: "Active Class III MSW landfill — new lined cell"
-status: "complete"
-role: "Design team & CQA support"
+title: Woodville Landfill — Southern Phase Cell Expansion
+client: Tulare County Resource Management Agency — Solid Waste
+siteType: Active Class III MSW landfill — new lined cell
+status: complete
+role: Design team & CQA support
 startDate: "2025"
 endDate: "2025"
 summary: "Design, and construction quality assurance on parts of the build, for a new lined disposal cell at Tulare County's Woodville Landfill: capacity for a county that is consolidating its landfills."
 problem: "Tulare County is consolidating its landfills at Woodville, so the site needs new lined space: cells that keep waste and leachate out of the groundwater beneath an agricultural valley."
-approach: "Our team designed the cell expansion and provided CQA on parts of its construction, checking the work in the field against the design."
-outcome: "A new cell built to the design and ready to take waste, adding capacity to the county's main landfill."
+approach: Our team designed the cell expansion and provided CQA on parts of its construction, checking the work in the field against the design.
+outcome: A new cell built to the design and ready to take waste, adding capacity to the county's main landfill.
 techniques:
-  - "Landfill cell design"
-  - "Composite liner system"
-  - "Leachate collection (LCRS)"
-  - "Geosynthetics"
-  - "CQA"
-  - "Title 27"
+  - Landfill cell design
+  - Composite liner system
+  - Leachate collection (LCRS)
+  - Geosynthetics
+  - CQA
+  - Title 27
 featured: false
 order: 6
-location: "Tulare County, CA"
+location: Tulare County, CA
 lat: 36.09
 lng: -119.2
-privacy: "town"
+privacy: town
 published: true
 clearance:
   names: true
@@ -30,8 +30,85 @@ clearance:
   location: true
   data: true
   date: "2026-09-27"
+gallery:
+  - /src/assets/covers/img-2229.jpg
+  - /src/assets/covers/img-2228.jpg
+  - /src/assets/covers/img-2227.jpg
+  - /src/assets/covers/img-2223.jpg
+  - /src/assets/covers/img-2222.jpg
+  - /src/assets/covers/img-2221.jpg
+  - /src/assets/covers/img-2220.jpg
+  - /src/assets/covers/img-2219.jpg
+  - /src/assets/covers/img-2215.jpg
+  - /src/assets/covers/img-2214.jpg
+  - /src/assets/covers/img-2211.jpg
+  - /src/assets/covers/img-2210.jpg
+  - /src/assets/covers/img-2205.jpg
+  - /src/assets/covers/img-2204.jpg
+  - /src/assets/covers/img-2206.jpg
+  - /src/assets/covers/img-2202.jpg
+  - /src/assets/covers/img-2203.jpg
+  - /src/assets/covers/img-2201.jpg
+  - /src/assets/covers/img-2189.jpg
+photoPlaces:
+  img-2229.jpg:
+    lat: 36.1
+    lng: -119.2
+  img-2228.jpg:
+    lat: 36.1
+    lng: -119.2
+  img-2227.jpg:
+    lat: 36.1
+    lng: -119.2
+  img-2223.jpg:
+    lat: 36.1
+    lng: -119.2
+  img-2222.jpg:
+    lat: 36.1
+    lng: -119.2
+  img-2221.jpg:
+    lat: 36.1
+    lng: -119.2
+  img-2220.jpg:
+    lat: 36.1
+    lng: -119.2
+  img-2219.jpg:
+    lat: 36.1
+    lng: -119.2
+  img-2215.jpg:
+    lat: 36.1
+    lng: -119.2
+  img-2214.jpg:
+    lat: 36.1
+    lng: -119.2
+  img-2211.jpg:
+    lat: 36.1
+    lng: -119.2
+  img-2210.jpg:
+    lat: 36.1
+    lng: -119.2
+  img-2205.jpg:
+    lat: 36.1
+    lng: -119.2
+  img-2204.jpg:
+    lat: 36.1
+    lng: -119.2
+  img-2206.jpg:
+    lat: 36.1
+    lng: -119.2
+  img-2202.jpg:
+    lat: 36.1
+    lng: -119.2
+  img-2203.jpg:
+    lat: 36.1
+    lng: -119.2
+  img-2201.jpg:
+    lat: 36.1
+    lng: -119.2
+  img-2189.jpg:
+    lat: 36.1
+    lng: -119.2
 ---
-
 ## Setting
 
 The Woodville Landfill is Tulare County's Class III municipal solid waste
