@@ -263,10 +263,11 @@ These need your accounts or your judgement:
    Credentials). It currently says "University".
 5. **Confirm the field photos** in the gallery are cleared (no identifiable
    people, plates or client signage).
-6. **Résumé PDF:** upload it in Site Settings, or replace
-   `public/resume/Sharif_Resume.pdf`. Until a real PDF is there, the CV page
-   offers "Print or save as PDF" of itself instead of a download
-   (`src/lib/resume.ts` detects the placeholder).
+6. **Résumé PDF:** the résumé is designed in `scripts/resume/resume.html` and
+   rendered to `public/resume/Sharif_Resume.pdf` with
+   `node scripts/build-resume.mjs` (add `--png` for page previews). Edit the
+   HTML, rebuild, commit the PDF. The home, About and CV pages offer it for
+   download (`src/lib/resume.ts` hides the links if the file goes missing).
 7. **Tool loops** (optional): record 5–15 s of each tool in use with sample
    data and upload it on the tool's page in the Studio. It replaces the
    schematic.

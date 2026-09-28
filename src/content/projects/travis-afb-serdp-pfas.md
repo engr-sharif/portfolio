@@ -4,8 +4,8 @@ client: "DoD / SERDP research program"
 siteType: "PFAS research & field study"
 status: "complete"
 role: "Field study & groundwater sampling support"
-startDate: "2022-06"
-endDate: "2023-05"
+startDate: "2025-06"
+endDate: "2025-06"
 summary: "Field work for a SERDP-funded PFAS study with a sharp question: can the tubing used to sample a monitoring well add PFAS to the sample? Existing and new tubing were tested side by side across about half a dozen wells."
 techniques: ["PFAS", "Groundwater sampling", "Sampling bias study", "Tubing & methanol rinsate sampling", "PFAS-free sampling protocols", "Field QA/QC"]
 featured: true

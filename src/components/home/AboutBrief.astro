@@ -1,9 +1,10 @@
 ---
-/** 6.0 About — the person, briefly, with the credentials a hiring manager checks. */
+/** 6.0 About — the person, briefly, with the credentials and the résumé. */
 import { site } from '../../lib/site';
 import { profile } from '../../lib/profile';
 import { getImage } from '../../lib/images';
 import { withBase } from '../../lib/path';
+import { resumeReady } from '../../lib/resume';
 import SectionHead from '../ui/SectionHead.astro';
 import Figure from '../ui/Figure.astro';
 
@@ -37,6 +38,7 @@ const creds = [
         <div class="about__links">
           <a class="btn btn--line" href={withBase('/about/')}>More about me</a>
           <a class="go" href={withBase('/cv/')}>Read the CV <span class="arrow" aria-hidden="true">→</span></a>
+          {resumeReady && <a class="go" href={withBase(site.resume)} download="Mohammad_Sharif_Resume.pdf">Download the résumé (PDF) <span class="arrow" aria-hidden="true">↓</span></a>}
         </div>
       </div>
     </div>

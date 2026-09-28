@@ -27,7 +27,7 @@ const updated = new Date().toLocaleDateString('en-US', { year: 'numeric', month:
       <ol class="phead__crumbs"><li><a href={withBase('/')}>Home</a></li><li aria-current="page">CV</li></ol>
       <div class="cv__actions">
         <button class="btn" type="button" data-print>Print or save as PDF</button>
-        {resumeReady && <a class="btn btn--line" href={withBase(site.resume)} download>Download the PDF résumé</a>}
+        {resumeReady && <a class="btn btn--line" href={withBase(site.resume)} download="Mohammad_Sharif_Resume.pdf">Download the PDF résumé</a>}
       </div>
     </div>
 
