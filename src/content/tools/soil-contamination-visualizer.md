@@ -3,7 +3,6 @@ name: "Soil Contamination Visualizer"
 summary: "A self-contained figure tool that loads GeoJSON soil data and renders contamination maps and figures, filtered live by analyte, sampling round, and threshold."
 problem: "Producing consistent contamination figures from sampling data was slow and manual — the team needed quick, filterable visuals they could regenerate as data changed."
 tech: ["JavaScript", "GeoJSON", "HTML"]
-repoUrl: "https://github.com/engr-sharif/ABP"
 screenshots: []
 codeSnippet: |-
   const getFilteredFeatures = () => {

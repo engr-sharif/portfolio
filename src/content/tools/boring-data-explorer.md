@@ -3,7 +3,6 @@ name: "Boring Data Explorer"
 summary: "A geospatial explorer for subsurface boring records — a clustered map with filtering, side-by-side comparison, saved views, and export, built as an installable PWA."
 problem: "Reviewing subsurface boring data meant digging through static files; the team needed an interactive, shareable way to explore and compare borings."
 tech: ["JavaScript", "GeoJSON", "Leaflet", "PWA"]
-repoUrl: "https://github.com/engr-sharif/sbmm-explorer-v2"
 screenshots: []
 codeLang: "javascript"
 featured: false

@@ -30,7 +30,7 @@ const no = `T-${String(i + 1).padStart(2, '0')}`;
       <p class="lede phead__lede">{d.summary}</p>
       <div class="tool__tb"><TitleBlock wideCols={3} cells={[
         { label: 'Built with', value: d.tech.join(', ') },
-        { label: 'Source', value: d.repoUrl ? d.repoUrl.replace(/^https:\/\/github\.com\//, 'github.com/') : 'Private' },
+        { label: 'Source', value: d.repoUrl ? d.repoUrl.replace(/^https:\/\/github\.com\//, 'github.com/') : 'On request' },
         { label: 'Try it', value: d.liveUrl ? d.liveUrl.replace(/^https?:\/\//, '') : 'On request' },
       ]} /></div>
     </header>

@@ -3,7 +3,6 @@ name: "Soil Sampling Planning Tool"
 summary: "An interactive map for planning soil sampling at a mercury-mine Superfund site — combining current and historical data to surface data gaps and place new sample points, right in the browser."
 problem: "Field teams needed a fast way to see where data already existed, spot the gaps, and plan new sample locations across a large investigation area — without standing up GIS software."
 tech: ["JavaScript", "Leaflet.js", "GeoJSON", "HTML"]
-repoUrl: "https://github.com/engr-sharif/sbmm-planning-tool"
 screenshots: []
 codeSnippet: |-
   document.getElementById('colorBySelect').addEventListener('change', function (e) {
