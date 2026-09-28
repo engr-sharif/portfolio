@@ -22,6 +22,7 @@ export interface Field {
   maxBytes?: number;           // file field: upload size limit
   posterField?: string;        // loop: sibling that receives the poster frame path
   peaksField?: string;         // audio: sibling that receives the waveform
+  geo?: boolean;               // image / image list: use the photo's GPS for the entry (photo-places.ts)
 }
 
 export interface Collection {
@@ -70,9 +71,9 @@ export const collections: Collection[] = [
       { name: 'approach', label: 'Brief — the approach', type: 'textarea', hint: 'What you did and how — methods, field work, tools.' },
       { name: 'outcome', label: 'Brief — the outcome', type: 'textarea', hint: 'What it delivered. Keep it factual; no client-confidential results.' },
       { name: 'techniques', label: 'Techniques', type: 'tags', itemType: 'text' },
-      { name: 'coverImage', label: 'Cover image', type: 'image', mediaDir: 'src/assets/covers' },
+      { name: 'coverImage', label: 'Cover image', type: 'image', mediaDir: 'src/assets/covers', geo: true },
       { name: 'coverAlt', label: 'Cover alt text', type: 'text' },
-      { name: 'gallery', label: 'Gallery images', type: 'tags', itemType: 'image', mediaDir: 'src/assets/covers' },
+      { name: 'gallery', label: 'Gallery images', type: 'tags', itemType: 'image', mediaDir: 'src/assets/covers', geo: true, hint: 'A photo’s GPS places it on the map (rounded to the privacy setting) and is then removed from the file.' },
       { name: 'externalLink', label: 'External link', type: 'text' },
       { name: 'envirostorQuery', label: 'Live status — EnviroStor site name', type: 'text', hint: 'e.g. "Sulphur Bank Mercury Mine" → live regulatory badge. Blank for none.' },
       { name: 'video', label: 'Video (YouTube)', type: 'youtube', hint: 'A walkthrough or site video. Public or unlisted both work.' },

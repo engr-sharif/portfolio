@@ -25,7 +25,13 @@ location: "Colton, CA"
 lat: 34.04
 lng: -117.3
 privacy: "town"
-published: false
+published: true
+clearance:
+  names: true
+  photos: true
+  location: true
+  data: true
+  date: "2026-09-27"
 ---
 
 ## Setting

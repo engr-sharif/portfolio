@@ -113,7 +113,8 @@ export const EditorPage: FC<Props> = ({ collection, path, onDirtyChange }) => {
     })();
   }, [collection.id, path]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const set = (name: string, v: any) => { setData((d) => ({ ...d, [name]: v })); setDirty(true); if (fieldErrors[name]) setFieldErrors((fe) => { const n = { ...fe }; delete n[name]; return n; }); };
+  /** Set a field; a function is applied to its current value (for writes that race, like photo places). */
+  const set = (name: string, v: any) => { setData((d) => ({ ...d, [name]: typeof v === 'function' ? v(d[name]) : v })); setDirty(true); if (fieldErrors[name]) setFieldErrors((fe) => { const n = { ...fe }; delete n[name]; return n; }); };
   const setBodyDirty = (v: string) => { setBody(v); setDirty(true); };
   const togglePreview = () => { const n = !preview; setPreview(n); try { localStorage.setItem('studio.preview', n ? '1' : '0'); } catch { /* fine */ } };
 

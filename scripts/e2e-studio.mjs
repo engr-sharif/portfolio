@@ -108,9 +108,19 @@ try {
     if (after[1] !== titles[0]) throw new Error(`expected "${titles[0]}" second, got ${JSON.stringify(after.slice(0, 2))}`);
   });
   await step('edit an entry and save with ⌘S', async () => {
-    await page.locator('[data-testid=entry-row] .tbl__open').first().click();
+    // the refusal needs a live project not yet cleared; the content decides which that is
+    const rows = await page.locator('[data-testid=entry-row]').count();
+    for (let i = 0; ; i++) {
+      if (i >= rows) throw new Error('no live, uncleared project to edit');
+      await page.locator('[data-testid=entry-row] .tbl__open').nth(i).click();
+      await page.waitForSelector('#f-title', { timeout: 20000 });
+      await page.waitForSelector('.golive__item', { timeout: 20000 });
+      const live = await page.locator('#f-published[aria-checked="true"]').count();
+      if (live && await page.locator('.golive__item:not(.is-on)').count()) break;
+      await page.goBack();
+      await page.waitForSelector('[data-testid=entry-row]', { timeout: 20000 });
+    }
     await page.waitForSelector('.ed', { timeout: 20000 });
-    await page.waitForSelector('#f-title', { timeout: 20000 });
     await page.fill('#f-title', (await page.inputValue('#f-title')) + ' (e2e)');
     await page.waitForSelector('.ed__dirty', { timeout: 5000 });
     // a live project published before the checklist: saving is refused until it's cleared
@@ -283,6 +293,20 @@ try {
     await page.click('.sd a.nav__link:has-text("Projects")'); // in-app: the demo worker lives in this page
     await page.locator('[data-testid=entry-row]:has-text("Sulphur Bank") .tbl__open').first().click();
     await page.waitForSelector('.golive .finding:has-text("Name on your watch list")', { timeout: 20000 });
+  });
+  await step('photo GPS: a photo taken at another site is flagged, and forgotten when removed', async () => {
+    // a JPEG whose GPS says Woodville, added to the Colton project (~300 km away)
+    const sharp = (await import('sharp')).default;
+    const jpg = await sharp({ create: { width: 64, height: 48, channels: 3, background: '#a0522d' } })
+      .withExif({ IFD3: { GPSLatitudeRef: 'N', GPSLatitude: '36/1 5/1 24/1', GPSLongitudeRef: 'W', GPSLongitude: '119/1 12/1 0/1' } })
+      .jpeg().toBuffer();
+    await page.click('.sd a.nav__link:has-text("Projects")');
+    await page.locator('[data-testid=entry-row]:has-text("Colton") .tbl__open').first().click();
+    const gallery = page.locator('.sf:has(.sf__label:text-is("Gallery images"))');
+    await gallery.locator('input[type=file]').setInputFiles({ name: 'e2e-woodville.jpg', mimeType: 'image/jpeg', buffer: jpg });
+    await gallery.locator('.callout--warn:has-text("km from this project")').waitFor({ timeout: 20000 });
+    await gallery.locator('.imggrid__item[title="e2e-woodville.jpg"] .imggrid__x').click();
+    await gallery.locator('.callout--warn').waitFor({ state: 'detached', timeout: 5000 });
   });
   await step('“?” opens the shortcuts sheet', async () => {
     await page.keyboard.press('Shift+Slash');
