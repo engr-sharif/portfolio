@@ -108,6 +108,7 @@ photoPlaces:
   img-2189.jpg:
     lat: 36.1
     lng: -119.2
+coverImage: /src/assets/covers/img-2228.jpg
 ---
 ## Setting
 
