@@ -19,10 +19,9 @@ const pe = profile.credentials.find((c) => /PE|Professional/.test(c.label));
         <div><dt class="label">Discipline</dt><dd>Environmental Engineer, EIT</dd></div>
         <div><dt class="label">Based in</dt><dd>{site.location}</dd></div>
         {pe && <div><dt class="label">Licensure</dt><dd>PE, {pe.date.toLowerCase()}</dd></div>}
-        <div><dt class="label">Status</dt><dd><span class="status status--active">Open to roles</span></dd></div>
       </dl>
       <h1 class="opening__name" id="opening-name"><span>Mohammad</span> <span>Sharif</span></h1>
-      <p class="opening__thesis">I investigate and help clean up contaminated ground: a Superfund mercury mine, closed landfills, PFAS in groundwater. I also build the software my field crews use.</p>
+      <p class="opening__thesis">Environmental engineer on California remediation and landfill projects, currently leading Phase 1 construction on the Sulphur Bank Mercury Mine Superfund cleanup.</p>
       <div class="opening__actions">
         <a class="btn" href="#atlas">See the work <span class="arrow" aria-hidden="true">↓</span></a>
         <a class="btn btn--line" href={withBase('/cv/')}>Read the CV</a>
@@ -43,7 +42,12 @@ const pe = profile.credentials.find((c) => /PE|Professional/.test(c.label));
     border-left: 1px solid var(--rule-2);
     max-width: 40rem;
   }
-  @container (min-width: 34rem) { .opening__tb { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  /* two across on a narrow column (an odd last cell takes the row), all in one row when there's room */
+  .opening__tb > div:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  @container (min-width: 34rem) {
+    .opening__tb { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+    .opening__tb > div:last-child:nth-child(odd) { grid-column: auto; }
+  }
   .opening__tb > div { padding: 0.6rem 0.8rem 0.7rem; border-right: 1px solid var(--rule-2); border-bottom: 1px solid var(--rule-2); display: grid; gap: 0.25rem; background: var(--ground-2); }
   .opening__tb dd { margin: 0; font-size: 0.9375rem; font-weight: 520; }
   .opening__name {
@@ -54,7 +58,7 @@ const pe = profile.credentials.find((c) => /PE|Professional/.test(c.label));
     margin-left: -0.05em;
   }
   .opening__name span { display: block; }
-  .opening__thesis { font-family: var(--f-text); font-size: var(--t-lede); line-height: 1.4; max-width: 30ch; }
+  .opening__thesis { font-family: var(--f-text); font-size: var(--t-lede); line-height: 1.4; max-width: 36ch; text-wrap: pretty; }
   .opening__actions { display: flex; flex-wrap: wrap; gap: var(--s-3); }
   .opening__hint { font-size: 0.6875rem; color: var(--ink-3); letter-spacing: 0.02em; }
   .opening__hint-fine { display: none; }
