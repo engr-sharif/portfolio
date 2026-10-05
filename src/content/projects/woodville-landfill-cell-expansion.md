@@ -111,31 +111,33 @@ photoPlaces:
 coverImage: /src/assets/covers/img-2228.jpg
 film:
   title: Woodville from the air
-  src: /media/film/woodville/woodville-from-the-air/hls/master.m3u8
+  src: /media/film/woodville/woodville-landfill-cell/hls/master.m3u8
   loop: /media/film/woodville/loop/loop-720.mp4
   loopWebm: /media/film/woodville/loop/loop-720.webm
-  poster: /media/film/woodville/woodville-from-the-air/poster.webp
+  poster: /media/film/woodville/woodville-landfill-cell/poster.webp
   loopPoster: /media/film/woodville/loop/loop-poster.jpg
-  duration: 162
+  duration: 300
   aspect: 2.388
   chapters:
     - t: 0
       label: The site
-    - t: 16
-      label: Prepared subgrade
-    - t: 32
-      label: Geosynthetic liner
+    - t: 24
+      label: Subgrade
     - t: 64
       label: Night shift
-    - t: 80
-      label: Geomembrane deployment
-    - t: 112
+    - t: 96
+      label: Geosynthetic liner
+    - t: 128
+      label: Geomembrane
+    - t: 192
+      label: Liner installation
+    - t: 232
       label: The cell
   storyboard:
-    src: /media/film/woodville/woodville-from-the-air/storyboard.webp
+    src: /media/film/woodville/woodville-landfill-cell/storyboard.webp
     every: 2
-    cols: 9
-    rows: 9
+    cols: 10
+    rows: 15
     w: 320
     h: 134
 ---
@@ -144,7 +146,9 @@ site in May and June 2024: the prepared subgrade beside the existing
 landfill, the geosynthetic liner going down panel by panel, a pre-dawn
 night shift under light towers, crews deploying the geomembrane, and the
 finished scale of the lined cell. The score is original, composed for the
-film. Shots with identifiable people, vehicles or signage were left out.
+film. It ends on the ground, with me and a colleague at the car the
+flights were flown from; other identifiable people, plates and signage were
+left out or blurred.
 
 ## Setting
 

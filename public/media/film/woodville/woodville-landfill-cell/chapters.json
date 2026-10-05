@@ -1,0 +1,30 @@
+[
+  {
+    "t": 0.0,
+    "label": "The site"
+  },
+  {
+    "t": 24.0,
+    "label": "Subgrade"
+  },
+  {
+    "t": 64.0,
+    "label": "Night shift"
+  },
+  {
+    "t": 96.0,
+    "label": "Geosynthetic liner"
+  },
+  {
+    "t": 128.0,
+    "label": "Geomembrane"
+  },
+  {
+    "t": 192.0,
+    "label": "Liner installation"
+  },
+  {
+    "t": 232.0,
+    "label": "The cell"
+  }
+]
